@@ -1,3 +1,3 @@
 # Privacy — optional
 
-Тук се описват категории лични данни, цел на обработката, срокове, достъп и външни обработващи страни, когато са приложими. Не добавяйте реални лични данни. Ако проектът няма такива процеси, оставете само този README. Добавете бъдещ документ в [индекса](../00-index.md).
+Describe personal-data categories, processing purposes, retention periods, access and external processors where applicable. Do not include real personal data. If the project has no such processes, keep only this README. Add any future document to the [index](../00-index.md).

@@ -1,3 +1,3 @@
 # Security — optional
 
-Тук се описват достъп, роли, заплахи, защитни мерки и отговорности. Не записвайте секрети, реални токени, частни ключове или чувствителни примери. Посочвайте кой преглежда промени в правилата. Добавете документа в [индекса](../00-index.md).
+Describe access, roles, threats, safeguards and responsibilities here. Do not record secrets, real tokens, private keys or sensitive examples. Identify who reviews rule changes. Add the document to the [index](../00-index.md).

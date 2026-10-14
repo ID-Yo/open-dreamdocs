@@ -2,13 +2,13 @@
 {"document":"dreamer-setup","status":"draft","owner":"<project-owner>","last_reviewed":"<YYYY-MM-DD>"}
 ---
 
-# Настройване на дневния Dreamer
+# Daily Dreamer Setup
 
-Тази страница описва договора между проектен scheduler, runner-а и агента. Разширената политика е в [`memory/DREAMER_POLICY.md`](../../memory/DREAMER_POLICY.md). Файловият шаблон не създава активна задача в scheduler и не твърди, че моделът е семантично правилен.
+This page describes the contract between a project's scheduler, runner and agent. The full policy is in [`memory/DREAMER_POLICY.md`](../../memory/DREAMER_POLICY.md). The file-based template does not create an active scheduler task or claim that the model's semantic judgments are correct.
 
-## Един собственик и дневен график
+## One owner and a daily schedule
 
-Конкретният проект избира един scheduler owner, локална часова зона, локален час и изпълнител. Графикът е веднъж дневно по местното време на проекта. Уведомяването е failure-only и при значима промяна, завършване или нужда от действие; непромененото състояние не изпраща съобщение. Параметрите се записват в `memory/config.json`:
+Each project selects one scheduler owner, local timezone, local time and executor. The schedule runs once daily in the project's local time. Notifications cover failures, meaningful changes, completion or required action; unchanged state sends no message. Settings are recorded in `memory/config.json`:
 
 ```json
 {
@@ -23,64 +23,64 @@
 }
 ```
 
-`null` означава, че проектът още не е настроил стойността. Файловият runner е включен в пакета; scheduler-ът и връзката му с избрания агент се настройват външно. Пакетът сам не планира работа.
+`null` means the project has not configured the value yet. The file-based runner is included; the scheduler and its connection to the selected agent are configured externally. The package does not schedule work itself.
 
-## Първо изпълнение
+## First run
 
-1. Попълнете `PROJECT.md`, `AGENTS.md`, `docs/00-index.md`, `memory/README.md`, `memory/SCHEMA.md` и `memory/config.json`.
-2. Изберете scheduler owner и потвърдете локалната часова зона и час.
-3. Изпълнете `python scripts/project_memory.py validate`.
-4. Стартирайте `python scripts/project_memory.py begin`. Командата взема lock, създава `memory/dreamer/work/RUN_ID/snapshot.json` и `result.json`, и отпечатва run ID.
-5. Snapshot-ът съдържа пълен manifest с хешове на всички реални входни записи и съдържанието на записите, които са променени след последния успешен checkpoint или са due/open. Каноничните документи се четат при нужда и са вън от memory входния manifest.
-6. Агентът чете snapshot и началния `result.json`, след което редактира само `result.json`.
-7. Агентът попълва валиден `status`, непразно `summary`, пълен `reviewed_ids` при успех и предложенията по схемата на резултата по-долу. `memory/SCHEMA.md` описва Markdown записите в паметта.
-8. Изпълнете `python scripts/project_memory.py finish --run-id RUN_ID`.
+1. Fill in `PROJECT.md`, `AGENTS.md`, `docs/00-index.md`, `memory/README.md`, `memory/SCHEMA.md` and `memory/config.json`.
+2. Select a scheduler owner and confirm the local timezone and time.
+3. Run `python scripts/project_memory.py validate`.
+4. Run `python scripts/project_memory.py begin`. The command acquires a lock, creates `memory/dreamer/work/RUN_ID/snapshot.json` and `result.json`, and prints the run ID.
+5. The snapshot contains a complete manifest with hashes of all real input records and the contents of records changed since the last successful checkpoint or due/open. Canonical documents are read as needed and are outside the memory input manifest.
+6. The agent reads the snapshot and initial `result.json`, then edits only `result.json`.
+7. The agent fills in a valid `status`, nonempty `summary`, complete `reviewed_ids` on success and proposals following the result schema below. `memory/SCHEMA.md` describes Markdown memory records.
+8. Run `python scripts/project_memory.py finish --run-id RUN_ID`.
 
-Не е нужно да има входни записи: zero-input run може да завърши с кратък summary и празен `reviewed_ids` и `proposals`. Не е необходим автоматичен модел за такъв run.
+Input records are not required: a zero-input run may finish with a short summary and empty `reviewed_ids` and `proposals`. Such a run does not require an automated model.
 
-## Схема на резултата
+## Result schema
 
-Началният файл има `status: "pending"` и `reviewed_ids: []`. Агентът съзнателно го променя на `success`, `partial` или `failed` и попълва непразен `summary`. При `success` `reviewed_ids` трябва да съдържа всички ID от snapshot-а, които изискват преглед; при `partial` или `failed` summary описва какво остава.
+The initial file has `status: "pending"` and `reviewed_ids: []`. The agent deliberately changes it to `success`, `partial` or `failed` and provides a nonempty `summary`. For `success`, `reviewed_ids` must contain all snapshot IDs requiring review; for `partial` or `failed`, the summary describes what remains.
 
 ```json
 {
   "run_id": "RUN_ID",
   "status": "success",
-  "summary": "Кратък резултат от run-а.",
+  "summary": "Brief run outcome.",
   "reviewed_ids": ["episode-001"],
   "proposals": [
     {
       "kind": "fact",
-      "title": "Кратко заглавие",
+      "title": "Brief title",
       "source_ids": ["episode-001"],
-      "body": "Предложение с обхват и доказателство."
+      "body": "Proposal with scope and evidence."
     }
   ]
 }
 ```
 
-`kind` е един от `fact`, `procedure`, `contradiction`, `duplicate`, `archive`. Предложението е кандидат за преглед, не автоматично активно правило.
+`kind` is one of `fact`, `procedure`, `contradiction`, `duplicate`, `archive`. A proposal is a review candidate, not an automatically active rule.
 
-## Успешен finish
+## Successful finish
 
-`finish` проверява result schema, статуса, непразния summary, допустимите ID и пълния `reviewed_ids` при success. Проверява и че пълният входен manifest и хешовете от snapshot-а са непроменени: добавяне, редактиране или изтриване на реален запис по време на run-а означава failure без checkpoint. След успешна проверка runner-ът записва детерминирани изходи:
+`finish` checks the result schema, status, nonempty summary, allowed IDs and complete `reviewed_ids` on success. It also checks that the complete input manifest and snapshot hashes are unchanged: adding, editing or deleting a real record during the run causes failure without checkpoint advancement. After successful validation, the runner writes deterministic outputs:
 
 - `memory/dreamer/reports/RUN_ID.json`;
-- `memory/dreamer/proposals/ID.json`, където `ID` е детерминиран hash на предложението.
+- `memory/dreamer/proposals/ID.json`, where `ID` is a deterministic proposal hash.
 
-Checkpoint-ът се премества само при `success`, след commit на отчета и предложенията. При `partial`, `failed` или прекъсване checkpoint-ът остава от предишния успешен run, така че следващият `begin` да опита входа отново. Генерираните отчети и предложения не се връщат като следващ вход.
+The checkpoint advances only on `success`, after the report and proposals have been written. For `partial`, `failed` or interruption, the checkpoint stays at the previous successful run so the next `begin` retries the input. Generated reports and proposals do not become subsequent input.
 
-## Едновременен run, abort и възстановяване
+## Concurrent runs, abort and recovery
 
-- Един lock допуска само един run за проект. Втори `begin` спира с конфликт; lock-ът не се краде автоматично.
-- `python scripts/project_memory.py abort --run-id RUN_ID` освобождава активния run без checkpoint.
-- `python scripts/project_memory.py recover --run-id RUN_ID --confirm-stopped --max-age-minutes N` е изрично възстановяване за потвърдено спряно изпълнение. `N` трябва да е положително. Използвайте го само след проверка, че процесът действително не работи; runner-ът не може сам да докаже това.
-- Не използвайте `recover`, за да прекъснете жив run или да заобиколите конфликт.
+- One lock permits only one run per project. A second `begin` stops with a conflict; locks are not automatically taken over.
+- `python scripts/project_memory.py abort --run-id RUN_ID` releases the active run without advancing the checkpoint.
+- `python scripts/project_memory.py recover --run-id RUN_ID --confirm-stopped --max-age-minutes N` explicitly recovers a confirmed stopped run. `N` must be positive. Use it only after checking that the process is actually stopped; the runner cannot prove this itself.
+- Do not use `recover` to interrupt a live run or bypass a conflict.
 
-## Дневна процедура
+## Daily procedure
 
-Scheduler owner стартира `begin` веднъж дневно. Агентът чете snapshot-а, попълва result-а и извиква `finish`. При грешка се запазва доказателство и се изпраща уведомяване според политиката. При липса на промяна runner-ът може да завърши с zero-input result без notification. Няма автоматичен self-trigger от генерираните файлове.
+The scheduler owner starts `begin` once daily. The agent reads the snapshot, fills in the result and calls `finish`. On error, preserve evidence and send a notification according to policy. When nothing has changed, the runner may complete with a zero-input result without notification. Generated files do not automatically trigger another run.
 
-## Ограничения
+## Limitations
 
-Runner-ът проверява структура, manifest, хешове и форма на резултата. Той не доказва, че предложен факт е истина, че skill е безопасен или че семантичното решение е правилно. Тези решения остават предмет на owner review според [`docs/governance/`](../governance/README.md).
+The runner checks structure, manifest, hashes and result shape. It does not prove that a proposed fact is true, that a skill is safe or that a semantic decision is correct. These decisions remain subject to owner review under [`docs/governance/`](../governance/README.md).

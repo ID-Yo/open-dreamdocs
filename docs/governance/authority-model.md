@@ -4,28 +4,28 @@
 
 # Authority Model
 
-Това е единствената канонична йерархия на източниците. Разрешението на потребителя определя обхвата на работата; то не доказва, че запомненото твърдение е вярно.
+This is the single canonical hierarchy of sources. User authorization defines the scope of work; it does not prove that a remembered claim is true.
 
-## По подразбиране
+## Default hierarchy
 
-1. Текуща live система или текущ код
-2. Явна текуща конфигурация
-3. Приет ADR
-4. Текуща документация в `docs/`
-5. Активен semantic memory запис
-6. Episodic memory запис
-7. Извод на агента
+1. Current live system or current code
+2. Explicit current configuration
+3. Accepted ADR
+4. Current documentation in `docs/`
+5. Active semantic memory record
+6. Episodic memory record
+7. Agent inference
 
-## Runtime истина и намерен дизайн
+## Runtime truth and intended design
 
-За текущото поведение runtime доказателството може да е по-високо от документация. За желаната архитектура приетият ADR може да е по-висок от случаен дефект в реализацията. При несъгласие запишете разликата и кой собственик трябва да реши.
+For current behavior, runtime evidence may outrank documentation. For intended architecture, an accepted ADR may outrank an incidental implementation defect. When they disagree, record the difference and identify the owner who must decide.
 
-## Конфликт с memory
+## Conflict with memory
 
-Сверете с по-високия източник. Ако има приет заместник, собственикът маркира стария запис като `superseded`. Ако доказателствата са неясни, предложете `disputed` и създайте `contradiction` за преглед. Не поддържайте две активни версии на едно твърдение без обхват и причина.
+Check against the higher-authority source. If an accepted replacement exists, the owner marks the old record as `superseded`. If evidence is unclear, propose `disputed` and create a `contradiction` for review. Do not maintain two active versions of one claim without a scope and reason.
 
 ## Domain overrides
 
-| Област | Най-висок източник | Бележка |
+| Area | Highest source | Note |
 |---|---|---|
 | ... | ... | ... |

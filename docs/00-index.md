@@ -1,21 +1,21 @@
-# Индекс на документацията
+# Documentation Index
 
-Това е входът към каноничната проектна документация. Първо попълнете [`PROJECT.md`](../PROJECT.md) и [`AGENTS.md`](../AGENTS.md). Зареждайте само страниците, нужни за текущата задача.
+This is the entry point to canonical project documentation. First fill in [`PROJECT.md`](../PROJECT.md) and [`AGENTS.md`](../AGENTS.md). Load only the pages needed for the current task.
 
-## Основни входове
+## Main entry points
 
-- [Структура и правила за нови папки](STRUCTURE.md)
-- [Платформа и обхват](overview/platform.md)
+- [Structure and rules for new folders](STRUCTURE.md)
+- [Platform and scope](overview/platform.md)
 - [Governance](governance/README.md)
-- [Проектна памет](../memory/README.md)
-- [Схема на записите](../memory/SCHEMA.md)
-- [Дневна политика на Dreamer](../memory/DREAMER_POLICY.md)
-- [Параметри](../memory/config.json)
-- [Настройване на Dreamer](operations/dreamer-setup.md)
+- [Project memory](../memory/README.md)
+- [Record schema](../memory/SCHEMA.md)
+- [Daily Dreamer policy](../memory/DREAMER_POLICY.md)
+- [Settings](../memory/config.json)
+- [Dreamer setup](operations/dreamer-setup.md)
 
-## Категории и страници
+## Categories and pages
 
-| Категория | README | Канонични страници |
+| Category | README | Canonical pages |
 |---|---|---|
 | Overview (core) | [README](overview/README.md) | [platform.md](overview/platform.md) |
 | Architecture (optional) | [README](architecture/README.md) | [system-overview.md](architecture/system-overview.md) |
@@ -31,4 +31,4 @@
 | Governance (core) | [README](governance/README.md) | [authority-model.md](governance/authority-model.md), [memory-lifecycle.md](governance/memory-lifecycle.md), [promotion-rules.md](governance/promotion-rules.md) |
 | Status (optional) | [README](status/README.md) | [current-state.md](status/current-state.md) |
 
-Шаблоните в `templates/` и примерите в `examples/` не са канонични страници и не се обработват като активна памет. Историческите записи в `memory/` не са текущи проектни правила.
+Templates in `templates/` and examples in `examples/` are not canonical pages and are not processed as active memory. Historical records in `memory/` are not current project rules.

@@ -1,6 +1,6 @@
-# Проверка и Dreamer lifecycle
+# Validation and Dreamer Lifecycle
 
-Нужен е Python 3.11+; няма външни библиотеки. [project_memory.py](project_memory.py) валидира records/config/links и управлява lock, snapshot, reports/proposals и checkpoint. Не извиква LLM, не инсталира scheduler, не доказва истинността на фактите.
+Requires Python 3.11+ with no external libraries. [project_memory.py](project_memory.py) validates records/config/links and manages the lock, snapshot, reports/proposals and checkpoint. It does not call an LLM, install a scheduler or prove factual accuracy.
 
 ```text
 python scripts/project_memory.py validate
@@ -12,6 +12,6 @@ python scripts/project_memory.py --root PATH validate
 python -B -m unittest discover -s tests -v
 ```
 
-Глобалният --root е преди командата. begin създава pending result; агентът го попълва по [политиката](../memory/DREAMER_POLICY.md). Exit: 0 success, 1 partial/failed, 2 invalid input/runtime error. validate разрешава null scheduler fields за непопълнен шаблон и ги отчита като scheduler_configured=false.
+The global --root option precedes the command. begin creates a pending result; the agent fills it in according to the [policy](../memory/DREAMER_POLICY.md). Exit codes: 0 success, 1 partial/failed, 2 invalid input/runtime error. validate permits null scheduler fields in an unconfigured template and reports scheduler_configured=false.
 
-Валидаторът проверява познати категории памет, всички локални Markdown връзки извън work, правилни source IDs/file refs, duplicate IDs, статуси, структуриран frontmatter, dates и checkpoint. HTTPS и ref: източници се проверяват от преглеждащия агент/човек. CLI не изпълнява входен текст. Добавяне на нов тип памет изисква промяна на кода и тестовете.
+The validator checks known memory categories, all local Markdown links outside work, valid source IDs/file references, duplicate IDs, statuses, structured frontmatter, dates and checkpoint. The reviewing agent/person checks HTTPS and ref: sources. The CLI does not execute input text. Adding a new memory type requires code and test changes.

@@ -1,3 +1,3 @@
 # Procedures — optional
 
-Тук са повторяемите инструкции с цел, предварителни условия, граници на безопасност, стъпки, проверка и възстановяване. Случайно успешен метод от `memory/procedural/` е кандидат, докато не бъде проверен и приет тук. Добавете всяка канонична процедура в [индекса](../00-index.md).
+Store repeatable instructions with purpose, preconditions, safety boundaries, steps, verification and recovery here. A method that happened to succeed in `memory/procedural/` remains a candidate until verified and accepted here. Add each canonical procedure to the [index](../00-index.md).

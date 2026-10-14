@@ -2,25 +2,25 @@
 {"document":"procedure","status":"draft","owner":"<owner>","last_reviewed":null}
 ---
 
-# Процедура: <заглавие>
+# Procedure: <title>
 
-## Цел и обхват
-<Кога е приложима и кога не е.>
+## Purpose and scope
+<When this applies and when it does not.>
 
-## Предварителни условия и достъп
-<Инструменти, роли, входни данни.>
+## Preconditions and access
+<Tools, roles, input data.>
 
-## Разрешени действия
-<Какво е разрешено от собственика и какви граници важат.>
+## Allowed actions
+<What the owner has authorized and which boundaries apply.>
 
-## Стъпки
-1. <стъпка>
+## Steps
+1. <step>
 
-## Проверка
-<Наблюдаем успешен резултат и доказателства.>
+## Verification
+<Observable successful result and evidence.>
 
-## Неуспех и възстановяване
-<Как се открива проблем и се връща безопасно състояние.>
+## Failure and recovery
+<How to detect a problem and restore a safe state.>
 
-## Източници
-<Канонични документи и код.>
+## Sources
+<Canonical documents and code.>

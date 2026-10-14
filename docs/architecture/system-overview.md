@@ -2,38 +2,38 @@
 {"document":"architecture","status":"draft","owner":"<project-owner>","last_reviewed":"<YYYY-MM-DD>"}
 ---
 
-# Архитектурен преглед
+# Architecture Overview
 
-Попълнете тази страница с действащата архитектура. Приетите решения и алтернативи са в `docs/decisions/`; не превръщайте случайна реализация в намерена архитектура без доказателство.
+Fill in this page with the actual architecture. Accepted decisions and alternatives belong in `docs/decisions/`; do not turn an incidental implementation into intended architecture without evidence.
 
-## Контекст
-<Къде се намира системата и кои външни системи я заобикалят.>
+## Context
+<Where the system sits and which external systems surround it.>
 
-## Архитектура на високо ниво
+## High-level architecture
 ```mermaid
 flowchart LR
-    U[Потребител / външна система] --> A[Приложение]
-    A --> D[(Основно хранилище)]
-    A --> X[Външни услуги]
+    U[User / external system] --> A[Application]
+    A --> D[(Main data store)]
+    A --> X[External services]
 ```
 
-## Основни компоненти
-| Компонент | Отговорност | Източник на истина |
+## Main components
+| Component | Responsibility | Source of truth |
 |---|---|---|
 | ... | ... | ... |
 
-## Основни потоци от данни
+## Main data flows
 1. ...
 2. ...
 
-## Критични инварианти
+## Critical invariants
 - ...
 
-## Граници на доверие и достъп
+## Trust and access boundaries
 - ...
 
-## Известен архитектурен дълг
+## Known architectural debt
 - ...
 
-## Свързани решения
+## Related decisions
 - ...

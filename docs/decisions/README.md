@@ -1,3 +1,3 @@
 # Decisions — optional
 
-Тук се записват приети решения с контекст, разгледани варианти, собственик, дата и последствия. Предложение от паметта не е прието решение. При замяна на решение свържете стария и новия запис; не презаписвайте историята тихо. Добавете документа в [индекса](../00-index.md).
+Record accepted decisions with context, considered alternatives, owner, date and consequences. A memory proposal is not an accepted decision. When replacing a decision, link the old and new records; do not silently overwrite history. Add the document to the [index](../00-index.md).

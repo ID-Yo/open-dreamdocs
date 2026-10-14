@@ -1,3 +1,3 @@
 # QA — optional
 
-Тук се поставят тестова стратегия, сценарии за приемане и критерии за проверка. Еднократните резултати и доказателства сочете чрез препратки, вместо да ги представяте като постоянни правила. Добавете повторяемите проверки в [индекса](../00-index.md).
+Store test strategy, acceptance scenarios and verification criteria here. Link to one-off results and evidence instead of presenting them as permanent rules. Add repeatable checks to the [index](../00-index.md).

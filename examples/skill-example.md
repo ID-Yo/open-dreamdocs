@@ -17,20 +17,20 @@
 }
 ---
 
-# Учебен кандидат за процедура
+# Example Procedure Candidate
 
 ## Trigger
-Неуспешен build.
+Failed build.
 
 ## Preconditions
-Read-only достъп до конфигурация и безопасни логове.
+Read-only access to configuration and safe logs.
 
-## Стъпки
-1. Прочети точната грешка.
-2. Сравни build командата и runtime версията с project конфигурацията.
-3. Предложи най-малката поправка.
+## Steps
+1. Read the exact error.
+2. Compare the build command and runtime version with project configuration.
+3. Propose the smallest fix.
 
-## Проверка
-Build и съответният тест минават. Deployment се изпълнява само в разрешения обхват на конкретна задача.
+## Verification
+The build and relevant test pass. Deployment occurs only within the authorized scope of a specific task.
 
-Един измислен успех илюстрира candidate, не оправдава автоматично приемане.
+One fictitious success illustrates a candidate; it does not justify automatic acceptance.

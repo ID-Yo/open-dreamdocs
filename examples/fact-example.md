@@ -18,6 +18,6 @@
 }
 ---
 
-# Учебен кандидат за факт
+# Example Fact Candidate
 
-В измисления пример build командата идва от конфигурацията на deployment проекта. Преди приемане собственикът трябва да провери реалните настройки. Този файл не е активна памет.
+In this fictitious example, the build command comes from the deployment project's configuration. Before acceptance, the owner must verify the actual settings. This file is not active memory.

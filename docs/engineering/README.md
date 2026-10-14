@@ -1,3 +1,3 @@
 # Engineering — optional
 
-Тук се описват конвенции, setup, build, тестови команди и граници на реализацията. Не копирайте дълги правила в `AGENTS.md`; той сочи към каноничния документ. При промяна на команда сверете документа с текущия проект. Добавете го в [индекса](../00-index.md).
+Describe conventions, setup, builds, test commands and implementation boundaries here. Do not copy lengthy rules into `AGENTS.md`; it links to the canonical document. When a command changes, check the document against the current project. Add it to the [index](../00-index.md).

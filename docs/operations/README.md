@@ -1,3 +1,3 @@
 # Operations — optional
 
-Тук се описват среди, release, наблюдение, инциденти и възстановяване. Дневният Dreamer е описан в [`dreamer-setup.md`](dreamer-setup.md). Повторяема стъпка може да има отделен runbook в `procedures/`; не поддържайте две версии на една процедура. Не записвайте production credentials или сурови логове. Добавете документа в [индекса](../00-index.md).
+Describe environments, releases, monitoring, incidents and recovery here. The daily Dreamer is described in [`dreamer-setup.md`](dreamer-setup.md). A repeatable step may have a separate runbook in `procedures/`; do not maintain two versions of one procedure. Do not record production credentials or raw logs. Add the document to the [index](../00-index.md).

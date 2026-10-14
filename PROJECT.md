@@ -4,33 +4,33 @@
 
 # Project
 
-Този файл е кратък вход за агентите. Подробната визия, обхватът и терминологията са в [`docs/overview/platform.md`](docs/overview/platform.md).
+This file is a short entry point for agents. The detailed vision, scope and terminology are in [`docs/overview/platform.md`](docs/overview/platform.md).
 
-## Име
-<Име на проекта>
+## Name
+<Project name>
 
-## Едноредово описание
-<Какво прави проектът в едно изречение.>
+## One-line description
+<What the project does in one sentence.>
 
-## Собственик и фаза
-- Собственик: `<owner>`
-- Фаза: `<discovery / MVP / production / migration>`
-- Последен преглед: `<YYYY-MM-DD>`
+## Owner and phase
+- Owner: `<owner>`
+- Phase: `<discovery / MVP / production / migration>`
+- Last reviewed: `<YYYY-MM-DD>`
 
-## Кратък резултат
-<Какво трябва да стане вярно, за да е успешен проектът.>
+## Target outcome
+<What must become true for the project to succeed.>
 
-## Основни системи
-| Система | Местоположение | Роля |
+## Main systems
+| System | Location | Role |
 |---|---|---|
-| Основно хранилище | `<repo>` | Код и конфигурация |
-| Production | `<url/env>` | Runtime система |
-| Task tracker | `<location>` | Работен ledger |
+| Main repository | `<repo>` | Code and configuration |
+| Production | `<url/env>` | Runtime system |
+| Task tracker | `<location>` | Work ledger |
 
-## Канонични входове
+## Canonical entry points
 
-- [Индекс на документацията](docs/00-index.md)
-- [Платформа и обхват](docs/overview/platform.md)
+- [Documentation index](docs/00-index.md)
+- [Platform and scope](docs/overview/platform.md)
 - [Governance](docs/governance/README.md)
-- [Текущо състояние](docs/status/current-state.md)
-- [Правила за агента](AGENTS.md)
+- [Current state](docs/status/current-state.md)
+- [Agent rules](AGENTS.md)

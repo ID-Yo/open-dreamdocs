@@ -1,3 +1,3 @@
 # Status — optional
 
-Тук се поставя временното текущо състояние: отворени въпроси, блокери и следващи стъпки. Всеки запис посочва дата на проверка и собственик; стар status не е доказателство за текущо състояние. При завършване прехвърлете трайните решения в подходящата канонична папка. Добавете текущите страници в [индекса](../00-index.md).
+Store temporary current state here: open questions, blockers and next steps. Each entry identifies its verification date and owner; old status is not evidence of current state. On completion, move durable decisions to the appropriate canonical folder. Add current pages to the [index](../00-index.md).

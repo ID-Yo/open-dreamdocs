@@ -4,33 +4,33 @@
 
 # Product
 
-Попълвайте само устойчивото поведение и изискванията на продукта. Временният task status принадлежи в `docs/status/`.
+Fill in only durable product behavior and requirements. Temporary task status belongs in `docs/status/`.
 
-## Потребители и роли
-| Актьор | Цел | Роля / права |
+## Users and roles
+| Actor | Goal | Role / permissions |
 |---|---|---|
 | ... | ... | ... |
 
-## Основни сценарии
-### Сценарий: <име>
-**Задействане:** ...
+## Main scenarios
+### Scenario: <name>
+**Trigger:** ...
 
-**Успешен път:**
+**Success path:**
 1. ...
 2. ...
 
-**Неуспешни пътища:**
+**Failure paths:**
 - ...
 
-## Функционални изисквания
+## Functional requirements
 - FR-001 — ...
 
-## Нефункционални изисквания
+## Non-functional requirements
 - NFR-001 — ...
 
-## Ограничения
+## Constraints
 - ...
 
-## Собственик и източник
-- Собственик: `<owner>`
-- Източник на изискванията/решението: `<issue, ADR, policy или link>`
+## Owner and source
+- Owner: `<owner>`
+- Requirements/decision source: `<issue, ADR, policy or link>`

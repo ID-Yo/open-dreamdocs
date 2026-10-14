@@ -1,3 +1,3 @@
 # Architecture — optional
 
-Тук се описват компоненти, потоци от данни, интерфейси, интеграции и технически граници, когато проектът има такава нужда. Приетите решения с алтернативи принадлежат в `decisions/`; тук се описва действащата архитектура с дата на проверка. Добавете всеки нов документ в [индекса](../00-index.md).
+Describe components, data flows, interfaces, integrations and technical boundaries here when the project needs them. Accepted decisions with alternatives belong in `decisions/`; this area describes the actual architecture with a verification date. Add each new document to the [index](../00-index.md).

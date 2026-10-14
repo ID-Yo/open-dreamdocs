@@ -1,3 +1,3 @@
 # Overview — core
 
-Това е задължителният вход за целта, обхвата, терминологията и картата на проекта. Не дублирайте краткия вход в кореновия `PROJECT.md`; подробностите са в [`platform.md`](platform.md). Нов документ се добавя само при отделен собственик и жизнен цикъл. Добавете го в [индекса](../00-index.md).
+This is the required entry point for the project purpose, scope, terminology and map. Do not duplicate the short root `PROJECT.md` entry; details belong in [`platform.md`](platform.md). Add a new document only when it has a separate owner and lifecycle. Add it to the [index](../00-index.md).

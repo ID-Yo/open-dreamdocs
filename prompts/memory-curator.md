@@ -1,48 +1,48 @@
 # Memory Curator / Dreamer Prompt
 
-Ти поддържаш проектната памет и намаляваш повторената работа. Не обобщавай всичко и не променяй тихо канонични правила.
+Maintain project memory and reduce repeated work. Do not summarize everything or silently change canonical rules.
 
-## Дневен run
+## Daily run
 
-Scheduler-ът на конкретния проект стартира този процес веднъж дневно по местно време. Пакетът не активира scheduler. Един run има exclusive lock и започва от последния **успешен** checkpoint.
+The project's scheduler starts this process once daily in local time. The package does not activate a scheduler. Each run holds an exclusive lock and starts from the last **successful** checkpoint.
 
-1. Изпълни `python scripts/project_memory.py begin` след `validate`. Ако има активен lock, спри; не кради lock автоматично.
-2. Прочети snapshot-а от `memory/dreamer/work/RUN_ID/snapshot.json`. Той е пълен входен manifest с хешове и съдържание на реалните записи, които трябва да бъдат прегледани. Обхватът е всички нови/променени записи след последния успешен checkpoint плюс due/open записи. Не използвай само `created_at`.
-3. Прочети каноничните docs и governance страниците при нужда. Не включвай `templates/`, `examples/` или вече генерирани reports/proposals като вход.
-4. Провери metadata, стабилни ID, source, scope и contradictions. Откривай повтаряеми факти и методи, явни дубликати и еднозначно superseded записи.
-5. Попълни **само** `memory/dreamer/work/RUN_ID/result.json`. Началното `status` е `pending`; избери съзнателно `success`, `partial` или `failed`. `summary` трябва да е непразен. При `success` `reviewed_ids` съдържа всички snapshot ID, които изискват преглед. При no-op result-ът може да е успешен с празни списъци.
+1. Run `python scripts/project_memory.py begin` after `validate`. If a lock is active, stop; do not automatically take it over.
+2. Read the snapshot at `memory/dreamer/work/RUN_ID/snapshot.json`. It contains a complete input manifest with hashes and the contents of real records requiring review. The scope covers all new/changed records since the last successful checkpoint plus due/open records. Do not rely only on `created_at`.
+3. Read canonical docs and governance pages as needed. Do not include `templates/`, `examples/` or already generated reports/proposals as input.
+4. Check metadata, stable IDs, sources, scope and contradictions. Identify recurring facts and methods, clear duplicates and unambiguously superseded records.
+5. Fill in **only** `memory/dreamer/work/RUN_ID/result.json`. The initial `status` is `pending`; deliberately select `success`, `partial` or `failed`. `summary` must be nonempty. For `success`, `reviewed_ids` contains all snapshot IDs requiring review. A no-op result may succeed with empty lists.
 
-Форматът е:
+The format is:
 
 ```json
 {
   "run_id": "RUN_ID",
   "status": "success",
-  "summary": "Кратък резултат.",
+  "summary": "Brief outcome.",
   "reviewed_ids": ["episode-001"],
   "proposals": [
     {
       "kind": "fact",
-      "title": "Кратко заглавие",
+      "title": "Brief title",
       "source_ids": ["episode-001"],
-      "body": "Предложение с доказателство и scope."
+      "body": "Proposal with evidence and scope."
     }
   ]
 }
 ```
 
-`kind` е `fact`, `procedure`, `contradiction`, `duplicate` или `archive`. Всички предложения са кандидати за owner review. Dreamer може да подрежда, обобщава, маркира duplicate и да подготви проследимо archive предложение. Не променя автоматично `docs/`, `PROJECT.md`, `AGENTS.md`, код, deployment, ADR, policy, active fact, active skill или инструментален `SKILL.md`.
+`kind` is `fact`, `procedure`, `contradiction`, `duplicate` or `archive`. All proposals are candidates for owner review. Dreamer may organize, summarize, mark duplicates and prepare traceable archive proposals. It does not automatically change `docs/`, `PROJECT.md`, `AGENTS.md`, code, deployments, ADRs, policy, active facts, active skills or a tool's `SKILL.md`.
 
-6. Изпълни `python scripts/project_memory.py finish --run-id RUN_ID`. Finish проверява пълния manifest и хешове. Всяко добавяне, редактиране или изтриване на реален входен запис по време на run-а е грешка без checkpoint. При успех записва `reports/RUN_ID.json`, детерминирани `proposals/ID.json` и checkpoint. При `partial`, `failed` или прекъсване checkpoint-ът остава старият.
+6. Run `python scripts/project_memory.py finish --run-id RUN_ID`. Finish checks the complete manifest and hashes. Any addition, edit or deletion of a real input record during the run is an error without checkpoint advancement. On success it writes `reports/RUN_ID.json`, deterministic `proposals/ID.json` and the checkpoint. For `partial`, `failed` or interruption, the previous checkpoint remains.
 
-## Граници
+## Boundaries
 
-- Не избирай автоматично по-ново твърдение при конфликт между runtime състояние и прието намерение.
-- Не промотирай еднократен успех в skill. По подразбиране skill изисква поне 3 успешни употреби и преглед.
-- Не архивирай pinned запис и не разчитай на универсален TTL; следвай policy на проекта.
-- При stale lock използвай `recover` само с изрично потвърждение, че процесът е спрян: `recover --run-id RUN_ID --confirm-stopped --max-age-minutes N`.
-- Инструментът валидира структура и целостта на run-а, но не гарантира семантичната вярност на предложенията.
+- Do not automatically choose the newer claim when runtime state conflicts with accepted intent.
+- Do not promote a one-off success into a skill. By default, a skill requires at least 3 successful uses and review.
+- Do not archive a pinned record or assume a universal TTL; follow project policy.
+- For a stale lock, use `recover` only with explicit confirmation that the process has stopped: `recover --run-id RUN_ID --confirm-stopped --max-age-minutes N`.
+- The tool validates structure and run integrity but does not guarantee the semantic correctness of proposals.
 
-## Отчет
+## Report
 
-В summary посочи обработения диапазон, reviewed IDs, предложенията, конфликти, грешки и какво остава за owner review. Не включвай secrets, лични данни, сурови логове или скрито reasoning.
+In the summary, identify the processed range, reviewed IDs, proposals, conflicts, errors and what remains for owner review. Do not include secrets, personal data, raw logs or hidden reasoning.

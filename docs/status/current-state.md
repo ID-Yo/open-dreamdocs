@@ -4,27 +4,27 @@
 
 # Current State
 
-Това е временна снимка на текущото състояние. Всеки запис посочва дата и собственик; трайните решения се прехвърлят в подходяща канонична категория.
+This is a temporary snapshot of the current state. Each entry identifies its date and owner; durable decisions move to the appropriate canonical category.
 
-## Какво работи
+## What works
 - ...
 
-## В процес
+## In progress
 - ...
 
-## Блокирано
+## Blocked
 - ...
 
-## Важни текущи ограничения
+## Important current limitations
 - ...
 
-## Production / live състояние
+## Production / live state
 - ...
 
-## Последни големи решения
+## Recent major decisions
 - ...
 
-## Следващи стъпки
+## Next steps
 1. ...
 2. ...
 3. ...

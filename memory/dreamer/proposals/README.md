@@ -1,3 +1,3 @@
-# Предложения за преглед
+# Proposals for Review
 
-Детерминистично именувани JSON предложения от успешни изпълнения. Собственикът проверява източниците, приема или отхвърля предложението и записва решението тук. Новите изпълнения не презаписват съществуващо предложение. Тези файлове не са активни факти и не се включват във входа за Dreamer.
+Deterministically named JSON proposals from successful runs. The owner checks the sources, accepts or rejects the proposal and records the decision here. New runs do not overwrite an existing proposal. These files are not active facts and are excluded from Dreamer input.
