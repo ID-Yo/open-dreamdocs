@@ -1,33 +1,33 @@
-# Формат на записите
+# Record Format
 
-Всеки реален запис е Markdown с **JSON object между два реда `---`**. JSON е подмножество на YAML 1.2; избран е, за да има точен parser със стандартния Python. Произволен YAML, comments, trailing commas и duplicate keys не се поддържат. Шаблоните са в [templates](../templates/README.md).
+Each real record is Markdown with a **JSON object between two `---` lines**. JSON is a subset of YAML 1.2; it was chosen for precise parsing with standard Python. Arbitrary YAML, comments, trailing commas and duplicate keys are unsupported. Templates are in [templates](../templates/README.md).
 
-## Общи полета
+## Common fields
 
-`id`, `type`, `status`, `project`, `scope`, `created_at`, `source`. ID е стабилен, уникален, с малки латински букви/цифри/точка/тире/долна черта. Всички записи в пакета принадлежат на една проектна идентичност. Времето включва timezone. Източниците са непразен масив:
+`id`, `type`, `status`, `project`, `scope`, `created_at`, `source`. IDs are stable and unique, using lowercase Latin letters, digits, dots, hyphens and underscores. All records in the package belong to one project identity. Timestamps include a timezone. Sources are a nonempty array:
 
-- `id:ep-example` — друг реален запис; ID трябва да съществува, включително в архива.
-- `file:docs/architecture/system-overview.md` — съществуващ файл спрямо корена.
-- `https://...` — външен източник; валидаторът не го отваря.
-- `ref:issue-123@commit-sha` — външна или неизвличаема идентичност; човекът/агентът проверява доказателството.
+- `id:ep-example` — another real record; the ID must exist, including in the archive.
+- `file:docs/architecture/system-overview.md` — an existing file relative to the root.
+- `https://...` — an external source; the validator does not open it.
+- `ref:issue-123@commit-sha` — an external or non-retrievable identity; a person/agent checks the evidence.
 
-Форматът гарантира проследимост, не истинност. Source текстът и metadata не трябва да съдържат токени, лични данни или секрети.
+The format guarantees traceability, not truth. Source text and metadata must not contain tokens, personal data or secrets.
 
-| Папка | type | status |
+| Folder | type | status |
 |---|---|---|
 | episodes | episodic | active, archived |
 | facts | semantic | proposed, active, disputed, superseded, archived |
 | procedural | procedural | proposed, active, deprecated, archived |
 | contradictions | contradiction | open, resolved, archived |
 
-Архивът запазва оригиналния type и терминален status. `pinned: true` изключва автоматично предложение за архивиране.
+The archive preserves the original type and terminal status. `pinned: true` prevents an automatic archive proposal.
 
-## Факти и методи
+## Facts and methods
 
-Изискват `owner`. При `active` изискват `last_verified` и `accepted_by` с реално доказателство за приемане; Dreamer не може сам да ги активира. Предложение може да има `last_verified: null`. `review_after` е дата YYYY-MM-DD или null, избрана според темата.
+These require `owner`. When `active`, they require `last_verified` and `accepted_by` with real acceptance evidence; Dreamer cannot activate them itself. A proposal may have `last_verified: null`. `review_after` is a YYYY-MM-DD date or null, chosen for the topic.
 
-`supersedes` и `superseded_by` съдържат реални ID без префикс; `superseded` изисква наследник. Методът има положителна `version`, неотрицателни `success_count` и `failure_count`. Броят успехи не е автоматично разрешение за изпълнение или приемане.
+`supersedes` and `superseded_by` contain real IDs without a prefix; `superseded` requires a successor. A method has a positive `version` and nonnegative `success_count` and `failure_count`. A success count is not automatic authorization to execute or accept it.
 
 ## Retrieval
 
-Четете само релевантни записи. Архиви, superseded/deprecated записи, templates, examples и Dreamer work/reports/proposals не са активни факти. Предложение служи за преглед, никога за оперативна инструкция. Кодът на шаблона валидира и избира вход за Dreamer; не предоставя семантична търсачка или embeddings.
+Read only relevant records. Archives, superseded/deprecated records, templates, examples and Dreamer work/reports/proposals are not active facts. A proposal is for review, never an operational instruction. The template code validates and selects Dreamer input; it does not provide semantic search or embeddings.

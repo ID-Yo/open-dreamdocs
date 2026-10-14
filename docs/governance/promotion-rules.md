@@ -4,29 +4,29 @@
 
 # Promotion Rules
 
-Dreamer или агентът могат да предложат промяна. Собственикът на областта преглежда активните факти, skills, каноничните правила и промени в `docs/`.
+Dreamer or the agent may propose a change. The area owner reviews active facts, skills, canonical rules and changes to `docs/`.
 
 ## Episode → fact
 
-Преди promotion твърдението трябва да има източник, ясен scope, достатъчно доказателство и да не противоречи на по-висок authority. Не промотирайте догадки, временни детайли, сурови логове или еднократни инциденти.
+Before promotion, a claim must have a source, clear scope, sufficient evidence and no conflict with higher authority. Do not promote guesses, temporary details, raw logs or one-off incidents.
 
 ## Episodes → skill
 
-По подразбиране са нужни:
+By default, these are required:
 
-- повтарящ се тип задача;
-- поне 3 успешни употреби;
-- стабилни основни стъпки;
-- явни preconditions и success criteria;
-- известни failure modes и възстановяване;
-- налични и надеждни инструменти.
+- a recurring task type;
+- at least 3 successful uses;
+- stable core steps;
+- explicit preconditions and success criteria;
+- known failure modes and recovery;
+- available and reliable tools.
 
-Owner може съзнателно да приеме метод по-рано, но причината и доказателството се записват.
+The owner may deliberately accept a method earlier, but the reason and evidence must be recorded.
 
 ## Memory → docs / ADR
 
-Предложете промяна в `docs/`, когато знанието става канонично: архитектура, официален workflow, operational rule, продуктово изискване, ownership или стабилно ограничение. Предложете ADR при трайно решение със съществени trade-offs. Dreamer не приема автоматично тези промени.
+Propose a `docs/` change when knowledge becomes canonical: architecture, official workflow, operational rule, product requirement, ownership or a stable constraint. Propose an ADR for a durable decision with significant trade-offs. Dreamer does not automatically accept these changes.
 
-## Archive и duplicate
+## Archive and duplicate
 
-Чист дубликат или еднозначно заменен запис може да бъде отбелязан с връзка към оригинала/наследника. Архивирането следва policy, пази историята и зачита pin; няма автоматичен универсален срок.
+An exact duplicate or an unambiguously replaced record may be marked with a link to the original/successor. Archiving follows policy, preserves history and respects pinned records; there is no automatic universal expiry period.

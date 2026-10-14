@@ -1,3 +1,3 @@
-# Отчети
+# Reports
 
-Един JSON отчет за run. `status` показва резултата; checkpoint-ът е окончателното потвърждение за успешно приключване. Отчетите не са вход за следващ Dreamer run.
+One JSON report per run. `status` indicates the outcome; the checkpoint is the definitive confirmation of successful completion. Reports are not input to the next Dreamer run.

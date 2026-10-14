@@ -5,8 +5,7 @@ project: community initiatives, research, operations, creative work or software.
 Keep agreed project knowledge in `docs/`, and evidence, outcomes and proposed
 lessons in `memory/`. Use the folders manually or with an AI assistant.
 
-Version 1.2.0. Licensed under [MIT](LICENSE). The introduction is in English;
-most detailed guides and templates are currently in Bulgarian.
+Version 1.3.0. Licensed under [MIT](LICENSE). All guides, templates, examples and prompts are in English.
 
 ## Start with the documents
 
@@ -73,7 +72,7 @@ people still verify the truth of claims and the quality of proposals.
 
 ## License and provenance
 
-This release packages the project's reusable v1.2 documentation template and
+This release packages the project's reusable documentation template and
 standard-library Python runner under the [MIT license](LICENSE). It starts with
 a reviewed source snapshot and fresh public Git history. Archival source
 collections, third-party reference documents, private project records, local

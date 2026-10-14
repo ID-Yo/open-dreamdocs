@@ -1,30 +1,30 @@
 # Task Closeout
 
-Попълни кратко и с проверими препратки.
+Keep this concise and include verifiable references.
 
-## Резултат
+## Outcome
 
 `success` / `partial` / `failure` / `cancelled`
 
-## Доказателства
+## Evidence
 
-- commit / PR / тестове / logs / документи: ...
+- commit / PR / tests / logs / documents: ...
 
-## Какво се промени
-
-- ...
-
-## Какво научихме
+## What changed
 
 - ...
 
-## Memory действия
+## What we learned
 
-- [ ] създаден е един кратък episode;
-- [ ] предложени са durable facts с source IDs;
-- [ ] проверени са съществуващи facts и са отбелязани superseded/contradiction при нужда;
-- [ ] обновено е evidence за skill, без автоматична promotion;
-- [ ] owner review е посочен за active fact, skill, procedure, ADR или canonical docs промяна;
-- [ ] `docs/` е обновен, ако каноничната истина се е променила.
+- ...
 
-Не записвай raw hidden reasoning, secrets, лични данни или пълни разговори. Записвай outcome, решения, доказателства, грешки и resolution.
+## Memory actions
+
+- [ ] one concise episode created;
+- [ ] durable facts proposed with source IDs;
+- [ ] existing facts checked and superseded/contradiction noted as needed;
+- [ ] skill evidence updated without automatic promotion;
+- [ ] owner review identified for an active fact, skill, procedure, ADR or canonical docs change;
+- [ ] `docs/` updated if canonical truth changed.
+
+Do not record raw hidden reasoning, secrets, personal data or full conversations. Record outcomes, decisions, evidence, errors and resolutions.

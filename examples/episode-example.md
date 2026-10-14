@@ -14,6 +14,6 @@
 }
 ---
 
-# Учебен episode
+# Example Episode
 
-Измислен проект: build е поправен след сравняване на настройките на хранилището и deployment средата. Няма реално deployment доказателство. Полезният кандидат е процедура за проверка на настройките преди повторен опит.
+Fictitious project: a build was fixed after comparing repository settings with the deployment environment. There is no actual deployment evidence. The useful candidate is a procedure for checking settings before retrying.

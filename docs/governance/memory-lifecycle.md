@@ -5,26 +5,26 @@
 # Memory Lifecycle
 
 ```text
-наблюдение -> episode -> кандидат за факт/skill -> проверка
--> active факт/skill -> преглед -> superseded / deprecated / archived
+observation -> episode -> fact/skill candidate -> verification
+-> active fact/skill -> review -> superseded / deprecated / archived
 ```
 
 ## Capture
 
-Завършена смислена работа може да създаде един кратък episode с outcome и доказателство.
+Completed meaningful work may produce one concise episode with outcome and evidence.
 
-## Extract и validate
+## Extract and validate
 
-Извличайте само знание, което вероятно ще е полезно отново. Сверявайте кандидата с код, конфигурация, ADR, `docs/` и обратна връзка от owner-а.
+Extract only knowledge likely to be useful again. Check the candidate against code, configuration, ADRs, `docs/` and owner feedback.
 
 ## Promote
 
-Промоцията променя статуса и се извършва след прегледа, описан в [promotion rules](promotion-rules.md). Кандидатът не става активен само защото е стар или често извличан.
+Promotion changes status and follows the review described in [promotion rules](promotion-rules.md). A candidate does not become active merely because it is old or frequently retrieved.
 
-## Retrieve и review
+## Retrieve and review
 
-Зареждайте само записи, свързани с текущата задача. При преглед проверявайте доказателствата, scope, противоречията, счупените връзки и промяната в реализацията. Няма универсален TTL: политиката на проекта определя кога се преглежда, pin-ва или архивира запис.
+Load only records related to the current task. During review, check evidence, scope, contradictions, broken links and implementation changes. There is no universal TTL: project policy determines when a record is reviewed, pinned or archived.
 
-## Supersede и archive
+## Supersede and archive
 
-Предпочитайте проследима замяна пред тихо презаписване. Архивирайте само с причина, дата и препратка към наследника, когато има такъв; зачитайте `pin` и правилата на проекта. Архивът спира нормалното retrieval, но пази историята.
+Prefer traceable replacement to silent overwriting. Archive only with a reason, date and link to the successor when one exists; respect `pin` and project rules. Archiving stops normal retrieval but preserves history.

@@ -1,9 +1,9 @@
 # Prompts
 
-Тези prompt-и са работни инструкции за конкретен агент; не са канонични проектни правила и не се обработват като memory записи.
+These prompts are working instructions for a specific agent; they are not canonical project rules and are not processed as memory records.
 
-- [`agent-bootstrap.md`](agent-bootstrap.md) — селективно четене и подготовка преди задача.
-- [`memory-curator.md`](memory-curator.md) — дневен Dreamer run, snapshot, result и owner review.
-- [`task-closeout.md`](task-closeout.md) — кратък closeout с доказателства и memory действия.
+- [`agent-bootstrap.md`](agent-bootstrap.md) — selective reading and preparation before a task.
+- [`memory-curator.md`](memory-curator.md) — daily Dreamer run, snapshot, result and owner review.
+- [`task-closeout.md`](task-closeout.md) — concise closeout with evidence and memory actions.
 
-Променяйте prompt, когато се промени договорът на runner-а или процесът на проекта, и сверявайте командите с `scripts/project_memory.py` и [`docs/operations/dreamer-setup.md`](../docs/operations/dreamer-setup.md).
+Update a prompt when the runner contract or project process changes, and check its commands against `scripts/project_memory.py` and [`docs/operations/dreamer-setup.md`](../docs/operations/dreamer-setup.md).

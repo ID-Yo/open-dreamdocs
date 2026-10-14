@@ -4,15 +4,15 @@
 
 # Operations
 
-Тук са средите, release процесът, наблюдението, инцидентите и възстановяването. Повторяемите стъпки са отделни runbook-и в `docs/procedures/`.
+This area covers environments, the release process, monitoring, incidents and recovery. Repeatable steps are separate runbooks in `docs/procedures/`.
 
 ## Ownership
-| Област | Собственик | Резервен |
+| Area | Owner | Backup |
 |---|---|---|
 | ... | ... | ... |
 
-## Среда и release
-| Среда | Адрес/идентификатор | Цел | Собственик |
+## Environments and releases
+| Environment | Address/identifier | Purpose | Owner |
 |---|---|---|---|
 | ... | ... | ... | ... |
 
@@ -20,18 +20,18 @@
 2. ...
 3. ...
 
-## Проверка
+## Verification
 - ...
 
-## Rollback / възстановяване
-- Предусловие: ...
-- Стъпки: ...
-- Проверка след възстановяване: ...
+## Rollback / recovery
+- Precondition: ...
+- Steps: ...
+- Verification after recovery: ...
 
-## Инцидент
-1. Стабилизирайте системата.
-2. Запишете текущите факти и запазете доказателствата.
-3. Не правете спекулативни memory записи.
-4. След инцидента създайте episode и обновете трайните процедури/факти чрез преглед.
+## Incident
+1. Stabilize the system.
+2. Record current facts and preserve evidence.
+3. Do not create speculative memory records.
+4. After the incident, create an episode and update durable procedures/facts through review.
 
-Дневната настройка на Dreamer и границите на runner-а са в [dreamer-setup.md](dreamer-setup.md).
+Daily Dreamer setup and runner boundaries are in [dreamer-setup.md](dreamer-setup.md).

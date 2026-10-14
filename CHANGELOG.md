@@ -1,11 +1,17 @@
 # Changelog
 
+## v1.3.0
+
+- Translated all public guides, templates, examples, prompts and documentation into English.
+- Updated the README to reflect the English-only release.
+- Preserved folder structure, record metadata, governance rules and runner behavior.
+
 ## v1.2
 
-- Обединени са 13 предварително създадени категории в канонична `docs/` структура.
-- Добавени са кратък root вход, селективна маршрутизация и ясни core/optional маркери.
-- Архитектурата, продуктът, операциите и текущото състояние запазват попълваемите секции от предишната версия.
-- Правилата за авторитет, жизнен цикъл и promotion са събрани в `docs/governance/`.
-- Описан е дневният Dreamer от последния успешен checkpoint със snapshot, result, lock и възстановяване.
-- Шаблоните и примерите са отделени от активната памет и са изключени от retrieval.
-- Пакетът не активира scheduler; дневното планиране се настройва от конкретния проект.
+- Unified 13 pre-created categories into a canonical `docs/` structure.
+- Added a short root entry point, selective routing and clear core/optional markers.
+- Retained the previous version's fillable architecture, product, operations and current-state sections.
+- Centralized authority, lifecycle and promotion rules in `docs/governance/`.
+- Documented daily Dreamer processing from the last successful checkpoint, including snapshot, result, lock and recovery.
+- Separated templates and examples from active memory and excluded them from retrieval.
+- The package does not activate a scheduler; each project configures its own daily schedule.

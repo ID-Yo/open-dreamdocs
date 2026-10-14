@@ -4,35 +4,35 @@
 
 # Engineering
 
-Тук се поддържат дългосрочните конвенции и проверими технически команди. Сверявайте примерите с текущия проект при промяна.
+Maintain long-term conventions and verifiable technical commands here. Check examples against the current project whenever they change.
 
-## Конвенции
-- Предпочитайте малки, прегледаеми промени.
-- Следвайте съществуващите проектни модели, освен ако промяната е съзнателна и документирана.
-- Нова трайна конвенция принадлежи тук или в ADR.
+## Conventions
+- Prefer small, reviewable changes.
+- Follow existing project patterns unless a change is intentional and documented.
+- A new durable convention belongs here or in an ADR.
 
-## Setup и команди
-- Инсталация: `...`
+## Setup and commands
+- Installation: `...`
 - Build: `...`
 - Lint/typecheck: `...`
-- Тестове: `...`
+- Tests: `...`
 
-## Проверка
+## Verification
 - Unit: `...`
 - Integration: `...`
 - End-to-end: `...`
-- Ръчна проверка: `...`
+- Manual check: `...`
 
 ## Deployment
 1. ...
 2. ...
 3. ...
 
-## Сигурност
-- Не съхранявайте credentials, токени, private keys или сурови secrets в docs или memory.
-- Съхранявайте препратка към secret, не стойността му.
+## Security
+- Do not store credentials, tokens, private keys or raw secrets in docs or memory.
+- Store a reference to a secret, not its value.
 
-## Наблюдаемост
+## Observability
 - Logs: ...
 - Metrics: ...
 - Alerts: ...

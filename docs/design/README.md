@@ -1,3 +1,3 @@
 # Design — optional
 
-Тук се поставят UX принципи, визуална система, текстови и accessibility правила, когато проектът има интерфейс. Конкретни краткотрайни макети и изходни assets остават в подходящите проектни папки; тук има трайни правила и връзки. Добавете документа в [индекса](../00-index.md).
+Store UX principles, the visual system, writing and accessibility rules here when the project has an interface. Short-lived mockups and source assets stay in the appropriate project folders; this area holds durable rules and links. Add the document to the [index](../00-index.md).

@@ -1,18 +1,18 @@
-# Проектна памет
+# Project Memory
 
-[Документацията](../docs/00-index.md) съдържа приетото проектно знание. Паметта пази източници, научени уроци и кандидати за промяна. Използвайте [формата](SCHEMA.md) и проверявайте актуалността преди действия с последствия.
+[Documentation](../docs/00-index.md) holds accepted project knowledge. Memory preserves sources, lessons and change candidates. Use the [record format](SCHEMA.md) and verify freshness before consequential actions.
 
-| Папка | Какво влиза |
+| Folder | Contents |
 |---|---|
-| [episodes](episodes/README.md) | Значими задачи, опити, грешки и резултати |
-| [facts](facts/README.md) | Предложени или приети факти |
-| [procedural](procedural/README.md) | Предложени или приети повторяеми методи |
-| [contradictions](contradictions/README.md) | Нерешени и разрешени противоречия |
-| [archive](archive/README.md) | Терминални записи със запазени източници |
-| [dreamer](dreamer/README.md) | Изолирано runtime състояние, отчети и предложения |
+| [episodes](episodes/README.md) | Meaningful tasks, attempts, errors and outcomes |
+| [facts](facts/README.md) | Proposed or accepted facts |
+| [procedural](procedural/README.md) | Proposed or accepted repeatable methods |
+| [contradictions](contradictions/README.md) | Unresolved and resolved contradictions |
+| [archive](archive/README.md) | Terminal records with preserved sources |
+| [dreamer](dreamer/README.md) | Isolated runtime state, reports and proposals |
 
-[Dreamer policy](DREAMER_POLICY.md) е единственият договор за автоматичните промени. [config.json](config.json) съдържа само дневния график и опционалния срок за преглед на episodes. Null означава непопълнена настройка или липса на срок. Няма универсален TTL.
+[Dreamer policy](DREAMER_POLICY.md) is the single contract for automatic changes. [config.json](config.json) contains only the daily schedule and optional episode review interval. Null means an unset setting or no deadline. There is no universal TTL.
 
-След значима задача записвайте episode само ако ще помогне за бъдеща работа. Не записвайте целия разговор. Нов вид памет изисква описание, README и промяна на схемата/валидатора; създадена папка сама не се включва в Dreamer.
+After meaningful work, record an episode only if it will help future work. Do not record the entire conversation. A new memory type requires a description, README and schema/validator changes; creating a folder does not automatically include it in Dreamer.
 
-Реалните записи и приетите предложения могат да се версионират в Git. Lock/state/work са локални и игнорирани. Ползвайте един постоянен checkout за Dreamer; при нов клонинг без state той преглежда всички реални записи. Преди commit прегледайте отчетите за чувствителни данни.
+Real records and accepted proposals may be versioned in Git. Lock/state/work are local and ignored. Use one persistent checkout for Dreamer; a new clone without state reviews all real records. Review reports for sensitive data before committing.

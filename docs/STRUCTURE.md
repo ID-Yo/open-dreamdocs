@@ -1,28 +1,28 @@
-# Структура на документацията
+# Documentation Structure
 
-Всички 13 начални тематични папки съществуват от първия ден. Техните `README.md` файлове са инструкции, а не проектни факти. `overview/` и `governance/` са core входове; останалите са optional и се попълват само ако проектът има такава област.
+All 13 initial topic folders exist from day one. Their `README.md` files are instructions, not project facts. `overview/` and `governance/` are core entry points; the others are optional and are filled in only when the project has that area.
 
-| Папка | Маркер | Какво съдържа |
+| Folder | Marker | Contents |
 | --- | --- | --- |
-| `overview/` | core | цел, обхват, терминология и карта на проекта |
-| `architecture/` | optional | компоненти, данни, интеграции и технически договори |
-| `product/` | optional | потребители, изисквания и поведение на продукта |
-| `design/` | optional | UX, визуални правила и достъпност |
-| `engineering/` | optional | конвенции, разработка, build и технически проверки |
-| `security/` | optional | достъп, заплахи и защитни правила |
-| `privacy/` | optional | лични данни, задържане и обработващи страни |
-| `qa/` | optional | тестова стратегия, сценарии и критерии за приемане |
-| `operations/` | optional | среди, release, наблюдение и инциденти |
-| `procedures/` | optional | повторяеми, проверими инструкции |
-| `decisions/` | optional | приети решения с контекст и последствия |
-| `governance/` | core | собственост, прегледи и процесни правила |
-| `status/` | optional | временно текущо състояние с дата на проверка |
+| `overview/` | core | purpose, scope, terminology and project map |
+| `architecture/` | optional | components, data, integrations and technical contracts |
+| `product/` | optional | users, requirements and product behavior |
+| `design/` | optional | UX, visual rules and accessibility |
+| `engineering/` | optional | conventions, development, builds and technical checks |
+| `security/` | optional | access, threats and security rules |
+| `privacy/` | optional | personal data, retention and processors |
+| `qa/` | optional | test strategy, scenarios and acceptance criteria |
+| `operations/` | optional | environments, releases, monitoring and incidents |
+| `procedures/` | optional | repeatable, verifiable instructions |
+| `decisions/` | optional | accepted decisions with context and consequences |
+| `governance/` | core | ownership, reviews and process rules |
+| `status/` | optional | temporary current state with verification date |
 
-## Добавяне на бъдеща папка
+## Adding a future folder
 
-1. Потърсете дали темата вече има канонично място. Нова папка е нужна, когато има отделен собственик, жизнен цикъл или няколко очаквани документа, които не принадлежат ясно в съществуваща папка.
-2. Изберете кратко име с малки букви и тирета. Създайте `README.md` с маркер `core` или `optional`, цел, какво влиза, какво не влиза, собственик/преглед и връзки към близки области.
-3. Добавете папката в тази таблица и всеки реален каноничен документ в `00-index.md`. Не копирайте authority, lifecycle или promotion правила извън `governance/`.
-4. При преместване актуализирайте всички входни точки и оставете препратка, когато историята го изисква. Не изтривайте исторически доказателства без отделно решение.
+1. Check whether the topic already has a canonical home. A new folder is warranted when it has a separate owner, lifecycle or several expected documents that do not clearly belong in an existing folder.
+2. Choose a short lowercase name with hyphens. Create `README.md` with a `core` or `optional` marker, purpose, inclusions, exclusions, owner/review and links to related areas.
+3. Add the folder to this table and each actual canonical document to `00-index.md`. Do not copy authority, lifecycle or promotion rules outside `governance/`.
+4. When moving content, update all entry points and leave a reference when history requires it. Do not delete historical evidence without a separate decision.
 
-Възможни бъдещи папки са `integrations/`, `research/`, `api/`, `data/` или `agents/`. Те не са задължителни за всеки проект. Нови видове памет се добавят по същия принцип в `memory/` и се описват в `memory/README.md`.
+Possible future folders include `integrations/`, `research/`, `api/`, `data/` or `agents/`. They are not required for every project. Add new memory types in `memory/` using the same principle and describe them in `memory/README.md`.

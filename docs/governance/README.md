@@ -1,3 +1,3 @@
 # Governance — core
 
-Тук са ownership, authority, review процесът, жизненият цикъл и правилата за promotion. Това е единственото канонично място за тези правила. Не дублирайте конкретни оперативни стъпки от `operations/` или `procedures/`. Добавете всеки каноничен документ в [индекса](../00-index.md).
+This area holds ownership, authority, review processes, lifecycle and promotion rules. It is the only canonical home for these rules. Do not duplicate specific operational steps from `operations/` or `procedures/`. Add each canonical document to the [index](../00-index.md).

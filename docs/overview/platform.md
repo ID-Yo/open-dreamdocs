@@ -2,42 +2,42 @@
 {"document":"platform","status":"draft","owner":"<project-owner>","last_reviewed":"<YYYY-MM-DD>"}
 ---
 
-# Платформа
+# Platform
 
-Това е каноничната страница за целта и границите на проекта. Root [`PROJECT.md`](../../PROJECT.md) остава кратък вход и не повтаря този разказ.
+This is the canonical page for the project's purpose and boundaries. Root [`PROJECT.md`](../../PROJECT.md) remains a short entry point and does not repeat this description.
 
-## Визия
-<Каква полезна промяна трябва да създаде проектът.>
+## Vision
+<What useful change the project should create.>
 
-## Проблем
-<Какъв проблем решава проектът и защо е важен.>
+## Problem
+<What problem the project solves and why it matters.>
 
-## Цели
-- <Цел 1>
-- <Цел 2>
+## Goals
+- <Goal 1>
+- <Goal 2>
 
-## Извън целите
-- <Какво съзнателно не решава този проект.>
+## Non-goals
+- <What this project deliberately does not address.>
 
-## Обхват
-### В обхвата
-- <Система, потребител или процес.>
+## Scope
+### In scope
+- <System, user or process.>
 
-### Извън обхвата
-- <Система, потребител или процес.>
+### Out of scope
+- <System, user or process.>
 
-## Потребители и заинтересовани страни
-| Група | Нужда | Отговорност/достъп |
+## Users and stakeholders
+| Group | Need | Responsibility/access |
 |---|---|---|
 | ... | ... | ... |
 
-## Принципи
-1. <Принцип, който влияе на решенията.>
-2. <Принцип, който влияе на решенията.>
+## Principles
+1. <A principle that influences decisions.>
+2. <A principle that influences decisions.>
 
-## Термини
-| Термин | Значение |
+## Terms
+| Term | Meaning |
 |---|---|
 | ... | ... |
 
-Свързани детайли: [Product](../product/product.md), [Architecture](../architecture/system-overview.md), [Current state](../status/current-state.md).
+Related details: [Product](../product/product.md), [Architecture](../architecture/system-overview.md), [Current state](../status/current-state.md).

@@ -2,18 +2,18 @@
 {"document":"handoff","status":"draft","owner":"<owner>","last_reviewed":null}
 ---
 
-# Handoff: <тема>
+# Handoff: <topic>
 
-## Състояние към <дата>
-<Какво е приключено и какво остава.>
+## State as of <date>
+<What is complete and what remains.>
 
-## Доказателства
-<Пътища, commit, issue, тестове.>
+## Evidence
+<Paths, commit, issue, tests.>
 
-## Блокери и ограничения
-<Кой може да ги разреши.>
+## Blockers and constraints
+<Who can resolve them.>
 
-## Следваща стъпка
-<Конкретно действие и критерий за приключване.>
+## Next step
+<Concrete action and completion criterion.>
 
-Това е снимка към посочена дата. Проверете отново преди работа; трайните правила принадлежат в съответната област на docs/.
+This is a snapshot as of the stated date. Verify again before working; durable rules belong in the appropriate docs/ area.
