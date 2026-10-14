@@ -13,6 +13,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Settings](../memory/config.json)
 - [Dreamer setup](operations/dreamer-setup.md)
 - [Original human materials and recursive index](../human-materials/README.md)
+- [Adopting Dreamdocs and optional companion](operations/adopting-dreamdocs.md)
 
 ## Categories and pages
 
@@ -27,7 +28,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 | Security (optional) | [README](security/README.md) | — |
 | Privacy (optional) | [README](privacy/README.md) | — |
 | QA (optional) | [README](qa/README.md) | — |
-| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md) |
+| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md) |
 | Procedures (optional) | [README](procedures/README.md) | — |
 | Decisions (optional) | [README](decisions/README.md) | — |
 | Governance (core) | [README](governance/README.md) | [authority-model.md](governance/authority-model.md), [memory-lifecycle.md](governance/memory-lifecycle.md), [promotion-rules.md](governance/promotion-rules.md) |
