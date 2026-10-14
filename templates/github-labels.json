@@ -1,0 +1,42 @@
+[
+  {
+    "color": "5319E7",
+    "description": "Large outcome delivered through linked stories or tasks.",
+    "name": "type:epic"
+  },
+  {
+    "color": "7057FF",
+    "description": "One user or participant outcome with acceptance criteria.",
+    "name": "type:story"
+  },
+  {
+    "color": "BFD4F2",
+    "description": "One actionable deliverable with a clear completion check.",
+    "name": "type:task"
+  },
+  {
+    "color": "1D76DB",
+    "description": "Work is actively being performed by an assigned owner.",
+    "name": "status:in-progress"
+  },
+  {
+    "color": "FBCA04",
+    "description": "Deliverable is ready and waiting for review or acceptance.",
+    "name": "status:review"
+  },
+  {
+    "color": "B60205",
+    "description": "Progress needs a named dependency or decision to be resolved.",
+    "name": "status:blocked"
+  },
+  {
+    "color": "D93F0B",
+    "description": "Prioritize ahead of normal work; owner records why.",
+    "name": "priority:high"
+  },
+  {
+    "color": "C5DEF5",
+    "description": "Uncommitted future idea; not approved or scheduled for delivery.",
+    "name": "plan:future"
+  }
+]

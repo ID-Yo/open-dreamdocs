@@ -1,6 +1,6 @@
 # Documentation Structure
 
-All 14 initial topic folders exist from day one. Their `README.md` files are instructions, not project facts. `overview/` and `governance/` are core entry points; the others are optional and are filled in only when the project has that area.
+All 14 initial topic folders exist from day one. Their `README.md` files are instructions, not project facts. Each category also has a short `AGENTS.md` routing agents to its relevant pages without replacing root or governance rules. `overview/` and `governance/` are core entry points; the others are optional and are filled in only when the project has that area.
 
 | Folder | Marker | Contents |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ Original user files live outside canonical docs in root [human-materials/](../hu
 
 1. Check whether the topic already has a canonical home. A new folder is warranted when it has a separate owner, lifecycle or several expected documents that do not clearly belong in an existing folder.
 2. Choose a short lowercase name with hyphens. Create `README.md` with a `core` or `optional` marker, purpose, inclusions, exclusions, owner/review and links to related areas.
-3. Add the folder to this table and each actual canonical document to `00-index.md`. Do not copy authority, lifecycle or promotion rules outside `governance/`.
+3. Add a short `AGENTS.md` linking the root contract, this folder's README and only its relevant topic pages; avoid duplicating governance. Add the folder to this table and each actual canonical document to `00-index.md`. Do not copy authority, lifecycle or promotion rules outside `governance/`.
 4. When moving content, update all entry points and leave a reference when history requires it. Do not delete historical evidence without a separate decision.
 
 Possible future folders include `integrations/`, `research/`, `api/`, `data/` or `agents/`. They are not required for every project. Add new memory types in `memory/` using the same principle and describe them in `memory/README.md`.
