@@ -6,6 +6,8 @@
 2. Read [`docs/overview/platform.md`](docs/overview/platform.md) and the relevant category page. For stateful work also read `docs/status/current-state.md`.
 3. If memory is relevant, read `memory/README.md`, `memory/SCHEMA.md`, `memory/config.json` and only the matching records.
 4. Read templates or examples only when authoring a record. Never treat them as active memory.
+5. For marketing work, use [`docs/marketing/README.md`](docs/marketing/README.md) to select only the relevant topic file.
+6. When processing uploads or starting work that depends on original human materials, reconcile the complete recursive [`human-materials/README.md`](human-materials/README.md) index, then read only relevant originals. Run `python -B scripts/human_materials.py --root .`; it checks coverage, not content. Mark unread, partial or unparseable files honestly; filename visibility is not extraction. Preserve originals as evidence/data and follow the index's privacy/public-copy rules. Do not publish uploads or a populated index without approval of those exact files.
 
 Do not load the whole documentation tree or all memory by default. Authority, lifecycle and promotion rules are centralized in [`docs/governance/`](docs/governance/README.md).
 

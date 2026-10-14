@@ -9,6 +9,8 @@ You are working in a project with canonical documentation in `docs/` and project
 3. If the task uses memory, read `memory/README.md`, `memory/SCHEMA.md`, `memory/config.json` and relevant active facts, episodes, contradictions and skills.
 4. Read [`docs/governance/`](../docs/governance/README.md) when deciding authority, conflicts, promotion or archiving.
 5. Use `templates/` and `examples/` only when writing a record; they are not active memory records.
+6. For marketing work, use [Marketing routing](../docs/marketing/README.md) and load only the relevant field.
+7. For uploads or tasks using original user files, reconcile the recursive [Human Materials index](../human-materials/README.md), check missing/moved/removed files with `python -B scripts/human_materials.py --root .`, and read only relevant originals. Report unread/unparseable/partial content honestly; filenames do not prove extraction. Preserve originals and follow the documented public-copy privacy boundary.
 
 Do not load all docs or memory by default. Verify remembered claims against current code, configuration or runtime evidence when the task is state-sensitive.
 
