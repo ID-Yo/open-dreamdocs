@@ -5,7 +5,7 @@ project: community initiatives, research, operations, creative work or software.
 Keep agreed project knowledge in `docs/`, and evidence, outcomes and proposed
 lessons in `memory/`. Use the folders manually or with an AI assistant.
 
-Version 1.3.0. Licensed under [MIT](LICENSE). All guides, templates, examples and prompts are in English.
+Version 1.4.0. Licensed under [MIT](LICENSE). All guides, templates, examples and prompts are in English.
 
 ## Start with the documents
 
@@ -32,13 +32,14 @@ independently and never installs a companion silently.
 
 ## What is included
 
-- Fourteen documentation categories, each with a short guide. Overview and
+- Fourteen documentation categories, each with a README and scoped AGENTS guidance. Overview and
   governance are core; the other categories are optional.
 - Governance for authority, memory lifecycle and owner-reviewed promotion.
 - Templates and examples for outcomes, facts, procedures and contradictions.
 - An optional Python validator and Dreamer lifecycle runner with snapshots,
   checkpoints, reports, proposals and explicit recovery.
 - Tests covering the file-based lifecycle, portability and recursive material indexing.
+- A portable [GitHub labels template and import guide](docs/operations/github-labels.md), applied only to an explicitly chosen repository and workflow.
 - Independent [Marketing fields](docs/marketing/README.md) and an indexed home for
   [original human materials](human-materials/README.md).
 

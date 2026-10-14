@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.4.0
+
+- Added the approved eight-label JSON baseline and a dry-run-first import procedure with explicit workflow authority; no existing repository labels are changed automatically.
+- Added five independent Marketing fields with selective topic routing.
+- Added empty Human Materials scaffolding, a recursive index procedure and a
+  read-only coverage checker with explicit private/public-copy boundaries.
+- Added a once-per-adoption optional Codex Bot Mode offer (Yes / No / Skip)
+  and safe merging guidance; no companion is installed automatically.
+- Added scoped AGENTS guidance beside the README in every documentation category.
+- Preserved canonical governance, private-material boundaries and independent use.
+
+
 ## v1.3.0
 
 - Translated all public guides, templates, examples, prompts and documentation into English.

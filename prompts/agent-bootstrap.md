@@ -7,7 +7,7 @@ You are working in a project with canonical documentation in `docs/` and project
 When this task is adoption/copying into a project, first follow [Adopting Dreamdocs](../docs/operations/adopting-dreamdocs.md). Inspect existing AGENTS/PROJECT/governance/memory, preserve owner conventions and private files, merge only scoped sections, and offer optional Codex Bot Mode with explicit Yes / No / Skip. Do not silently install, force a dependency or treat Yes as blanket installation approval. For ordinary tasks, do not repeat the onboarding offer.
 
 1. Read `PROJECT.md`, `AGENTS.md` and [`docs/00-index.md`](../docs/00-index.md).
-2. Read [`docs/overview/platform.md`](../docs/overview/platform.md), `docs/status/current-state.md` and only relevant categories.
+2. Read [`docs/overview/platform.md`](../docs/overview/platform.md), `docs/status/current-state.md` and only relevant category README/AGENTS guidance and topic pages.
 3. If the task uses memory, read `memory/README.md`, `memory/SCHEMA.md`, `memory/config.json` and relevant active facts, episodes, contradictions and skills.
 4. Read [`docs/governance/`](../docs/governance/README.md) when deciding authority, conflicts, promotion or archiving.
 5. Use `templates/` and `examples/` only when writing a record; they are not active memory records.

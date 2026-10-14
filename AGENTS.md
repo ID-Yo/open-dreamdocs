@@ -3,7 +3,7 @@
 ## Read only what the task needs
 
 1. Read `PROJECT.md`, this file and [`docs/00-index.md`](docs/00-index.md).
-2. Read [`docs/overview/platform.md`](docs/overview/platform.md) and the relevant category page. For stateful work also read `docs/status/current-state.md`.
+2. Read [`docs/overview/platform.md`](docs/overview/platform.md) and the relevant category README/AGENTS guidance, then only the needed topic page. For stateful work also read `docs/status/current-state.md`.
 3. If memory is relevant, read `memory/README.md`, `memory/SCHEMA.md`, `memory/config.json` and only the matching records.
 4. Read templates or examples only when authoring a record. Never treat them as active memory.
 5. For marketing work, use [`docs/marketing/README.md`](docs/marketing/README.md) to select only the relevant topic file.

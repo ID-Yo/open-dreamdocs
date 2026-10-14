@@ -14,6 +14,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Dreamer setup](operations/dreamer-setup.md)
 - [Original human materials and recursive index](../human-materials/README.md)
 - [Adopting Dreamdocs and optional companion](operations/adopting-dreamdocs.md)
+- [Reusable GitHub labels and import procedure](operations/github-labels.md)
 
 ## Categories and pages
 
