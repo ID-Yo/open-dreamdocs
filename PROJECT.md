@@ -34,3 +34,5 @@ This file is a short entry point for agents. The detailed vision, scope and term
 - [Governance](docs/governance/README.md)
 - [Current state](docs/status/current-state.md)
 - [Agent rules](AGENTS.md)
+- [Marketing topic routing](docs/marketing/README.md)
+- [Original human materials and index](human-materials/README.md)

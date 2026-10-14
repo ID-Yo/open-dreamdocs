@@ -12,6 +12,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Daily Dreamer policy](../memory/DREAMER_POLICY.md)
 - [Settings](../memory/config.json)
 - [Dreamer setup](operations/dreamer-setup.md)
+- [Original human materials and recursive index](../human-materials/README.md)
 
 ## Categories and pages
 
@@ -20,6 +21,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 | Overview (core) | [README](overview/README.md) | [platform.md](overview/platform.md) |
 | Architecture (optional) | [README](architecture/README.md) | [system-overview.md](architecture/system-overview.md) |
 | Product (optional) | [README](product/README.md) | [product.md](product/product.md) |
+| Marketing (optional) | [README](marketing/README.md) | [ideal-customer-profile.md](marketing/ideal-customer-profile.md), [competitors.md](marketing/competitors.md), [positioning.md](marketing/positioning.md), [value-proposition.md](marketing/value-proposition.md), [messaging.md](marketing/messaging.md) |
 | Design (optional) | [README](design/README.md) | — |
 | Engineering (optional) | [README](engineering/README.md) | [engineering.md](engineering/engineering.md) |
 | Security (optional) | [README](security/README.md) | — |

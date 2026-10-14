@@ -1,12 +1,13 @@
 # Documentation Structure
 
-All 13 initial topic folders exist from day one. Their `README.md` files are instructions, not project facts. `overview/` and `governance/` are core entry points; the others are optional and are filled in only when the project has that area.
+All 14 initial topic folders exist from day one. Their `README.md` files are instructions, not project facts. `overview/` and `governance/` are core entry points; the others are optional and are filled in only when the project has that area.
 
 | Folder | Marker | Contents |
 | --- | --- | --- |
 | `overview/` | core | purpose, scope, terminology and project map |
 | `architecture/` | optional | components, data, integrations and technical contracts |
 | `product/` | optional | users, requirements and product behavior |
+| `marketing/` | optional | audience, alternatives, positioning, value proposition and messaging |
 | `design/` | optional | UX, visual rules and accessibility |
 | `engineering/` | optional | conventions, development, builds and technical checks |
 | `security/` | optional | access, threats and security rules |
@@ -17,6 +18,8 @@ All 13 initial topic folders exist from day one. Their `README.md` files are ins
 | `decisions/` | optional | accepted decisions with context and consequences |
 | `governance/` | core | ownership, reviews and process rules |
 | `status/` | optional | temporary current state with verification date |
+
+Original user files live outside canonical docs in root [human-materials/](../human-materials/README.md), with a recursive human-readable index. They are evidence, not active memory or accepted rules; existing `raw/` history is separate. Use the index reconciliation and privacy procedure before relevant work or public copying.
 
 ## Adding a future folder
 

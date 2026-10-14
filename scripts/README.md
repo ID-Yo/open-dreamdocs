@@ -1,5 +1,12 @@
 # Validation and Dreamer Lifecycle
 
+[human_materials.py](human_materials.py) is a separate read-only index checker.
+Run `python -B scripts/human_materials.py --root .` after reconciling the
+[material index](../human-materials/README.md). It scans names recursively and
+checks linked rows, metadata shape and coverage without opening originals.
+Exit 0 means the index matches; exit 1 reports discrepancies or unreadable index.
+Descriptions, review truth and extraction quality remain the agent's responsibility.
+
 Requires Python 3.11+ with no external libraries. [project_memory.py](project_memory.py) validates records/config/links and manages the lock, snapshot, reports/proposals and checkpoint. It does not call an LLM, install a scheduler or prove factual accuracy.
 
 ```text
