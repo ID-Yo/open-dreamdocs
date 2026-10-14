@@ -9,7 +9,7 @@ Version 1.3.0. Licensed under [MIT](LICENSE). All guides, templates, examples an
 
 ## Start with the documents
 
-1. Download this repository or clone it into a new project.
+1. Download a clean release. For an existing project, follow the [adoption and optional companion guide](docs/operations/adopting-dreamdocs.md) before copying; merge existing rules safely.
 2. Fill in [PROJECT.md](PROJECT.md) with your project's name, purpose and owner.
 3. Complete [the platform page](docs/overview/platform.md) and review
    [governance](docs/governance/README.md): who decides what becomes accepted knowledge.
@@ -23,6 +23,11 @@ No programming or running service is needed to use the documents. Unfilled pages
 are templates, not project facts. Copy the root template files and `docs/`,
 `memory/`, `prompts/`, `scripts/`, `templates/`, `examples/` and `tests/` when
 starting a project; retain the MIT license notice.
+
+During adoption, optionally consider [Codex Bot Mode](https://github.com/ID-Yo/codex-bot-mode)
+for persistent approved roles and coordination. Choose **Yes / No / Skip** using
+the [companion offer](docs/operations/adopting-dreamdocs.md); Dreamdocs works
+independently and never installs a companion silently.
 
 ## What is included
 
