@@ -21,7 +21,8 @@ Version 1.3.0. Licensed under [MIT](LICENSE). All guides, templates, examples an
 
 No programming or running service is needed to use the documents. Unfilled pages
 are templates, not project facts. Copy the root template files and `docs/`,
-`memory/`, `prompts/`, `scripts/`, `templates/`, `examples/` and `tests/` when
+`memory/`, `prompts/`, `scripts/`, `templates/`, `examples/`, `tests/` and the clean
+`human-materials/` scaffolding when
 starting a project; retain the MIT license notice.
 
 During adoption, optionally consider [Codex Bot Mode](https://github.com/ID-Yo/codex-bot-mode)
@@ -31,13 +32,15 @@ independently and never installs a companion silently.
 
 ## What is included
 
-- Thirteen documentation categories, each with a short guide. Overview and
+- Fourteen documentation categories, each with a short guide. Overview and
   governance are core; the other categories are optional.
 - Governance for authority, memory lifecycle and owner-reviewed promotion.
 - Templates and examples for outcomes, facts, procedures and contradictions.
 - An optional Python validator and Dreamer lifecycle runner with snapshots,
   checkpoints, reports, proposals and explicit recovery.
-- Seventeen tests covering the existing file-based lifecycle and portability.
+- Tests covering the file-based lifecycle, portability and recursive material indexing.
+- Independent [Marketing fields](docs/marketing/README.md) and an indexed home for
+  [original human materials](human-materials/README.md).
 
 `docs/` is the canonical home for accepted project knowledge. `memory/` preserves
 evidence and proposals. `templates/` and `examples/` are learning materials and
@@ -45,12 +48,20 @@ are excluded from active-memory retrieval. Owners review active facts,
 procedures and canonical changes; the assistant does not accept its own proposals.
 Archiving preserves history and respects pinned records; there is no universal TTL.
 
+For a public copy, include only the empty `human-materials/README.md` template and
+its `.gitignore`; never copy uploaded originals or a populated index by default.
+Review the exact staged inventory, including filenames/descriptions in the index.
+Private project copies also need explicit handling of their originals; bulk copying
+a used checkout is not a safe template-export procedure. Follow the
+[material privacy and reconciliation procedure](human-materials/README.md).
+
 ## Optional validation and Dreamer
 
 Requires Python 3.11 or later, with no external libraries. From the project root:
 
 ```text
 python -B scripts/project_memory.py validate
+python -B scripts/human_materials.py --root .
 python -B -m unittest discover -s tests -v
 ```
 
