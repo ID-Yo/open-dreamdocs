@@ -29,7 +29,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 | Security (optional) | [README](security/README.md) | — |
 | Privacy (optional) | [README](privacy/README.md) | — |
 | QA (optional) | [README](qa/README.md) | — |
-| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md) |
+| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md), [task-continuity.md](operations/task-continuity.md) |
 | Procedures (optional) | [README](procedures/README.md) | — |
 | Decisions (optional) | [README](decisions/README.md) | — |
 | Governance (core) | [README](governance/README.md) | [authority-model.md](governance/authority-model.md), [memory-lifecycle.md](governance/memory-lifecycle.md), [promotion-rules.md](governance/promotion-rules.md) |

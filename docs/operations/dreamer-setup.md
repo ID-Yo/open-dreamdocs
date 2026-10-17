@@ -84,3 +84,7 @@ The scheduler owner starts `begin` once daily. The agent reads the snapshot, fil
 ## Limitations
 
 The runner checks structure, manifest, hashes and result shape. It does not prove that a proposed fact is true, that a skill is safe or that a semantic decision is correct. These decisions remain subject to owner review under [`docs/governance/`](../governance/README.md).
+
+## Task execution is not scheduler configuration
+
+The validator reports `scheduler_configured` when schedule fields are filled; it does not verify an installed scheduler, host availability or actual worker runs. Use [task continuity](task-continuity.md) for explicit external observations and durable handoff evidence. This runner and checker do not install or invoke a scheduler.

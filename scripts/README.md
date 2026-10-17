@@ -1,5 +1,10 @@
 # Validation and Dreamer Lifecycle
 
+[task_continuity.py](task_continuity.py) audits an explicitly named private task
+snapshot: `python -B scripts/task_continuity.py --file PATH`. Exit 0 means consistent
+reported metadata; exit 1 means findings or unreadable input. It never dispatches,
+schedules or independently verifies external references. See [contract and limits](../docs/operations/task-continuity.md).
+
 [human_materials.py](human_materials.py) is a separate read-only index checker.
 Run `python -B scripts/human_materials.py --root .` after reconciling the
 [material index](../human-materials/README.md). It scans names recursively and

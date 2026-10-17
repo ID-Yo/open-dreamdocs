@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "reconciled_at": "<timezone-aware observation time>",
+  "next_check_at": "<explicit next check time>",
+  "runtime": {
+    "scheduler": "unknown",
+    "host": "unknown",
+    "observed_at": null,
+    "next_check_at": null,
+    "evidence": []
+  },
+  "tasks": [
+    {
+      "id": "<stable-task-id>",
+      "manager": "<responsible-bot-or-person>",
+      "executor": null,
+      "status": "backlog",
+      "start_approved": false,
+      "next_action": "<concrete next action>",
+      "acceptance": ["<verifiable acceptance criteria>"],
+      "evidence": ["<authoritative task reference>"],
+      "updated_at": "<timezone-aware evidence time>",
+      "next_check_at": null,
+      "handoffs": [],
+      "blocker": null,
+      "candidate": null,
+      "review": null,
+      "accepted": null
+    }
+  ]
+}

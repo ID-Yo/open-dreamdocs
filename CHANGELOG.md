@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Added opt-in versioned task evidence snapshot/schema and a read-only continuity checker for actual-start, handoff, blocker, candidate/review acceptance and observed health/freshness gaps. Existing memory validation remains compatible; no scheduler or automatic dispatch is introduced.
+
 ## v1.4.0
 
 - Added the approved eight-label JSON baseline and a dry-run-first import procedure with explicit workflow authority; no existing repository labels are changed automatically.

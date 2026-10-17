@@ -31,3 +31,7 @@ These require `owner`. When `active`, they require `last_verified` and `accepted
 ## Retrieval
 
 Read only relevant records. Archives, superseded/deprecated records, templates, examples and Dreamer work/reports/proposals are not active facts. A proposal is for review, never an operational instruction. The template code validates and selects Dreamer input; it does not provide semantic search or embeddings.
+
+## Task evidence is separate
+
+Operational tasks are not new memory record types. The optional [task snapshot contract](../docs/operations/task-continuity.md) uses a separate JSON schema and read-only checker; memory validation and configured scheduling do not prove worker execution or runtime health.
