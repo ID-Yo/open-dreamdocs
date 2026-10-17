@@ -84,6 +84,15 @@ class ContinuityTests(unittest.TestCase):
         self.task["start_approved"] = False
         self.assertTrue(self.check()["ok"])
 
+    def test_started_status_cannot_claim_missing_approval(self):
+        self.task["start_approved"] = False
+        self.assertIn("approval_mismatch", self.codes())
+
+    def test_successor_cannot_start_before_previous_stage_finished(self):
+        self.task["handoffs"][0]["finished_at"] = "2026-01-02T11:30:00Z"
+        self.task["handoffs"].append({**self.task["handoffs"][0], "id": "handoff-2", "finished_at": None})
+        self.assertIn("handoff_overlap", self.codes())
+
     def test_stale_reconciliation_and_worker_evidence(self):
         self.data["next_check_at"] = AT
         self.task["next_check_at"] = AT

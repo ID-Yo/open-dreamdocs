@@ -76,6 +76,8 @@ def check(snapshot, now=None):
             finding("invalid_status", scope, "Unknown task status")
         if type(task.get("start_approved")) is not bool:
             finding("invalid_approval", scope, "start_approved must be explicit boolean")
+        if state in {"in-progress", "review", "blocked", "done"} and task.get("start_approved") is not True:
+            finding("approval_mismatch", scope, "Started/completed work requires recorded start approval")
         updated = timestamp(task.get("updated_at"), scope, "updated_at")
         excluded = state in {"backlog", "paused", "future", "done"}
         if not excluded:
@@ -96,6 +98,7 @@ def check(snapshot, now=None):
             handoffs = []
         ids = set()
         running = []
+        previous_handoff = None
         for h in handoffs:
             if not isinstance(h, dict):
                 finding("invalid_handoff", scope, "Expected handoff object")
@@ -125,6 +128,13 @@ def check(snapshot, now=None):
                 finding("handoff_evidence", scope, "References to request/ack/actual activity required")
             if h.get("started_at") and not h.get("finished_at"):
                 running.append(h)
+            if h.get("started_at") and previous_handoff is not None:
+                prior_end = previous_handoff.get("finished_at")
+                current_start = timestamp(h["started_at"], scope, "started_at")
+                prior_finish = timestamp(prior_end, scope, "finished_at") if prior_end else None
+                if not prior_finish or (current_start and current_start < prior_finish):
+                    finding("handoff_overlap", scope, "Successor cannot start before previous stage finishes")
+            previous_handoff = h
         if started_work and state != "blocked":
             last = handoffs[-1] if handoffs and isinstance(handoffs[-1], dict) else {}
             if last.get("finished_at"):
