@@ -52,7 +52,9 @@ identity and contents; a nonempty string is not a truth attestation.
 - A handoff records unique `id`, `worker`, `stage` (implementation/review/qa/
   integration), `requested_at`, `acknowledged_at`, `started_at`, `finished_at`
   and evidence. Nullable timestamps mean not yet observed. Request, acknowledgment,
-  actual activity and finish are different events and must be ordered. Persist
+  actual activity and finish are different events and must be chronologically
+  nondecreasing; equal timestamps may reflect clock precision, not equivalent
+  events. Persist
   the request before sending; reconcile an uncertain send before retrying.
 - Before ending a turn, the Manager inspects the actual result and verifies a
   successor has started, or records `status: blocked` and reason, unblock `owner`,

@@ -88,6 +88,10 @@ class ContinuityTests(unittest.TestCase):
         self.task["start_approved"] = False
         self.assertIn("approval_mismatch", self.codes())
 
+    def test_unapproved_ready_cannot_hide_reported_actual_start(self):
+        self.task.update(status="ready", start_approved=False)
+        self.assertIn("approval_mismatch", self.codes())
+
     def test_successor_cannot_start_before_previous_stage_finished(self):
         self.task["handoffs"][0]["finished_at"] = "2026-01-02T11:30:00Z"
         self.task["handoffs"].append({**self.task["handoffs"][0], "id": "handoff-2", "finished_at": None})

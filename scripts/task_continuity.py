@@ -128,6 +128,8 @@ def check(snapshot, now=None):
                 finding("handoff_evidence", scope, "References to request/ack/actual activity required")
             if h.get("started_at") and not h.get("finished_at"):
                 running.append(h)
+            if state == "ready" and h.get("started_at") and task.get("start_approved") is not True:
+                finding("approval_mismatch", scope, "Unapproved ready work reports actual worker start")
             if h.get("started_at") and previous_handoff is not None:
                 prior_end = previous_handoff.get("finished_at")
                 current_start = timestamp(h["started_at"], scope, "started_at")
