@@ -135,6 +135,11 @@ class ContinuityTests(unittest.TestCase):
         self.task["handoffs"][-1]["worker"] = "reviewer"
         self.assertTrue(self.check()["ok"])
 
+    def test_review_handoff_is_independent_even_if_task_status_in_progress(self):
+        self.task["candidate"] = {"id": "sha-1", "author": "builder"}
+        self.task["handoffs"][-1]["stage"] = "review"
+        self.assertIn("review_not_independent", self.codes())
+
     def test_malformed_future_and_ordered_times(self):
         self.task["handoffs"][0]["started_at"] = LATER
         self.assertFalse(self.check()["ok"])

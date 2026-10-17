@@ -145,7 +145,7 @@ def check(snapshot, now=None):
                 finding("executor_mismatch", scope, "Current executor must match latest handoff worker")
             if len(running) != 1:
                 finding("active_handoffs", scope, "Use one current stage; reconcile superseded/conflicting handoffs")
-            if state == "review":
+            if state == "review" or last.get("stage") == "review":
                 candidate = task.get("candidate")
                 if not isinstance(candidate, dict) or not all(text(candidate.get(k)) for k in ("id", "author")):
                     finding("candidate_missing", scope, "Review needs exact immutable candidate and author")
