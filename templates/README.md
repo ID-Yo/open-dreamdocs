@@ -11,6 +11,7 @@ These files are copyable forms, not memory records. Keep them outside `memory/` 
 | [decision](decision.md) | docs/decisions/ |
 | [procedure](procedure.md) | docs/procedures/ |
 | [handoff](handoff.md) | docs/status/ |
+| [Task snapshot JSON](task.json), [schema](task.schema.json) | Explicit private tracker/runtime adapter; follow [continuity checks](../docs/operations/task-continuity.md) |
 | [GitHub labels JSON](github-labels.json) | Explicitly chosen repository; follow the [import procedure](../docs/operations/github-labels.md) |
 
 Memory templates use JSON frontmatter between `---` delimiters, as described in [SCHEMA.md](../memory/SCHEMA.md). Canonical document templates are drafts until reviewed. A procedure candidate is not an executable agent skill.

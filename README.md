@@ -97,3 +97,5 @@ agent profiles and runtime state are excluded from this distribution.
 
 [Design notes](DESIGN_NOTES.md) and [the changelog](CHANGELOG.md) describe the
 template's existing decisions and evolution.
+
+For optional machine-readable task handoff checks, see [Task continuity](docs/operations/task-continuity.md). The checker audits reported evidence; it does not run a scheduler or ensure host availability.

@@ -12,3 +12,5 @@ Read only the relevant pages and actual cited evidence. Unfilled templates are
 not facts. Apply [governance](../governance/README.md) for authority, promotion
 and review; avoid duplicating its rules here. Register new canonical pages in
 the [documentation index](../00-index.md).
+
+For continuity audits, read [task-continuity.md](task-continuity.md) and inspect authoritative worker/runtime evidence; a configured schedule or dispatched message is not execution.
