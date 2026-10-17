@@ -116,6 +116,16 @@ class ContinuityTests(unittest.TestCase):
         self.task["status"] = "done"
         self.assertTrue({"candidate_missing", "review_missing", "acceptance_missing"} <= self.codes())
 
+    def test_review_stage_needs_exact_candidate_and_independent_current_worker(self):
+        self.task["status"] = "review"
+        self.assertIn("candidate_missing", self.codes())
+        self.task["candidate"] = {"id": "sha-1", "author": "builder"}
+        self.task["handoffs"][-1]["stage"] = "review"
+        self.assertIn("review_not_independent", self.codes())
+        self.task["executor"] = "reviewer"
+        self.task["handoffs"][-1]["worker"] = "reviewer"
+        self.assertTrue(self.check()["ok"])
+
     def test_malformed_future_and_ordered_times(self):
         self.task["handoffs"][0]["started_at"] = LATER
         self.assertFalse(self.check()["ok"])
