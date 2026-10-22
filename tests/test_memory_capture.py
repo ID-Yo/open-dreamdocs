@@ -198,6 +198,19 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(self.receipt(EVENT)["payload_sha256"], json.loads(before)["payload_sha256"])
 
 
+    def test_receipt_decides_duplicate_and_conflict_without_the_lock(self):
+        self.assertTrue(mc.capture(self.root, EVENT)["saved"])
+        lock = self.hold_lock()
+        started = time.monotonic()
+        duplicate = mc.capture(self.root, EVENT)
+        conflict = mc.capture(self.root, event(occurred_at="2026-01-02T10:00:05Z"))
+        self.assertLess(time.monotonic() - started, 0.5)
+        self.assertEqual((duplicate["exit"], duplicate["decision"], duplicate["saved"]), (0, "duplicate", True))
+        self.assertEqual((conflict["exit"], conflict["decision"], conflict["saved"]), (5, "conflict", False))
+        self.assertEqual(lock.read_text(encoding="utf-8"), "live writer")
+        self.assertEqual(self.files("memory/automation/pending"), [])
+
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)

@@ -229,6 +229,13 @@ def capture(root, event, budget=1.0):
         if result["decision"] not in {"capture_episode", "receipt_only"}:
             return {**report, "decision": result["decision"], "exit": result["exit"]}
         own = make_plan(event, result)
+        saved = receipt_path(root, own["event_id"])
+        if saved.exists():  # receipts are created atomically and never rewritten, so no lock is needed
+            existing = pm.read_json(saved)
+            ac.validate_receipt(existing)
+            if existing["payload_sha256"] == own["payload_sha256"]:
+                return {**report, "decision": "duplicate", "exit": 0, "saved": True, "findings": []}
+            return {**report, "decision": "conflict", "exit": 5, "findings": ["same identity, different payload"]}
         if own["episode"] is not None:
             try:
                 check_files(root, pm.metadata(own["episode"]))
