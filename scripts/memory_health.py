@@ -189,11 +189,28 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
         if task.get("status") in {"paused", "backlog", "future"}:
             continue
         try:
-            due = age(task["expected_at"]) >= 0
+            stamp = datetime.fromisoformat(task["expected_at"].replace("Z", "+00:00"))
+            if stamp.tzinfo is None:
+                raise ValueError("timezone required")
+            due = stamp <= datetime.now(timezone.utc)
         except (ValueError, TypeError, KeyError, AttributeError):
             finding("invalid_checkpoint", task.get("task_id", "unknown"), "Supply an explicit timezone-aware expected save checkpoint.")
             continue
-        if due and task.get("event_id") not in receipts:
+        if not due:
+            continue
+        try:
+            event = task["event"]
+            ac.validate_event(event)
+            ac.validate_binding(bound)
+            if (event["project_id"] != bound["project_id"] or event["adapter"] not in bound["adapters"]
+                    or event["kind"] != "task_outcome" or not event["task"] or event["task"]["id"] != task["task_id"]):
+                raise ValueError("checkpoint identity mismatch")
+            eid = ac.event_id(event)
+            payload_sha = pm.digest(ac.canonical(event).encode())
+        except (ValueError, TypeError, KeyError, AttributeError):
+            finding("invalid_checkpoint", task.get("task_id", "unknown"), "Supply the exact expected outcome event matching this task, project and installed adapter; an event ID alone cannot prove task persistence.")
+            continue
+        if eid not in receipts or receipts[eid]["payload_sha256"] != payload_sha:
             finding("missing_save", task.get("task_id", "unknown"), "Reconcile the authoritative task outcome with its event/receipt; retry exact local capture only. Never repeat an uncertain external operation.", "continuity")
     supplied = evidence.get("clients", {}) if isinstance(evidence, dict) and evidence.get("version") == 1 else {}
     for client, record in manifest.get("clients", {}).items():

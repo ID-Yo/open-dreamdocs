@@ -50,8 +50,10 @@ defines the exact fields.
 rewrite hooks, grant trust or run clients. Without `--fix`, even supplied evidence is only reported.
 Changed hooks/versions/sources invalidate prior claims; failed evidence remains unknown/pending.
 
-`--checkpoints <local-json-file>` accepts an explicit array of objects with `task_id`, `event_id`,
-`status` and `expected_at`. For due saves, it joins that event ID to a valid read-back receipt and
+`--checkpoints <local-json-file>` accepts an explicit array of objects with `task_id`, the exact
+expected outcome `event`, `status` and `expected_at`. For due saves, it validates the task, project
+and adapter identity and compares the full canonical event payload hash with a read-back receipt;
+receipt ID membership alone is insufficient. Future checkpoints are not yet due. The report
 reports `missing_save` when absent. Paused/backlog/future tasks are excluded. This does not discover
 tasks, accept results or infer undocumented completions. Keep this checkpoint file private and
 reconcile it with the authoritative tracker and [task continuity](task-continuity.md) snapshot.

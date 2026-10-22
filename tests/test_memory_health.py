@@ -105,7 +105,9 @@ class HealthTests(unittest.TestCase):
         self.assertEqual(mh.doctor(self.root)["clients"]["codex"]["trust"], "unknown")
 
     def test_missing_task_receipt_is_reported_without_resuming_paused_tasks(self):
-        result = mh.doctor(self.root, checkpoints=[{"task_id": "task-1", "event_id": "evt-missing", "status": "done", "expected_at": "2020-01-01T00:00:00Z"},
+        event = copy.deepcopy(EVENT)
+        event["task"] = {"id": "task-1", "status": "done"}
+        result = mh.doctor(self.root, checkpoints=[{"task_id": "task-1", "event": event, "status": "done", "expected_at": "2020-01-01T00:00:00Z"},
                                                   {"task_id": "paused", "event_id": None, "status": "paused", "expected_at": None}])
         self.assertIn("missing_save", self.codes(result))
         self.assertEqual([f["scope"] for f in result["findings"] if f["code"] == "missing_save"], ["task-1"])
@@ -120,6 +122,23 @@ class HealthTests(unittest.TestCase):
             self.assertNotEqual(result["exit"], 0)
             self.assertIn("invalid_manifest", self.codes(result))
             self.assertEqual(before, self.snapshot())
+
+    def test_receipt_for_another_task_or_payload_cannot_satisfy_checkpoint(self):
+        event = copy.deepcopy(EVENT)
+        mc.capture(self.root, event)
+        expected = copy.deepcopy(event)
+        expected["task"] = {"id": "other-task", "status": "done"}
+        result = mh.doctor(self.root, checkpoints=[{"task_id": "other-task", "event": expected, "status": "done", "expected_at": pm.now()}])
+        self.assertIn("missing_save", self.codes(result))
+        result = mh.doctor(self.root, checkpoints=[{"task_id": "other-task", "event": event, "status": "done", "expected_at": pm.now()}])
+        self.assertIn("invalid_checkpoint", self.codes(result))
+        event["task"] = {"id": "real-task", "status": "done"}
+        event["turn_id"] = "new-task-turn"
+        mc.capture(self.root, event)
+        result = mh.doctor(self.root, checkpoints=[{"task_id": "real-task", "event": event, "status": "done", "expected_at": pm.now()}])
+        self.assertFalse({"missing_save", "invalid_checkpoint"} & self.codes(result))
+        result = mh.doctor(self.root, checkpoints=[{"task_id": "not-due", "status": "done", "expected_at": "2099-01-01T00:00:00Z"}])
+        self.assertFalse({"missing_save", "invalid_checkpoint"} & self.codes(result))
 
     def test_cli_smoke_is_machine_readable_and_does_not_mutate_the_project(self):
         import subprocess
