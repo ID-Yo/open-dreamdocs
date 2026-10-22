@@ -123,7 +123,8 @@ class ReleaseTests(unittest.TestCase):
         self.commit()
         result = rp.prepare(self.root, self.revision)
         self.assertFalse(result["ok"])
-        self.assertEqual([f["code"] for f in result["findings"]], ["nonempty_or_modified_material_index"])
+        self.assertEqual({f["code"] for f in result["findings"]}, {"nonempty_or_modified_material_index"})
+        self.assertEqual({f["scope"] for f in result["findings"]}, {"snapshot", "history"})
 
     def test_exact_marker_only_fixture_is_allowed_but_modified_credential_content_is_not(self):
         fixture = "tests/fixtures/automation/unsafe-secret.json"
