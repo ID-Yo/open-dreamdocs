@@ -262,7 +262,7 @@ class CaptureTests(unittest.TestCase):
         for process in processes:
             out, err = process.communicate(timeout=60)
             result = json.loads(out)
-            self.assertEqual((process.returncode, result["decision"], result["saved"]), (1, "capture_episode", True), err)
+            self.assertEqual((process.returncode, result["decision"], result["saved"]), (1, "capture_episode", True), {"result": result, "stderr": err})
         self.assertEqual(len(self.episodes()), 6)
 
 
