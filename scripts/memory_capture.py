@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import time
 import uuid
@@ -136,6 +137,19 @@ def verify_sources(root, meta, items):
         raise Invalid(str(exc)) from exc
 
 
+def same_except_baseline(existing, text):
+    """True when an episode differs from the planned one only in its recorded source hashes."""
+    def parts(value):
+        value = value.replace("\r\n", "\n")
+        meta = pm.metadata(value)
+        meta.pop("source_sha256", None)
+        return meta, re.sub(r"\A---\n.*?\n---(?:\n|$)", "", value, count=1, flags=re.S)
+    try:
+        return parts(existing.decode("utf-8")) == parts(text)
+    except ValueError:
+        return False
+
+
 def publish(root, plan, items):
     """Episode first (create, read back), then receipt (write, read back). Returns the decision."""
     path = receipt_path(root, plan["event_id"])
@@ -152,8 +166,10 @@ def publish(root, plan, items):
     episode, data = pm.confined(root, relative), plan["episode"].encode("utf-8")
     verify_sources(root, pm.metadata(plan["episode"]), items)
     if episode.exists():
-        if episode.read_bytes() != data:
+        existing = episode.read_bytes()
+        if existing != data and not same_except_baseline(existing, plan["episode"]):
             raise Conflict("existing episode differs from this event")
+        data = existing  # an interrupted earlier attempt wrote it; keep its baseline and complete the receipt
     else:
         atomic_text(episode, plan["episode"])
     if episode.read_bytes() != data:

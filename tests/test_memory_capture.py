@@ -114,6 +114,30 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual((result["exit"], result["decision"], result["saved"]), (0, "capture_episode", True))
         self.assertEqual((len(self.episodes()), len(self.files("memory/automation/receipts"))), (1, 1))
 
+    def test_retry_after_crash_and_source_edit_completes_the_receipt(self):
+        (self.root / "docs").mkdir(exist_ok=True)
+        (self.root / "docs/note.md").write_text("note v1\n", encoding="utf-8")
+        value = event(outcome={"evidence": ["file:docs/note.md"]})
+        with patch.object(pm, "atomic", side_effect=OSError(errno.EIO, "injected")):
+            self.assertFalse(mc.capture(self.root, value)["saved"])
+        episode = self.root / f"memory/episodes/auto-{ac.event_id(value)}.md"
+        first = episode.read_bytes()
+        (self.root / "docs/note.md").write_text("note v2\n", encoding="utf-8")
+        result = mc.capture(self.root, value)
+        self.assertEqual((result["exit"], result["decision"], result["saved"]), (0, "capture_episode", True))
+        self.assertEqual(episode.read_bytes(), first)
+        self.assertEqual(self.receipt(value)["episode_sha256"], pm.digest(first))
+        self.assertEqual(mc.capture(self.root, value)["decision"], "duplicate")
+
+    def test_retry_with_a_different_episode_body_is_still_a_conflict(self):
+        value = event()
+        with patch.object(pm, "atomic", side_effect=OSError(errno.EIO, "injected")):
+            mc.capture(self.root, value)
+        episode = self.root / f"memory/episodes/auto-{ac.event_id(value)}.md"
+        episode.write_text(episode.read_text(encoding="utf-8").replace("Outcome: success", "Outcome: edited"), encoding="utf-8")
+        self.assertEqual(mc.capture(self.root, value)["decision"], "conflict")
+
+
     def test_disk_full_and_permission_denied_never_report_saved(self):
         for error in (OSError(errno.ENOSPC, "No space left on device"), PermissionError(errno.EACCES, "Permission denied")):
             with self.subTest(error=error), patch.object(pm, "atomic", side_effect=error):
