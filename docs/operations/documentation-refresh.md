@@ -24,6 +24,13 @@ locks or an active Dreamer run defer publication; locks are never removed. Exit 
 proposal/check, **not** accepted docs. Exit 2 means unconfigured, invalid, stale, refused or
 unavailable evidence. JSON is ASCII-escaped; no notifications or external reporting occur.
 
+Publication requires an available Git worktree, an untracked destination and effective Git
+exclusion of the exact sidecar path. Ignore-line presence is insufficient: later negations may
+expose a file, and ignore rules do not protect tracked content. Existing owner rules are preserved;
+ambiguous/unavailable exclusion or tracked destinations cause refusal before sidecar publication.
+Non-Git projects can still preview proposals. This is a point-in-time check, not protection against
+later owner changes or force-adds.
+
 ## Owner configuration and input
 
 The owner maintains `.dreamdocs/documentation-policy.json`. Its exact fields are `version: 1`,

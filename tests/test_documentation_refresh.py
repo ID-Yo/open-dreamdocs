@@ -26,6 +26,7 @@ class RefreshTests(unittest.TestCase):
             target = self.root / path.relative_to(ROOT)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True, timeout=10)
         (self.root / ".dreamdocs").mkdir()
         pm.atomic(self.root / "memory/automation.json", {"version": 1, "project_id": "example-project", "adapters": ["codex"]})
         self.source = "memory/episodes/research.md"
@@ -127,6 +128,92 @@ class RefreshTests(unittest.TestCase):
             self.assertEqual(before, self.snapshot())
             self.tasks = tasks
             self.save_control()
+
+    def test_snapshot_digest_is_required_even_when_acceptance_changes_after_the_request(self):
+        for value in (None, "", "not-a-digest", "0" * 63, [], {}, True):
+            self.request["task_snapshot_sha256"] = value
+            for changed in (False, True):
+                if changed:
+                    self.tasks["tasks"][0]["accepted"]["evidence"] = ["ref:changed-after-request"]
+                    self.save_control()
+                before = self.snapshot()
+                result = dr.propose(self.root, self.request, write=True)
+                self.assertEqual(result["exit"], 2, (value, changed))
+                self.assertFalse(result["written"])
+                self.assertEqual(before, self.snapshot())
+
+    def test_snapshot_change_after_initial_read_prevents_publication(self):
+        from contextlib import contextmanager
+        original = pm.operation
+        @contextmanager
+        def changed(root):
+            self.tasks["tasks"][0]["accepted"]["evidence"] = ["ref:changed-before-lock"]
+            self.save_control()
+            with original(root):
+                yield
+        with patch.object(pm, "operation", side_effect=changed):
+            result = dr.propose(self.root, self.request, write=True)
+        self.assertEqual(result["exit"], 2)
+        self.assertFalse(result["written"])
+        self.assertFalse((self.root / dr.FOLDER).exists())
+
+    def test_effective_git_exclusion_refuses_overriding_negations_before_publication(self):
+        self.put(".gitignore", "!/.dreamdocs/\n")
+        for rule in ("*", "/documentation-refresh/"):
+            self.put(".dreamdocs/.gitignore", rule + "\n!documentation-refresh/\n!documentation-refresh/*.json\n")
+            sidecar = dr.propose(self.root, self.request)["path"]
+            ignored = subprocess.run(["git", "check-ignore", "-q", "--", sidecar], cwd=self.root, timeout=10)
+            self.assertEqual(ignored.returncode, 1)
+            before = self.snapshot()
+            result = dr.propose(self.root, self.request, write=True)
+            self.assertEqual(result["exit"], 2, result.get("findings"))
+            self.assertFalse(result["written"])
+            self.assertFalse((self.root / sidecar).exists())
+            self.assertEqual(before, self.snapshot())
+
+    def test_effective_exclusion_preserves_owner_rules_and_hides_sidecar_from_git_listing(self):
+        self.put(".gitignore", "!/.dreamdocs/\n")
+        rules = "documentation-refresh/*.json\n!*.md\n"
+        self.put(".dreamdocs/.gitignore", rules)
+        result = dr.propose(self.root, self.request, write=True)
+        self.assertEqual(result["exit"], 0, result.get("findings"))
+        self.assertTrue(result["written"])
+        self.assertEqual((self.root / ".dreamdocs/.gitignore").read_text(), rules)
+        listed = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", result["path"]],
+                                cwd=self.root, check=True, capture_output=True, timeout=10)
+        self.assertEqual(listed.stdout, b"")
+
+    def test_tracked_sidecar_destination_is_refused_even_with_an_ignore_rule(self):
+        saved = dr.propose(self.root, self.request, write=True)
+        sidecar = saved["path"]
+        subprocess.run(["git", "add", "-f", "--", sidecar], cwd=self.root, check=True, capture_output=True, timeout=10)
+        for absent in (False, True):
+            if absent:
+                (self.root / sidecar).unlink()
+            before = self.snapshot()
+            result = dr.propose(self.root, self.request, write=True)
+            self.assertEqual(result["exit"], 2)
+            self.assertFalse(result["written"])
+            self.assertEqual(before, self.snapshot())
+
+    def test_git_unavailable_or_non_git_project_refuses_write_but_preserves_preview(self):
+        for error in (FileNotFoundError("git unavailable"), subprocess.TimeoutExpired("git", 5)):
+            before = self.snapshot()
+            with patch.object(dr.subprocess, "run", side_effect=error):
+                self.assertEqual(dr.propose(self.root, self.request)["exit"], 0)
+                result = dr.propose(self.root, self.request, write=True)
+            self.assertEqual(result["exit"], 2)
+            self.assertFalse(result["written"])
+            self.assertEqual(before, self.snapshot())
+        held = Path(self.temp.name) / "held-test-git"
+        (self.root / ".git").rename(held)
+        try:
+            before = self.snapshot()
+            self.assertEqual(dr.propose(self.root, self.request)["exit"], 0)
+            self.assertEqual(dr.propose(self.root, self.request, write=True)["exit"], 2)
+            self.assertEqual(before, self.snapshot())
+        finally:
+            held.rename(self.root / ".git")
 
     def test_sidecar_recheck_detects_rollback_acceptance_and_source_target_changes(self):
         saved = dr.propose(self.root, self.request, write=True)

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path, PurePosixPath
 import re
+import subprocess
 import sys
 from urllib.parse import quote, unquote, urlsplit
 
@@ -111,7 +112,7 @@ def build(root, request, created_at=None):
         pm.require(relative.startswith("docs/") and relative.endswith(".md") and not relative.startswith("docs/governance/") and not relative.endswith("/AGENTS.md"), "policy cannot authorize governance or agent-rule changes")
     task_file = path_name(policy["task_file"])
     pm.require(task_file.startswith(".dreamdocs/"), "task snapshot must have a private project-local destination")
-    snapshot = json.loads(read(task_file, request["task_snapshot_sha256"]), object_pairs_hook=pm.unique_keys)
+    snapshot = json.loads(read(task_file, digest(request["task_snapshot_sha256"])), object_pairs_hook=pm.unique_keys)
     pm.require(isinstance(snapshot, dict) and isinstance(snapshot.get("tasks"), list), "invalid task snapshot")
     tasks = [t for t in snapshot["tasks"] if isinstance(t, dict) and t.get("id") == request["task_id"]]
     pm.require(len(tasks) == 1, "one exact authoritative task required")
@@ -267,13 +268,25 @@ def propose(root, request, write=False):
                 pm.require(not pm.runtime(root, "lock.json").exists(), "Dreamer active; defer sidecar publication")
                 verified = build(root, request, proposal["created_at"])
                 pm.require(verified == proposal, "inputs changed during refresh preflight")
+                target = pm.confined(root, path)
+                for folder in target.parents:
+                    if folder == root:
+                        break
+                    pm.require(not (folder / ".git").exists(), "private sidecar destination crosses a nested repository")
+                def git(*args):
+                    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=5)
+                repository = git("rev-parse", "--is-inside-work-tree")
+                pm.require(repository.returncode == 0 and repository.stdout.strip() == b"true",
+                           "--write requires a Git worktree to verify sidecar privacy; preview remains read-only")
+                tracked = git("ls-files", "-z", "--", path)
+                pm.require(tracked.returncode == 0 and not tracked.stdout,
+                           "sidecar destination is tracked or its index state is unavailable; refuse private publication")
                 ignore = pm.confined(root, ".dreamdocs/.gitignore")
-                old_ignore = ignore.read_text(encoding="utf-8") if ignore.exists() else ""
-                pm.require("*" in old_ignore.splitlines() or "/documentation-refresh/" in old_ignore.splitlines() or not ignore.exists(), "private sidecars are not ignored; add /documentation-refresh/ to .dreamdocs/.gitignore")
                 if not ignore.exists():
                     from memory_capture import atomic_text
                     atomic_text(ignore, "*\n")
-                target = pm.confined(root, path)
+                pm.require(git("check-ignore", "-q", "--", path).returncode == 0,
+                           "sidecar is not effectively excluded by Git; review ignore rules without tracking private content")
                 if target.exists():
                     existing = pm.read_json(target)
                     pm.require(check(root, path)["ok"], "existing sidecar is stale or modified")
@@ -283,7 +296,7 @@ def propose(root, request, write=False):
                     pm.require(pm.read_json(target) == proposal, "sidecar readback mismatch")
                     written = True
         return {"exit": 0, "written": written, "path": path, "proposal": proposal}
-    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, subprocess.SubprocessError) as error:
         return {"exit": 2, "written": False, "findings": [{"code": "refresh_refused", "cause": type(error).__name__, "detail": str(error),
                                                            "next_action": "Reconcile the selected acceptance, policy and exact file revisions; no canonical files were changed."}]}
 
