@@ -109,9 +109,10 @@ an event cannot set record status, owner or acceptance.
 - Episode path: `memory/episodes/auto-<event_id>.md`; receipt path:
   `memory/automation/receipts/<event_id>.json`.
 - Receipt v1 is a JSON object with exactly `version`, `event_id`, `payload_sha256`,
-  `decision`, `outcome`, `status` (`persisted`, `receipt_only`, `reject` or
-  `invalid`), `episode`, `episode_sha256` and `recorded_at`. Any other shape or
-  version is `invalid` (exit 2), never retryable.
+  `decision`, `outcome`, `status` (`persisted` or `receipt_only`), `episode`,
+  `episode_sha256` and `recorded_at`. Any other shape or version is `invalid`
+  (exit 2), never retryable. Refused events (`reject`, `invalid`) never write a
+  receipt; a replay is checked again and gets the same refusal.
 
 Commit order for a writer (#16):
 

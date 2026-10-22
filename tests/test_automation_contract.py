@@ -94,6 +94,12 @@ class ContractRuleTests(unittest.TestCase):
                 result = ac.check(event, self.binding)
                 self.assertEqual((result["exit"], result["decision"]), (2, "invalid"))
 
+    def test_receipts_record_only_allowed_decisions(self):
+        receipt = receipt_for({**load("duplicate-delivery"), "event": self.event})
+        for status in ("reject", "invalid"):
+            result = ac.check(self.event, self.binding, {**receipt, "status": status})
+            self.assertEqual((result["exit"], result["decision"]), (2, "invalid"))
+
     def test_support_matrix_is_truthful_for_both_clients(self):
         self.assertEqual(set(ac.SUPPORT), {"codex", "claude-code"})
         for client, entry in ac.SUPPORT.items():
