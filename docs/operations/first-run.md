@@ -40,8 +40,10 @@ Codex CLI are required; Claude Code support is not available yet.
    `Stop` hook saves it. A new session receives the relevant memory at start. See the
    [Codex adapter](agents/codex.md) for what each hook does and its limits.
 
-Until a real trusted session has saved and recalled memory, the manifest keeps the trust and probe
-states `pending`. The hook command contains absolute paths for this computer, so run setup again after
+Setup cannot observe trust, so the manifest's `trust` and `probe` fields stay `pending`, even after a
+real trusted session has saved and recalled memory. The doctor command (#22) will set them from
+evidence: a receipt from a real session after installation. Until then, check a receipt in
+`memory/automation/receipts/` and the recalled context in a new session. The hook command contains absolute paths for this computer, so run setup again after
 moving or copying the project folder. On Windows, Codex 0.147.0 runs hooks through PowerShell. The
 command keeps the Python path unquoted and quotes only the hook script, which works in PowerShell and
 cmd even when the project path has spaces and the drive has no 8.3 names. If the Python path itself

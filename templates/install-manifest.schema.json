@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Dreamdocs install manifest v1",
-  "description": "Written by scripts/install.py setup to memory/automation/install.json. Shape only; it records what setup wrote so uninstall and later upgrades can tell package files from user data. Trust and probe states stay pending until a client run is observed.",
+  "description": "Written by scripts/install.py setup to memory/automation/install.json. Shape only; it records what setup wrote so uninstall and later upgrades can tell package files from user data. Setup writes trust and probe as pending; only the doctor command (#22) changes them, from receipts of real client sessions after installation.",
   "type": "object",
   "additionalProperties": false,
   "required": [
