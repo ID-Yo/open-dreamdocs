@@ -27,6 +27,7 @@ Automatic capture may create an episode and a receipt. Active facts, skills,
 accepted decisions and canonical documentation still follow
 [promotion rules](../governance/promotion-rules.md). A finished coding turn is not
 a finished project task: the event reports the task status separately.
+That task status is the adapter's report and never counts as Manager acceptance.
 
 ## States are separate claims
 
@@ -88,7 +89,8 @@ All fields are required and no others are allowed.
 | `kind` | `session_start`, `task_start`, `task_outcome`, `session_end` |
 | `adapter` | `codex` or `claude-code` |
 | `session_id`, `turn_id` | Client session and turn, or task revision |
-| `project_id`, `worktree`, `agent` | Must match the installed binding; prevent cross-project leaks |
+| `project_id` | Must match the installed binding; events for other projects are rejected |
+| `worktree`, `agent` | Reported identity labels, not verified against the binding; `worktree` is a short name (letters, digits, `.`, `_`, `-`, at most 64) without path separators or drive prefix |
 | `occurred_at` | Timestamp with timezone |
 | `privacy` | `public`, `project`, `restricted`, `prohibited` |
 | `task` | `null` or `{id, status}` with backlog/ready/in-progress/review/blocked/paused/done |
@@ -152,6 +154,7 @@ events cleanly and shows different ones as conflicts.
 
 Credential-like content is rejected regardless of class. Privacy labels do not
 authorize raw transcripts, personal data or private originals.
+The checker does not detect personal data; the producing agent must exclude it.
 
 ## Decisions and exit codes
 

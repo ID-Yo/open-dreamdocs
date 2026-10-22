@@ -85,6 +85,9 @@ class ContractRuleTests(unittest.TestCase):
             {**self.event, "occurred_at": "2026-01-02"},
             {**self.event, "version": 2},
             {**self.event, "kind": "session_start"},
+            {**self.event, "worktree": "/home/example/app"},
+            {**self.event, "worktree": "..\\outside"},
+            {**self.event, "worktree": "D:"},
         ]
         for event in cases:
             with self.subTest(event=event):

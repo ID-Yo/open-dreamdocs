@@ -20,6 +20,7 @@ FIELDS = {"version", "privacy", "occurred_at", "task", "outcome", *IDENTITY}
 RECEIPT_FIELDS = {"version", "event_id", "payload_sha256", "decision", "outcome", "status", "episode", "episode_sha256", "recorded_at"}
 RECEIPT_STATUSES = {"persisted", "receipt_only", "reject", "invalid"}
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")
 TEXT_LIMIT, LESSON_LIMIT, MAX_LESSONS, MAX_EVIDENCE = 2000, 600, 10, 20
 EXIT = {"capture_episode": 0, "receipt_only": 0, "recall_only": 0, "duplicate": 0,
         "retry_pending": 1, "invalid": 2, "reject": 3, "degraded": 4, "conflict": 5}
@@ -58,6 +59,7 @@ def validate_event(event):
     require(type(event["version"]) is int and event["version"] == 1, "unsupported event version")
     require(event["kind"] in KINDS and event["adapter"] in SUPPORT and event["privacy"] in PRIVACY, "unknown kind/adapter/privacy")
     require(all(text(event[k]) for k in IDENTITY), "identity fields must be nonempty text")
+    require(LABEL.fullmatch(event["worktree"]), "worktree must be a short label without path separators or drive prefix")
     require(isinstance(event["occurred_at"], str) and "T" in event["occurred_at"]
             and datetime.fromisoformat(event["occurred_at"].replace("Z", "+00:00")).tzinfo is not None, "occurred_at needs a timezone")
     task = event["task"]
