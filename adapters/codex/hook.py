@@ -10,7 +10,7 @@ import lifecycle
 
 
 def turn(payload):
-    return str(payload.get("turn_id") or "unknown")
+    return str(payload["turn_id"]) if payload.get("turn_id") else None
 
 
 if __name__ == "__main__":

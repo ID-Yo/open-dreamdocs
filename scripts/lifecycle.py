@@ -109,7 +109,10 @@ def stop(root, adapter, turn_of, payload):
     if bound is None:
         return {"systemMessage": "Dreamdocs memory is not installed in this project; nothing was saved."}
     message = payload.get("last_assistant_message") if isinstance(payload.get("last_assistant_message"), str) else ""
-    session, turn = str(payload.get("session_id") or "unknown"), turn_of(payload)
+    session, turn = payload.get("session_id"), turn_of(payload)
+    if not session or not turn:  # a shared placeholder identity would make later turns look already saved
+        return {"systemMessage": "Dreamdocs memory: the hook payload has no session or turn ID; nothing was saved."}
+    session = str(session)
     outcome, task, warning = outcome_block(message, adapter, turn)
     event = {"version": 1, "kind": "task_outcome", "adapter": adapter, "session_id": session, "turn_id": turn,
              "project_id": bound.get("project_id"), "worktree": re.sub(r"[^A-Za-z0-9._-]", "-", root.name)[:64].lstrip("-._") or "project",

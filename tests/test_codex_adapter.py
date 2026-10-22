@@ -130,6 +130,15 @@ class CodexAdapterTests(unittest.TestCase):
         self.assertIn("RD-55", (self.root / "memory/episodes" / self.files("memory/episodes")[0]).read_text(encoding="utf-8"))
 
 
+    def test_missing_turn_or_session_id_is_refused_visibly(self):
+        for missing in ("turn_id", "session_id"):
+            value = self.payload("stop", last_assistant_message="Done.")
+            del value[missing]
+            out = self.hook(value)
+            self.assertIn("nothing was saved", out["systemMessage"], missing)
+        self.assertEqual((self.files("memory/automation/receipts"), self.files("memory/automation/events")), ([], []))
+
+
     def test_missing_binding_is_reported_without_blocking(self):
         (self.root / "memory/automation.json").unlink()
         self.assertIn("not installed", self.hook(self.payload("stop", last_assistant_message="Done."))["systemMessage"])
