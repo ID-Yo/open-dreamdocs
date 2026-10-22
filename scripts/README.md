@@ -6,6 +6,8 @@ It reads `memory/automation.json` and an existing receipt when present, prints t
 identifiers, and writes nothing. Exit codes: 0 allowed, 1 pending or non-success outcome, 2 invalid,
 3 rejected, 4 degraded (not installed, manual only), 5 conflict.
 
+`python -B scripts/dreamdocs.py setup [--apply] [--project-id ID]` and `uninstall [--apply]` ([install.py](install.py)) plan or apply the project-scoped Codex hooks, binding, instruction block and install manifest; see [first run](../docs/operations/first-run.md). Exit 0 for a clean plan or install, 4 when Codex CLI is missing, 5 for a conflict; nothing is written in either case.
+
 [dreamdocs.py](dreamdocs.py) persists events through [memory_capture.py](memory_capture.py):
 
 ```text

@@ -8,6 +8,7 @@
 - Added `scripts/dreamdocs.py memory capture` and `reconcile` (#16): checked outcome events become an episode plus receipt with readback, replay is idempotent, captures queue under the writer lock shared with Dreamer, and failures never report saved. Includes the outcome event schema and README files for the new automation folders. No client adapter calls it yet.
 - Added `scripts/dreamdocs.py memory recall` (#17): deterministic, read-only selection of accepted facts and procedures, open contradictions and labeled recent episodes for one project, with rehashed source status and a bounded context block framed as untrusted data. Distinguishes ok, no match, empty and unavailable. No client adapter calls it yet.
 - Added the Codex hook adapter (#18): `adapters/codex/hook.py` recalls memory at `SessionStart` and for meaningful prompts, saves each turn at `Stop` from an optional `dreamdocs-outcome` block (receipt only without one), publishes queued captures at `SessionEnd`, never blocks the agent, reads no transcript and calls no model. Tested with recorded Codex 0.147.0 payloads; not yet verified end to end with trusted hooks.
+- Added `scripts/dreamdocs.py setup` and `uninstall` (#15): a dry-run plan by default; `--apply` writes only the binding, Dreamdocs entries merged into `.codex/hooks.json`, the outcome instruction block in `AGENTS.md` and a versioned install manifest, then prints the Codex trust step. Repeat runs change nothing and uninstall keeps memory, docs and other hooks. Includes the first-run guide and manifest schema.
 
 ## v1.4.0
 

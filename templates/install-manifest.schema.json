@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dreamdocs install manifest v1",
+  "description": "Written by scripts/install.py setup to memory/automation/install.json. Shape only; it records what setup wrote so uninstall and later upgrades can tell package files from user data. Trust and probe states stay pending until a client run is observed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "package",
+    "project_id",
+    "installed_at",
+    "python",
+    "clients",
+    "package_files",
+    "merged",
+    "created",
+    "user_owned",
+    "local_only"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "package": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "installed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "python": {
+      "type": "string"
+    },
+    "clients": {
+      "type": "object",
+      "properties": {
+        "codex": {
+          "type": "object",
+          "required": [
+            "version",
+            "hook_file",
+            "events",
+            "hook_sha256",
+            "trust",
+            "probe"
+          ],
+          "properties": {
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hook_file": {
+              "const": ".codex/hooks.json"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "SessionStart",
+                  "UserPromptSubmit",
+                  "Stop",
+                  "SessionEnd"
+                ]
+              }
+            },
+            "hook_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "trust": {
+              "enum": [
+                "pending",
+                "trusted",
+                "changed"
+              ]
+            },
+            "probe": {
+              "enum": [
+                "pending",
+                "verified",
+                "failed"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "package_files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "merged": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "block",
+          "sha256"
+        ],
+        "properties": {
+          "block": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "created": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "user_owned": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "local_only": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

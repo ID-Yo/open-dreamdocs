@@ -18,6 +18,8 @@ Version 1.4.0. Licensed under [MIT](LICENSE). All guides, templates, examples an
 5. If you use an AI assistant, adapt [AGENTS.md](AGENTS.md) to its working boundaries.
 6. When recording outcomes or lessons, read [the memory guide](memory/README.md),
    [record schema](memory/SCHEMA.md) and [Dreamer policy](memory/DREAMER_POLICY.md).
+7. Optional: to have Codex save and recall project memory automatically, follow
+   [First run: automatic memory](docs/operations/first-run.md).
 
 No programming or running service is needed to use the documents. Unfilled pages
 are templates, not project facts. Copy the root template files and `docs/`,

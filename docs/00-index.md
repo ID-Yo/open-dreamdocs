@@ -16,6 +16,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Adopting Dreamdocs and optional companion](operations/adopting-dreamdocs.md)
 - [Reusable GitHub labels and import procedure](operations/github-labels.md)
 - [Automation lifecycle contract](operations/automation-contract.md)
+- [First run: automatic memory](operations/first-run.md)
 - [Codex adapter](operations/agents/codex.md)
 
 ## Categories and pages
