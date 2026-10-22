@@ -19,6 +19,9 @@ SCAFFOLD = {"memory/config.json", "memory/README.md", "memory/SCHEMA.md", "memor
             "memory/dreamer/proposals/README.md", "memory/automation/README.md", "memory/automation/receipts/README.md",
             "human-materials/README.md", "human-materials/.gitignore"}
 SECRET = re.compile(rb"\bsk-[A-Za-z0-9_-]{16,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{16,}|\bAKIA[0-9A-Z]{16}\b|-----BEGIN [A-Z ]*PRIVATE KEY-----")
+# Reviewed unsafe-input fixture contains only a synthetic header marker, explicitly no key material.
+# Whole-blob SHA-256 exception, never a directory/pattern exception for test files.
+SYNTHETIC_MARKER_BLOBS = {"43da2685a25718c3b2a6dd96cc276c265a62134d57c6826467bd6ec331718cb7"}
 
 
 def allowed(path):
@@ -81,7 +84,7 @@ def prepare(root, revision, output=None):
                 blob_ids.append(oid)
         pm.require(sum(int(line.split()[2]) for line in sizes) <= 100000000, "history exceeds 100 MB audit bound")
         packed = git("cat-file", "--batch", data=b"\n".join(blob_ids) + b"\n")
-        blobs, position = {}, 0
+        blobs, position, synthetic = {}, 0, 0
         for oid in blob_ids:
             end = packed.index(b"\n", position)
             actual, kind, size = packed[position:end].split()
@@ -89,8 +92,12 @@ def prepare(root, revision, output=None):
             position = end + 1; body = packed[position:position + int(size)]; position += int(size) + 1
             blobs[oid.decode()] = body
             if SECRET.search(body):
-                issue("history", "credential_pattern", oid.decode())  # never echo a matched credential
+                if pm.digest(body) in SYNTHETIC_MARKER_BLOBS:
+                    synthetic += 1
+                else:
+                    issue("history", "credential_pattern", oid.decode())  # never echo a matched credential
         report["history_audited"] = True
+        report["synthetic_fixture_exceptions"] = synthetic
         files = {name: blobs[oid] for name, oid in paths.items()}
         required = {"README.md", "LICENSE", "scripts/install.py", "scripts/dreamdocs.py", "scripts/project_memory.py", "adapters/outcome-block.md", "human-materials/README.md"}
         pm.require(required <= files.keys(), "incomplete public package")

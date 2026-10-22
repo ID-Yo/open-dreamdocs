@@ -91,6 +91,19 @@ class ReleaseTests(unittest.TestCase):
         self.put("docs/operations/accidental.md", "token=" + "sk-" + "AbCdEf1234567890" * 2)
         self.commit()
         self.assertFalse(rp.prepare(self.root, self.revision)["ok"])
+
+    def test_exact_marker_only_fixture_is_allowed_but_modified_credential_content_is_not(self):
+        fixture = "tests/fixtures/automation/unsafe-secret.json"
+        target = self.root / fixture
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / fixture).read_bytes())
+        self.commit()
+        clean = rp.prepare(self.root, self.revision)
+        self.assertTrue(clean["ok"], clean)
+        self.assertEqual(clean["synthetic_fixture_exceptions"], 1)
+        target.write_bytes(target.read_bytes() + b"\n" + b"sk-" + b"AbCdEf1234567890" * 2)
+        self.commit()
+        self.assertFalse(rp.prepare(self.root, self.revision)["ok"])
         self.put("human-materials/README.md", "# Private index without originals\n")
         self.commit()
         self.assertFalse(rp.prepare(self.root, self.revision)["ok"])

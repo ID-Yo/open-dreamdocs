@@ -17,6 +17,9 @@ ZIP from committed bytes. It does not copy untracked/ignored files or any .git h
 publish or authorize a release. It refuses tracked edits, private/unapproved paths, links/submodules,
 real credential-pattern matches, populated memory/config, originals or a changed material index.
 Known synthetic fixtures remain synthetic; secret checks report object IDs, never matched values.
+The marker-only unsafe-input fixture is excepted by its exact reviewed whole-blob SHA-256
+`43da2685a25718c3b2a6dd96cc276c265a62134d57c6826467bd6ec331718cb7`; it contains no key material.
+No test directory is exempt. Any changed bytes need new review and real credentials still fail.
 
 ```text
 python -B scripts/release_package.py --root . --revision FULL_REVIEWED_COMMIT
