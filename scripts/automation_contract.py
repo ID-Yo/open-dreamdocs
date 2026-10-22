@@ -17,6 +17,9 @@ OUTCOMES = {"success", "no_lesson", "partial", "failed", "interrupted"}
 TASK_STATUSES = {"backlog", "ready", "in-progress", "review", "blocked", "paused", "done"}
 IDENTITY = ("adapter", "session_id", "turn_id", "kind", "project_id", "worktree", "agent")
 FIELDS = {"version", "privacy", "occurred_at", "task", "outcome", *IDENTITY}
+RECEIPT_FIELDS = {"version", "event_id", "payload_sha256", "decision", "outcome", "status", "episode", "episode_sha256", "recorded_at"}
+RECEIPT_STATUSES = {"persisted", "receipt_only", "reject", "invalid"}
+SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 TEXT_LIMIT, LESSON_LIMIT, MAX_LESSONS, MAX_EVIDENCE = 2000, 600, 10, 20
 EXIT = {"capture_episode": 0, "receipt_only": 0, "recall_only": 0, "duplicate": 0,
         "retry_pending": 1, "invalid": 2, "reject": 3, "degraded": 4, "conflict": 5}
@@ -79,6 +82,14 @@ def validate_binding(binding):
     require(isinstance(binding["adapters"], list) and set(binding["adapters"]) <= set(SUPPORT), "unknown adapter in binding")
 
 
+def validate_receipt(receipt):
+    require(isinstance(receipt, dict) and type(receipt.get("version")) is int, "receipt must be an object with an integer version")
+    require(receipt["version"] == 1, "unsupported receipt version; no migration is attempted")
+    require(set(receipt) == RECEIPT_FIELDS, "invalid receipt fields")
+    require(isinstance(receipt["event_id"], str) and isinstance(receipt["payload_sha256"], str)
+            and SHA256.fullmatch(receipt["payload_sha256"]) and receipt["status"] in RECEIPT_STATUSES, "invalid receipt values")
+
+
 def decide(event, binding, receipt):
     try:
         validate_event(event)
@@ -97,6 +108,10 @@ def decide(event, binding, receipt):
     if event["adapter"] not in binding["adapters"]:
         return "degraded", [f"adapter {event['adapter']} is not installed for this project"]
     if receipt is not None:
+        try:
+            validate_receipt(receipt)
+        except ContractError as exc:
+            return "invalid", [str(exc)]
         same = receipt.get("event_id") == event_id(event) and receipt.get("payload_sha256") == hashlib.sha256(canonical(event).encode()).hexdigest()
         return ("duplicate", ["already persisted"]) if same else ("conflict", ["same identity, different payload"])
     if event["kind"] != "task_outcome":

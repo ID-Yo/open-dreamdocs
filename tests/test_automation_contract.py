@@ -22,9 +22,13 @@ def load(name):
 def receipt_for(fixture):
     if "receipt" not in fixture:
         return None
+    if not isinstance(fixture["receipt"], str):
+        return fixture["receipt"]
     first = ac.check(fixture["event"], fixture["binding"])
     payload = first["payload_sha256"] if fixture["receipt"] == "same" else "0" * 64
-    return {"version": 1, "event_id": first["event_id"], "payload_sha256": payload, "status": "persisted"}
+    return {"version": 1, "event_id": first["event_id"], "payload_sha256": payload, "decision": "capture_episode",
+            "outcome": "success", "status": "persisted", "episode": first["episode"], "episode_sha256": "0" * 64,
+            "recorded_at": "2026-01-02T10:00:01Z"}
 
 
 class ContractFixtureTests(unittest.TestCase):

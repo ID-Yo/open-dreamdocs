@@ -106,8 +106,10 @@ an event cannot set record status, owner or acceptance.
 - `payload_sha256` = SHA-256 of the canonical JSON of the whole event.
 - Episode path: `memory/episodes/auto-<event_id>.md`; receipt path:
   `memory/automation/receipts/<event_id>.json`.
-- Receipt v1: `version`, `event_id`, `payload_sha256`, `decision`,
-  `status` (`persisted` or `receipt_only`), `episode`, `episode_sha256`, `recorded_at`.
+- Receipt v1 is a JSON object with exactly `version`, `event_id`, `payload_sha256`,
+  `decision`, `outcome`, `status` (`persisted`, `receipt_only`, `reject` or
+  `invalid`), `episode`, `episode_sha256` and `recorded_at`. Any other shape or
+  version is `invalid` (exit 2), never retryable.
 
 Commit order for a writer (#16):
 
@@ -157,7 +159,7 @@ authorize raw transcripts, personal data or private originals.
 |---|---|---|
 | 0 | `capture_episode`, `receipt_only`, `recall_only`, `duplicate` | Allowed; duplicate is an idempotent replay |
 | 1 | `retry_pending`, or capture of a `partial`/`failed` outcome | Recorded or pending; never a success checkpoint |
-| 2 | `invalid` | Malformed event, binding or unknown future version |
+| 2 | `invalid` | Malformed event, binding or receipt, or an unknown future version |
 | 3 | `reject` | Foreign project, prohibited class or unsafe content |
 | 4 | `degraded` | Not installed for this project or adapter; manual only |
 | 5 | `conflict` | Same identity, different payload |
