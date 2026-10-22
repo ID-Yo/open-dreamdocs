@@ -57,7 +57,7 @@ def main():
     except (OSError, ValueError) as exc:
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
-    print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2))
+    print(json.dumps(result, sort_keys=True, indent=2))  # ASCII-escaped: safe in any console code page
     return result["exit"]
 
 
