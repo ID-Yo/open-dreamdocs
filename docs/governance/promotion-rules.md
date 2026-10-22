@@ -5,6 +5,7 @@
 # Promotion Rules
 
 Dreamer or the agent may propose a change. The area owner reviews active facts, skills, canonical rules and changes to `docs/`.
+Automatic capture under the [automation contract](../operations/automation-contract.md) creates only episodes and receipts; it never promotes a record.
 
 ## Episode → fact
 

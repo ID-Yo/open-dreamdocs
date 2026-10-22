@@ -7,3 +7,5 @@ duplicate/outside paths, original preservation and symlink rejection.
 The tests exercise the file-based lifecycle: first run, changed records, duplicate-safe proposals, source mutation during a run, failure without checkpoint advancement and explicit stale-lock recovery. Run them with `python -m unittest discover -s tests -v` from the project root.
 
 Task continuity tests cover dispatch-only, completed stage without successor, blocker requirements, paused/backlog/future exclusions, freshness, runtime unknown/offline, candidate/reviewer/Manager identity and ordering, malformed input and read-only behavior. External scheduler/worker truth is not simulated as proven live behavior.
+
+Automation contract tests run every case in `fixtures/automation/` (capture, no lesson, failed, partial, interrupted, unsafe, missing runtime, foreign project, paused, duplicate and conflicting delivery) and check event identity, strict schema, support honesty and read-only CLI behavior. They do not exercise a real client.

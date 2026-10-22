@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added opt-in versioned task evidence snapshot/schema and a read-only continuity checker for actual-start, handoff, blocker, candidate/review acceptance and observed health/freshness gaps. Existing memory validation remains compatible; no scheduler or automatic dispatch is introduced.
+- Added the automation lifecycle contract (#13): event schema v1, stable event and receipt identity, commit order, privacy classes, exit codes, project binding and rollback data rules, with a read-only event checker and fixtures. Codex and Claude Code remain unsupported until adapters are tested.
 
 ## v1.4.0
 

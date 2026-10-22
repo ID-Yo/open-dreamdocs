@@ -1,0 +1,32 @@
+{
+  "description": "Session start for a paused task only permits recall.",
+  "binding": {
+    "version": 1,
+    "project_id": "example-project",
+    "adapters": [
+      "codex",
+      "claude-code"
+    ]
+  },
+  "event": {
+    "version": 1,
+    "kind": "task_start",
+    "adapter": "codex",
+    "session_id": "session-1",
+    "turn_id": "turn-1",
+    "project_id": "example-project",
+    "worktree": "main",
+    "agent": "developer",
+    "occurred_at": "2026-01-02T10:00:00Z",
+    "privacy": "project",
+    "task": {
+      "id": "task-1",
+      "status": "paused"
+    },
+    "outcome": null
+  },
+  "expect": {
+    "exit": 0,
+    "decision": "recall_only"
+  }
+}

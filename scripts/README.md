@@ -1,5 +1,11 @@
 # Validation and Dreamer Lifecycle
 
+[automation_contract.py](automation_contract.py) checks one automation event against the
+[v1 contract](../docs/operations/automation-contract.md): `python -B scripts/automation_contract.py --root . --event FILE`.
+It reads `memory/automation.json` and an existing receipt when present, prints the decision and planned
+identifiers, and writes nothing. Exit codes: 0 allowed, 1 pending or non-success outcome, 2 invalid,
+3 rejected, 4 degraded (not installed, manual only), 5 conflict.
+
 [task_continuity.py](task_continuity.py) audits an explicitly named private task
 snapshot: `python -B scripts/task_continuity.py --file PATH`. Exit 0 means consistent
 reported metadata; exit 1 means findings or unreadable input. It never dispatches,

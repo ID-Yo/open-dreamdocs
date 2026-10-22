@@ -35,3 +35,7 @@ Read only relevant records. Archives, superseded/deprecated records, templates, 
 ## Task evidence is separate
 
 Operational tasks are not new memory record types. The optional [task snapshot contract](../docs/operations/task-continuity.md) uses a separate JSON schema and read-only checker; memory validation and configured scheduling do not prove worker execution or runtime health.
+
+## Automatic capture
+
+Automatically captured work becomes an ordinary `episodic` record named `auto-<event_id>.md` with a receipt, as defined in the [automation contract](../docs/operations/automation-contract.md). Events carry no record status, owner or acceptance fields, so capture cannot create active facts or methods. The project binding lives in `memory/automation.json`; `config.json` stays version 1.

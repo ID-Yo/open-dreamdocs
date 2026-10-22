@@ -12,6 +12,7 @@ observation -> episode -> fact/skill candidate -> verification
 ## Capture
 
 Completed meaningful work may produce one concise episode with outcome and evidence.
+An installed and tested client adapter may capture that episode automatically under the [automation contract](../operations/automation-contract.md); capture never changes promotion authority or resumes paused work.
 
 ## Extract and validate
 
