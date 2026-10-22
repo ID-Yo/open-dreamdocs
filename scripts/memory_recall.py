@@ -25,7 +25,7 @@ def terms(text):
 
 
 def neutral(text):
-    return re.sub(r"</?\s*dreamdocs-recall", "[dreamdocs-recall]", text, flags=re.I)
+    return re.sub(r"<\s*/?\s*dreamdocs-recall", "[dreamdocs-recall]", text, flags=re.I)
 
 
 def load(root):
