@@ -258,6 +258,19 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(pending["payload_sha256"], ac.check(winner, None)["payload_sha256"])
 
 
+    def test_queue_drains_in_arrival_order_so_later_captures_can_cite_earlier_ones(self):
+        lock = self.hold_lock()
+        first = event(turn_id="first")
+        later = next(event(turn_id=f"later-{n}") for n in range(100) if ac.event_id(event(turn_id=f"later-{n}")) < ac.event_id(first))
+        later["outcome"]["evidence"] = [f"id:auto-{ac.event_id(first)}"]
+        self.assertEqual(mc.capture(self.root, first, budget=0)["decision"], "queued")
+        time.sleep(0.05)
+        self.assertEqual(mc.capture(self.root, later, budget=0)["decision"], "queued")
+        lock.unlink()
+        reconciled = mc.reconcile(self.root)
+        self.assertEqual((reconciled["exit"], reconciled["published"], reconciled["unpublished"]), (0, 2, []))
+
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)

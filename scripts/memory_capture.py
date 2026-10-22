@@ -163,8 +163,9 @@ def publish(root, plan, items):
 
 
 def pending_files(root):
+    """Queued captures in arrival order (modification time, then name)."""
     folder = pm.confined(root, PENDING)
-    return sorted(folder.glob("*.json")) if folder.is_dir() else []
+    return sorted(folder.glob("*.json"), key=lambda path: (path.stat().st_mtime_ns, path.name)) if folder.is_dir() else []
 
 
 def queue(root, plan):
