@@ -13,6 +13,7 @@ import install
 import memory_capture as mc
 import memory_recall as mr
 import memory_health as mh
+import upgrade
 
 
 def positive(value):
@@ -26,6 +27,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".")
     groups = parser.add_subparsers(dest="group", required=True)
+    update = groups.add_parser("upgrade", aliases=["update"], help="Plan or apply an explicitly selected, independently pinned offline package.")
+    update.add_argument("--source", required=True)
+    update.add_argument("--revision", required=True, help="Independently reviewed upstream revision (40 hexadecimal characters).")
+    update.add_argument("--manifest-sha256", required=True, help="Expected manifest pin obtained through trusted review, independently of bundle contents.")
+    update.add_argument("--apply", action="store_true")
+    update.add_argument("--dry-run", action="store_true")
+    update.add_argument("--from-version", choices=["v1.4.0"])
+    update.add_argument("--client", action="append", choices=sorted(install.CLIENTS))
+    bundle = groups.add_parser("bundle-manifest", help="Print a publisher-side package inventory; self-declared hashes are not source authentication.")
+    bundle.add_argument("--revision", required=True)
     doctor = groups.add_parser("doctor", aliases=["status"], help="Report memory health; read-only unless --fix is explicit.")
     doctor.add_argument("--fix", action="store_true", help="Update install evidence metadata only; never remove locks or queued data.")
     doctor.add_argument("--smoke", action="store_true", help="Write/read/recall synthetic data in an isolated temporary project.")
@@ -51,7 +62,14 @@ def main():
     args = parser.parse_args()
     root = Path(args.root).resolve()
     try:
-        if args.group in {"doctor", "status"}:
+        if args.group in {"upgrade", "update"}:
+            if args.apply and args.dry_run:
+                raise ValueError("choose --apply or --dry-run")
+            result = upgrade.update(root, args.source, args.manifest_sha256, args.revision, args.apply, args.from_version, args.client)
+        elif args.group == "bundle-manifest":
+            print(json.dumps(upgrade.bundle_manifest(root, args.revision), sort_keys=True, indent=2))
+            return 0
+        elif args.group in {"doctor", "status"}:
             evidence = json.loads(Path(args.evidence).read_text(encoding="utf-8")) if args.evidence else None
             checkpoints = json.loads(Path(args.checkpoints).read_text(encoding="utf-8")) if args.checkpoints else None
             result = mh.doctor(root, args.fix, args.smoke, evidence, checkpoints)

@@ -274,7 +274,7 @@ def project_identity(root, requested, binding):
     return re.sub(r"[^a-z0-9._-]+", "-", root.name.lower()).strip("-._") or "project"
 
 
-def plan(root, project_id=None, clients=("codex",)):
+def plan(root, project_id=None, clients=("codex",), *, block_text=None, package_files=None):
     """Compute every write without performing it. Returns (report, writes, conflicts)."""
     root = Path(root).resolve()
     conflicts, warnings, writes, actions, order = [], [], {}, [], [BINDING]
@@ -294,7 +294,7 @@ def plan(root, project_id=None, clients=("codex",)):
     identity = project_identity(root, project_id, binding)
     adapters = sorted(set(binding["adapters"] if binding else []) | set(clients))
     writes[BINDING] = json.dumps({"version": 1, "project_id": identity, "adapters": adapters}, indent=2) + "\n"
-    block = read(root, BLOCK_FILE)
+    block = block_text if block_text is not None else read(root, BLOCK_FILE)
     clients_record, merged, report_clients, steps = dict(previous.get("clients", {})), dict(previous.get("merged", {})), {}, []
     created = set(previous.get("created", []))
     for client in clients:
@@ -349,7 +349,7 @@ def plan(root, project_id=None, clients=("codex",)):
     manifest = {"version": 1, "package": {"version": PACKAGE_VERSION}, "project_id": identity,
                 "installed_at": previous.get("installed_at") or pm.now(), "python": platform.python_version(),
                 "clients": dict(sorted(clients_record.items())),
-                "package_files": {p: pm.digest((root / p).read_bytes()) for p in package},
+                "package_files": package_files if package_files is not None else {p: pm.digest((root / p).read_bytes()) for p in package},
                 "merged": dict(sorted(merged.items())), "created": sorted(created), "binding": binding_record,
                 "user_owned": ["docs/", "memory/ records and receipts", "human-materials/", "PROJECT.md"],
                 "local_only": ["memory/automation/events/", "memory/automation/pending/"] +

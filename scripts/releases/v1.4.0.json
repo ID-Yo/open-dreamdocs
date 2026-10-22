@@ -1,0 +1,9 @@
+{
+  "upstream": "https://github.com/ID-Yo/open-dreamdocs",
+  "revision": "26c7aff57be6ffb4ccd6287c979e3782a0a19b2a",
+  "files": {
+    "scripts/human_materials.py": "9c1c279d8b53a631501184b8aa3c87f3e2ed6ecbb512a75f97066073aff98cc8",
+    "scripts/project_memory.py": "68003d8ee255442f729110202664b39d8051d3277b64f718fe6916574ade5cbe",
+    "scripts/README.md": "0676dc8cae08a4108c47dc7dfc17600442616c31e943e98f2bfcd827da69c885"
+  }
+}

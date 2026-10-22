@@ -30,6 +30,17 @@
       "properties": {
         "version": {
           "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "upstream": {
+          "const": "https://github.com/ID-Yo/open-dreamdocs"
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
         }
       },
       "additionalProperties": false
