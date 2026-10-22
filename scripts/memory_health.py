@@ -84,7 +84,7 @@ def observed(root, entry, kind, record, installed_at, receipts):
 
 
 def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
-    evidence_supplied = False
+    evidence_supplied = evidence is not None
     if isinstance(evidence, tuple) and len(evidence) == 2:
         evidence, evidence_supplied = evidence
     root = Path(root).resolve()
