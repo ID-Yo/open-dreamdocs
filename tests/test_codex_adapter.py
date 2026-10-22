@@ -117,6 +117,19 @@ class CodexAdapterTests(unittest.TestCase):
         self.assertIsNone(self.hook(self.payload("session_end")))
         self.assertEqual((len(self.files("memory/episodes")), self.files("memory/automation/pending")), (1, []))
 
+    def test_failed_stop_leaves_the_event_and_a_later_session_publishes_it(self):
+        broken = self.root / "memory/facts/broken.md"
+        broken.write_text("no frontmatter", encoding="utf-8")
+        message = block(status="success", summary="Saved later.", lessons=["Redelivery marker RD-55."], evidence=["ref:a"])
+        out = self.hook(self.payload("stop", last_assistant_message=message))
+        self.assertIn("capture error", out["systemMessage"])
+        self.assertEqual(len(self.files("memory/automation/events")), 1)
+        broken.unlink()
+        self.hook(self.payload("session_start"))
+        self.assertEqual(self.files("memory/automation/events"), [])
+        self.assertIn("RD-55", (self.root / "memory/episodes" / self.files("memory/episodes")[0]).read_text(encoding="utf-8"))
+
+
     def test_missing_binding_is_reported_without_blocking(self):
         (self.root / "memory/automation.json").unlink()
         self.assertIn("not installed", self.hook(self.payload("stop", last_assistant_message="Done."))["systemMessage"])

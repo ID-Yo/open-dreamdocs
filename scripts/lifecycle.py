@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import time
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -26,6 +27,7 @@ BLOCK_FIELDS = {"status", "summary", "lessons", "evidence", "task"}
 MEANINGFUL_TERMS = 3
 SESSION_CHARS, PROMPT_CHARS, PROMPT_QUERY = 4000, 2000, 500
 CAPTURE_BUDGET = 5.0
+REDELIVER_MAX, REDELIVER_BUDGET = 5, 2.0
 
 
 def emit(value):
@@ -37,13 +39,42 @@ def binding(root):
     return pm.read_json(path) if path.is_file() else None
 
 
-def context(event, result):
+def context(event, result, notes=()):
+    output = {}
     if result["status"] == "ok" and result["context"]:
-        emit({"hookSpecificOutput": {"hookEventName": event, "additionalContext": result["context"]}})
+        output["hookSpecificOutput"] = {"hookEventName": event, "additionalContext": result["context"]}
+    if notes:
+        output["systemMessage"] = "Dreamdocs memory: " + "; ".join(notes)
+    if output:
+        emit(output)
+
+
+def redeliver(root, skip=None):
+    """Publish event files left by an earlier failed or killed Stop; bounded in count and time."""
+    folder = root / "memory" / "automation" / "events"
+    if not folder.is_dir():
+        return []
+    notes, deadline = [], time.monotonic() + REDELIVER_BUDGET
+    leftovers = [p for p in sorted(folder.glob("*.json"), key=lambda p: (p.stat().st_mtime_ns, p.name)) if p.stem != skip]
+    for path in leftovers[:REDELIVER_MAX]:
+        if time.monotonic() >= deadline:
+            break
+        try:
+            event = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            notes.append(f"unreadable event file {path.name} left in place")
+            continue
+        result = mc.capture(root, event, 0.2)
+        if result["saved"]:
+            path.unlink(missing_ok=True)
+        elif result["decision"] not in {"queued", "error"}:  # those retry on a later hook
+            notes.append(f"earlier turn {path.stem} {result['decision']}; event file left in place")
+    return notes
 
 
 def session_start(root):
-    context("SessionStart", mr.recall(root, max_chars=SESSION_CHARS))
+    notes = redeliver(root)
+    context("SessionStart", mr.recall(root, max_chars=SESSION_CHARS), notes)
 
 
 def user_prompt(root, payload):
@@ -84,21 +115,23 @@ def stop(root, adapter, turn_of, payload):
              "project_id": bound.get("project_id"), "worktree": re.sub(r"[^A-Za-z0-9._-]", "-", root.name)[:64].lstrip("-._") or "project",
              "agent": adapter, "occurred_at": pm.now(), "privacy": "project", "task": task, "outcome": outcome}
     eid = ac.event_id(event)
+    notes = redeliver(root, skip=eid)
     if mc.receipt_path(root, eid).is_file():
-        return {}  # this session turn is already saved; a repeated Stop must not rebuild it
+        return {"systemMessage": "Dreamdocs memory: " + "; ".join(notes)} if notes else {}  # already saved; never rebuild a turn
     stored = pm.confined(root, f"memory/automation/events/{eid}.json")
     if stored.is_file():
         event = json.loads(stored.read_text(encoding="utf-8"))  # redeliver the exact bytes saved before the first delivery
     else:
         checked = ac.check(event, bound)
         if checked["decision"] in {"reject", "invalid", "degraded"}:
-            return {"systemMessage": f"Dreamdocs memory: capture {checked['decision']}; nothing was saved."}
+            notes.append(f"capture {checked['decision']}; nothing was saved")
+            return {"systemMessage": "Dreamdocs memory: " + "; ".join(notes)}
         stored.parent.mkdir(parents=True, exist_ok=True)
         mc.atomic_text(stored, json.dumps(event, ensure_ascii=False, sort_keys=True))
     result = mc.capture(root, event, CAPTURE_BUDGET)
     if result["saved"]:
         stored.unlink(missing_ok=True)
-    notes = [warning] if warning else []
+    notes += [warning] if warning else []
     if not result["saved"]:
         notes.append(f"capture {result['decision']} (exit {result['exit']})")
     return {"systemMessage": "Dreamdocs memory: " + "; ".join(notes)} if notes else {}

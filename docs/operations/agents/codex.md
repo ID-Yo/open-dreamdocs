@@ -17,8 +17,9 @@ transcripts, never calls a model and never blocks or continues the agent.
 | `SessionEnd` | Publishes queued captures when any exist | nothing |
 
 `Stop` is the durable save point. The hook writes the exact event to `memory/automation/events/`
-before capture, redelivers those bytes on a retry, skips turns that already have a receipt and does
-nothing when `stop_hook_active` is true. Credential-like or invalid content is refused before
+before capture and redelivers those bytes; event files left by a failed or killed `Stop` are
+redelivered at the next `SessionStart` or `Stop` (at most 5 within 2 seconds) and removed once saved.
+It skips turns that already have a receipt and does nothing when `stop_hook_active` is true. Credential-like or invalid content is refused before
 anything is written. A malformed block falls back to a receipt with a warning; lessons come only from
 the block, as described in [the instruction block](../../../adapters/outcome-block.md).
 
