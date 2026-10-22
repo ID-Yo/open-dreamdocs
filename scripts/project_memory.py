@@ -27,7 +27,7 @@ KINDS = {"fact", "procedure", "contradiction", "duplicate", "archive"}
 IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,99}\Z")
 SOURCE_HASH_LIMIT = 1_048_576  # larger cited files are not hashed by capture or recall
 # Managed template surface; everything else in an adopted project is out of scope.
-MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts", "tests")
+MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts", "tests", "adapters")
 MANAGED_FILES = ("LICENSE", ".gitignore", "human-materials/README.md", "human-materials/.gitignore")
 # Tool folders are skipped anywhere; generic names (build, dist, work) only at their known runtime path.
 PRUNE = {".git", ".hg", ".svn", "node_modules", ".venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".tox", ".next"}

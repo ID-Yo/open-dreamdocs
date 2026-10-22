@@ -1,0 +1,9 @@
+{
+  "hook_event_name": "SessionStart",
+  "session_id": "00000000-0000-4000-8000-000000000001",
+  "cwd": "PROJECT",
+  "transcript_path": null,
+  "model": "gpt-test",
+  "permission_mode": "default",
+  "source": "startup"
+}
