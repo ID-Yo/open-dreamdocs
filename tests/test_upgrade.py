@@ -174,6 +174,79 @@ class UpgradeTests(unittest.TestCase):
         self.assertEqual((self.root / install.MANIFEST).read_bytes(), before)
         self.assertEqual(pm.read_json(self.root / result["backup"] / "journal.json")["state"], "interrupted")
 
+    def test_backup_negations_refuse_before_payload_publication_and_preserve_owner_rules(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True, timeout=10)
+        ignore = self.root / ".dreamdocs/.gitignore"
+        ignore.parent.mkdir(parents=True, exist_ok=True)
+        rules = b"*\n!backups/\n!backups/**\n"
+        ignore.write_bytes(rules)
+        before = self.snapshot()
+        with patch.dict(install.TIMEOUTS, {"Stop": 99}):
+            result = self.run_upgrade(apply=True)
+        self.assertEqual((result["exit"], result["applied"]), (5, False))
+        self.assertFalse((self.root / ".dreamdocs/backups").exists())
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(ignore.read_bytes(), rules)
+
+    def test_effective_backup_exclusion_rechecks_under_lock_and_refuses_rollback_exposure(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True, timeout=10)
+        with patch.dict(install.TIMEOUTS, {"Stop": 99}):
+            result = self.run_upgrade(apply=True)
+        self.assertEqual(result["exit"], 0, result)
+        listed = subprocess.run(["git", "ls-files", "--others", "--exclude-standard", "--", result["backup"]], cwd=self.root, capture_output=True, check=True, timeout=10)
+        self.assertEqual(listed.stdout, b"")
+        ignore = self.root / ".dreamdocs/.gitignore"
+        ignore.write_bytes(b"*\n!backups/\n!backups/**\n")
+        before = self.snapshot()
+        reverted = upgrade.rollback(self.root, result["backup"], apply=True)
+        self.assertEqual((reverted["exit"], reverted["applied"]), (5, False))
+        self.assertEqual(self.snapshot(), before)
+
+    def test_backup_index_and_unverifiable_git_refuse_but_non_git_remains_supported(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True, timeout=10)
+        original = upgrade.subprocess.run
+        def tracked(argv, **kwargs):
+            if argv[0] == "git" and "ls-files" in argv:
+                return subprocess.CompletedProcess(argv, 0, b".dreamdocs/backups/transaction/journal.json\0", b"")
+            return original(argv, **kwargs)
+        for failure in (None, subprocess.TimeoutExpired("git", 5)):
+            before = self.snapshot()
+            with patch.object(upgrade.subprocess, "run", side_effect=tracked if failure is None else failure):
+                result = self.run_upgrade(apply=True)
+            self.assertEqual((result["exit"], result["applied"]), (5, False))
+            self.assertEqual(self.snapshot(), before)
+
+    def test_backup_ignore_change_between_plan_and_lock_refuses_before_private_payloads(self):
+        from contextlib import contextmanager
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True, timeout=10)
+        ignore = self.root / ".dreamdocs/.gitignore"
+        ignore.parent.mkdir(parents=True, exist_ok=True); ignore.write_bytes(b"*\n")
+        original = pm.operation
+        @contextmanager
+        def exposed(root):
+            ignore.write_bytes(b"*\n!backups/\n!backups/**\n")
+            with original(root):
+                yield
+        manifest = (self.root / install.MANIFEST).read_bytes()
+        with patch.object(pm, "operation", side_effect=exposed):
+            result = self.run_upgrade(apply=True)
+        self.assertEqual((result["exit"], result["applied"]), (5, False))
+        self.assertFalse((self.root / upgrade.BACKUPS).exists())
+        self.assertEqual((self.root / install.MANIFEST).read_bytes(), manifest)
+
+    def test_non_git_backup_remains_self_ignoring_without_requiring_git(self):
+        original = upgrade.subprocess.run
+        def no_git(argv, **kwargs):
+            if argv[0] == "git":
+                raise FileNotFoundError("Git intentionally unavailable in copied project")
+            return original(argv, **kwargs)
+        with patch.object(upgrade.subprocess, "run", side_effect=no_git):
+            result = self.run_upgrade(apply=True)
+            self.assertEqual(result["exit"], 0, result)
+            self.assertEqual((self.root / result["backup"] / ".gitignore").read_bytes(), b"*\n")
+            self.assertIn("future Git adoption", result["backup_privacy"])
+            self.assertEqual(upgrade.rollback(self.root, result["backup"], apply=True)["exit"], 0)
+
     def test_new_zip_cli_upgrades_genuine_legacy_then_rolls_back_with_valid_new_memory_scaffold(self):
         fixture = subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", LEGACY + "^{commit}"], capture_output=True, timeout=10)
         if fixture.returncode:

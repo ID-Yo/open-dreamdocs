@@ -6,6 +6,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import shutil
+import subprocess
 import uuid
 
 import install
@@ -68,6 +69,44 @@ def hash_bytes(value):
 def payload_path(backup, label, path, journal):
     suffix = ".bin" if journal.get("payload_encoding") == "binary-v1" else ""
     return f"{backup}/{label}/{path}{suffix}"
+
+
+def backup_privacy(root, backup, paths, initialize=False):
+    """Verify exact private destinations before publication; plain copies remain supported."""
+    ignore = pm.confined(root, ".dreamdocs/.gitignore")
+    if initialize and not ignore.exists():
+        atomic_bytes(ignore, b"/backups/\n")
+    for folder in pm.confined(root, backup).parents:
+        if folder == root:
+            break
+        pm.require(not (folder / ".git").exists(), "private backup crosses a nested repository")
+    def git(*args, data=None):
+        return subprocess.run(["git", "-C", str(root), *args], input=data, capture_output=True, timeout=5)
+    try:
+        repo = git("rev-parse", "--is-inside-work-tree")
+        in_git = repo.returncode == 0 and repo.stdout.strip() == b"true"
+    except FileNotFoundError:
+        in_git = False
+    if not in_git:
+        pm.require(not any((p / ".git").exists() for p in (root, *root.parents)), "Git backup privacy could not be verified; restore Git access and retry")
+        if initialize:
+            own_ignore = pm.confined(root, backup + "/.gitignore")
+            pm.require(not own_ignore.exists() or own_ignore.read_bytes() == b"*\n", "existing private backup ignore file changed; preserve and review it")
+            if not own_ignore.exists():
+                atomic_bytes(own_ignore, b"*\n")
+        return "non-Git local backup is self-ignoring; review private paths before future Git adoption/export"
+    tracked = git("ls-files", "-z", "--", backup)
+    pm.require(tracked.returncode == 0 and not tracked.stdout, "private backup destinations are tracked or index state is unavailable; explicitly untrack/review before retry")
+    if not ignore.exists() and not initialize:
+        return "a missing local backup ignore file will be created and verified under the writer lock"
+    requested = set(paths)
+    for path in requested:
+        pm.confined(root, path)
+    checked = git("check-ignore", "-z", "--stdin", data=b"\0".join(p.encode("utf-8") for p in sorted(requested)) + b"\0")
+    actual = {p.decode("utf-8") for p in checked.stdout.split(b"\0") if p}
+    pm.require(checked.returncode == 0 and actual == requested,
+               "private backup paths are not effectively Git-excluded; review .dreamdocs ignore negations before retry (owner rules preserved)")
+    return "exact backup/journal paths are untracked and effectively Git-excluded; later rule changes/force-add remain owner-controlled"
 
 
 def selected_source(source, expected_manifest, revision):
@@ -188,6 +227,10 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
             return report
         required = sum(len(data or b"") + len(before[p] or b"") for p, data in writes.items()) * 2 + 1048576
         pm.require(shutil.disk_usage(root).free >= required, "insufficient free space for staged files and backups")
+        backup = f"{BACKUPS}/{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex[:8]}"
+        private_paths = [backup + "/journal.json"] + [payload_path(backup, label, path, {"payload_encoding": "binary-v1"})
+            for path, data in writes.items() for label, value in (("before", before[path]), ("after", data)) if value is not None]
+        report["backup_privacy"] = backup_privacy(root, backup, private_paths)
         report.update(exit=0, state="planned; nothing written")
         if not apply:
             return report
@@ -195,10 +238,7 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
             pm.require(not pm.runtime(root, "lock.json").exists(), "Dreamer run became active; retry after it stops")
             for path in before:
                 pm.require(read_bytes(root, path) == before[path], f"target changed during preflight: {path}")
-            backup = f"{BACKUPS}/{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')}-{uuid.uuid4().hex[:8]}"
-            ignore = read_bytes(root, ".dreamdocs/.gitignore") or b""
-            if b"*" not in ignore.splitlines() and b"/backups/" not in ignore.splitlines():
-                atomic_bytes(pm.confined(root, ".dreamdocs/.gitignore"), ignore + (b"\n" if ignore and not ignore.endswith(b"\n") else b"") + b"/backups/\n")
+            report["backup_privacy"] = backup_privacy(root, backup, private_paths, initialize=True)
             journal = {"version": 1, "payload_encoding": "binary-v1", "state": "staging", "source": report["source"], "from_version": old_version,
                        "to_version": release["package_version"], "created_at": pm.now(), "files": []}
             journal_path = pm.confined(root, backup + "/journal.json")
@@ -237,7 +277,7 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
                     pass  # staged bytes remain; report exact recovery location even when disk is unavailable
                 report.update(exit=5, state="interrupted; inspect private backup and rollback before retrying")
                 report["conflicts"].append(type(error).__name__ + ": " + str(error))
-    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, subprocess.SubprocessError) as error:
         report["exit"] = 5
         report["conflicts"].append(type(error).__name__ + ": " + str(error))
     return report
@@ -260,6 +300,7 @@ def rollback(root, backup, apply=False):
         pm.settings(root)
         pm.records(root)
         writes, seen, before = {}, set(), {}
+        private_paths = [backup + "/journal.json"]
         allowed_setup = {install.MANIFEST, install.BINDING, "AGENTS.md", "CLAUDE.md"}
         allowed_setup |= {s[k] for s in install.CLIENTS.values() for k in ("hook_file", "ignore")}
         allowed_setup |= {f"{install.BACKUP}/{s['hook_file']}" for s in install.CLIENTS.values()}
@@ -275,6 +316,8 @@ def rollback(root, backup, apply=False):
                 expected = record[label + "_sha256"]
                 pm.require(expected is None or isinstance(expected, str) and re.fullmatch(r"[a-f0-9]{64}", expected), "invalid rollback checksum")
                 value = read_bytes(root, payload_path(backup, label, path, journal))
+                if expected is not None:
+                    private_paths.append(payload_path(backup, label, path, journal))
                 pm.require(hash_bytes(value) == expected, "backup checksum mismatch: " + path)
                 if label == "before":
                     desired = value
@@ -296,6 +339,7 @@ def rollback(root, backup, apply=False):
         report["compatibility"] = ("Legacy v1.4.0 has no automatic lifecycle adapters; automatic save/recall unavailable after rollback. Memory is preserved."
                                    if legacy else "Restored automation package requires real client probes and renewed hook trust where applicable; fixture save/recall is not real client acceptance.")
         report["backup"] = backup
+        report["backup_privacy"] = backup_privacy(root, backup, private_paths)
         if report["conflicts"]:
             return report
         if journal["state"] == "rolled_back":
@@ -308,6 +352,7 @@ def rollback(root, backup, apply=False):
             pm.require(not pm.runtime(root, "lock.json").exists(), "Dreamer became active")
             pm.require(journal_path.read_bytes() == raw_journal, "journal changed during rollback planning")
             pm.require(all(read_bytes(root, p) == data for p, data in before.items()), "target changed during rollback planning")
+            report["backup_privacy"] = backup_privacy(root, backup, private_paths, initialize=True)
             journal["state"] = "rolling_back"
             pm.atomic(journal_path, journal)
             try:
@@ -327,7 +372,7 @@ def rollback(root, backup, apply=False):
             except (OSError, ValueError) as error:
                 report.update(exit=5, state="rollback interrupted; retry the same backup after resolving the cause")
                 report["conflicts"].append(type(error).__name__ + ": " + str(error))
-    except (OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+    except (OSError, ValueError, TypeError, KeyError, AttributeError, subprocess.SubprocessError) as error:
         report["exit"] = 5
         report["conflicts"].append(type(error).__name__ + ": " + str(error))
     return report

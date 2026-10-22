@@ -72,6 +72,14 @@ and never force-add them. Backups may contain private machine-local hook setting
 writes are atomic per file with readback; the installed version is committed last after validation.
 The operation is journaled, not a filesystem-wide atomic transaction.
 
+Before any backup payload/journal publication, Git targets verify that the exact planned paths
+are untracked and effectively ignored. This is rechecked under the operation lock for upgrade
+and rollback. Existing owner ignore rules are preserved; negation overrides, tracked destinations
+or unavailable Git verification refuse with a conflict before private bytes are published. A
+missing local backup ignore file may be initialized and then checked. Plain non-Git copies remain
+supported with a self-ignoring transaction directory; review private contents before future Git
+adoption/export. Later owner rule changes and force-adds are not prevented by this point-in-time check.
+
 No-space/permission failures do not claim a new installed version. An interruption can leave a
 mixed package and a prepared/interrupted journal; a new upgrade refuses to run over that state.
 Keep the backup and use explicit rollback/recovery. Never remove an active lock automatically.
