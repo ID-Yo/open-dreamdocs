@@ -207,6 +207,12 @@ class SetupTests(unittest.TestCase):
         self.assertNotIn(".codex/.gitignore", {a["path"] for a in plan["actions"]})
 
 
+    def test_non_git_project_gets_a_codex_trust_warning(self):
+        self.assertTrue(any("not inside a Git repository" in w for w in self.setup()["warnings"]))
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        self.assertFalse(any("Git repository" in w for w in self.setup()["warnings"]))
+
+
     def test_generated_hook_command_runs_from_the_system_shell(self):
         self.setup(apply=True)
         command = self.hooks()["hooks"]["Stop"][0]["hooks"][0]["command"]

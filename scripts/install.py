@@ -217,6 +217,10 @@ def plan(root, project_id=None):
     command, warning = hook_command(Path(sys.executable).absolute(), root / HOOK_SCRIPT)
     warnings += [warning] if warning else []
     existing = read(root, HOOKS)
+    if not any((folder / ".git").exists() for folder in (root, *root.parents)):
+        warnings.append("This folder is not inside a Git repository. Codex treats it as untrusted, and codex exec refuses to run "
+                        "there (\"Not inside a trusted directory\") even after hooks are trusted. Run git init, or trust this "
+                        "directory in Codex, before using it.")
     if existing is None and read(root, HOOKS_IGNORE) is None:
         writes[HOOKS_IGNORE] = "hooks.json\n"  # the hook command holds machine-local paths
     elif existing is not None and tracked(root, HOOKS):

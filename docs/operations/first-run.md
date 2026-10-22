@@ -33,6 +33,9 @@ Codex CLI are required; Claude Code support is not available yet.
 3. Trust the hooks. Open Codex in the project, run `/hooks`, review the four Dreamdocs hooks and
    trust them, and trust the project's `.codex` folder if asked. Codex skips untrusted or changed hooks.
    Never use `--dangerously-bypass-hook-trust`.
+   Codex treats a folder outside a Git repository as untrusted: `codex exec` refuses to run there
+   ("Not inside a trusted directory") even after the hooks are trusted. Run `git init` in the project,
+   or trust the directory in Codex; the setup preview warns when the folder is not in a repository.
 4. Work normally. Ask for a meaningful task; the agent ends with a `dreamdocs-outcome` block and the
    `Stop` hook saves it. A new session receives the relevant memory at start. See the
    [Codex adapter](agents/codex.md) for what each hook does and its limits.
