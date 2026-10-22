@@ -40,7 +40,7 @@ class UpgradeTests(unittest.TestCase):
         asset = self.source / "scripts/human_materials.py"
         asset.write_bytes(asset.read_bytes() + b"\n# selected reviewed release\n")
         version_file = self.source / "scripts/install.py"
-        version_file.write_bytes(version_file.read_bytes().replace(b'PACKAGE_VERSION = "unreleased"', b'PACKAGE_VERSION = "automation-fixture-v2"', 1))
+        version_file.write_bytes(version_file.read_bytes().replace(('PACKAGE_VERSION = "' + install.PACKAGE_VERSION + '"').encode(), b'PACKAGE_VERSION = "automation-fixture-v2"', 1))
         self.release()
 
     def release(self):
@@ -112,6 +112,12 @@ class UpgradeTests(unittest.TestCase):
         self.assertEqual(before, self.snapshot())
 
     def test_real_v140_archive_adoption_from_new_package_preserves_customized_docs(self):
+        try:
+            fixture = subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", LEGACY + "^{commit}"], capture_output=True, timeout=10)
+        except FileNotFoundError:
+            self.skipTest("Legacy v1.4.0 Git fixture unavailable; full reviewed Git-source suite is required before release.")
+        if fixture.returncode:
+            self.skipTest("History-free package has no legacy v1.4.0 Git fixture; full reviewed Git-source suite remains required.")
         legacy = Path(self.temp.name) / "legacy"
         legacy.mkdir()
         archive = subprocess.run(["git", "archive", LEGACY], cwd=ROOT, capture_output=True, check=True, timeout=30).stdout

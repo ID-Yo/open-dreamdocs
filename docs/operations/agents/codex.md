@@ -25,10 +25,11 @@ the block, as described in [the instruction block](../../../adapters/outcome-blo
 
 ## Status
 
-Codex CLI 0.147.0 on Windows delivers these four events and shows `SessionStart`
-`additionalContext` to the model (verifier probe, run with the trust bypass flag). The adapter
-itself is tested only with recorded payloads; an end-to-end run with trusted project hooks is still
-required before Codex is marked supported. Codex Desktop is untested.
+Earlier independent Windows verification with Codex CLI 0.147.0 observed trusted project hooks
+(no bypass), automatic save/redelivery, and a fresh-session answer from additionalContext without
+tools. The [support matrix](../support-matrix.md) pins that evidence to its earlier candidate;
+the final download still needs its own acceptance. Codex Desktop is untested. The engine support
+flag remains conservative while the complete dual-client release gates are open.
 
 ## Limits
 

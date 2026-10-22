@@ -1,16 +1,17 @@
 # Changelog
 
-## Unreleased
+## v1.5.0-rc.1 — 2026-10-22 (candidate; release gates pending)
 
-- Added opt-in versioned task evidence snapshot/schema and a read-only continuity checker for actual-start, handoff, blocker, candidate/review acceptance and observed health/freshness gaps. Existing memory validation remains compatible; no scheduler or automatic dispatch is introduced.
-- Added the automation lifecycle contract (#13): event schema v1, stable event and receipt identity, commit order, privacy classes, exit codes, project binding and rollback data rules, with a read-only event checker and fixtures. Codex and Claude Code remain unsupported until adapters are tested.
-- Bounded validation to managed template files (#14): dependency, VCS, build and runtime folders and nested repositories are skipped before listing, links and junctions in managed folders and unreadable folders fail visibly, and the portable copy test uses an explicit size-limited file list.
-- Added `scripts/dreamdocs.py memory capture` and `reconcile` (#16): checked outcome events become an episode plus receipt with readback, replay is idempotent, captures queue under the writer lock shared with Dreamer, and failures never report saved. Includes the outcome event schema and README files for the new automation folders. No client adapter calls it yet.
-- Added `scripts/dreamdocs.py memory recall` (#17): deterministic, read-only selection of accepted facts and procedures, open contradictions and labeled recent episodes for one project, with rehashed source status and a bounded context block framed as untrusted data. Distinguishes ok, no match, empty and unavailable. No client adapter calls it yet.
-- Added the Codex hook adapter (#18): `adapters/codex/hook.py` recalls memory at `SessionStart` and for meaningful prompts, saves each turn at `Stop` from an optional `dreamdocs-outcome` block (receipt only without one), publishes queued captures at `SessionEnd`, never blocks the agent, reads no transcript and calls no model. Tested with recorded Codex 0.147.0 payloads; not yet verified end to end with trusted hooks.
-- Added `scripts/dreamdocs.py setup` and `uninstall` (#15): a dry-run plan by default; `--apply` writes only the binding, Dreamdocs entries merged into `.codex/hooks.json`, the outcome instruction block in `AGENTS.md` and a versioned install manifest, then prints the Codex trust step. Repeat runs change nothing and uninstall keeps memory, docs and other hooks. Includes the first-run guide and manifest schema.
-- Added the Claude Code hook adapter (#19), sharing `scripts/lifecycle.py` with the Codex adapter: turn identity from `prompt_id` or the final message, `StopFailure` treated as interrupted. Built from documented payloads and unverified until an authenticated session runs it.
-- Added `setup --client claude-code` (#19): exec-form hooks merged into `.claude/settings.local.json` and the instruction block in `CLAUDE.md`, sharing the binding and manifest with Codex.
+- Added project-scoped Codex and experimental Claude Code setup/uninstall, versioned install manifests, exact instruction-block merging and machine-local hook settings. No global client configuration is changed.
+- Added validated lifecycle events, durable capture/readback, exact replay and queued/redelivered outcomes with shared Dreamer locks. Private events/pending data stay local; receipt retention is owner-controlled.
+- Added bounded deterministic recall with source hashes and untrusted-context framing. Templates/proposals/foreign projects never become accepted facts.
+- Added doctor with distinct capture, hook integrity, reported trust and fresh-session recall provenance; isolated smoke tests never create active lessons. Missing runtime evidence remains unknown.
+- Added private source-bound documentation/status/index proposals with immutable hashes, independent acceptance and owner promotion gates; material inventory remains coverage-only with strict public-export checks.
+- Added explicit operator/command Dreamer execution, budgets, process cleanup, report/checkpoint readback and separately opted-in Windows scheduling. Configured, installed, triggered and successful are distinct states; no scheduler is activated by default.
+- Added pinned offline upgrades, known v1.4.0 adoption baseline, private backup journals, collision refusal and rollback preserving new memories/post-upgrade edits. Legacy rollback cannot retain automation capabilities it never had.
+- Bounded validation/adoption to managed paths, rejecting links and dependency/runtime leakage. Added strict manifest schema tests, privacy checks and reproducible history-free source packaging.
+- Release status: Codex CLI 0.147.0 / Windows 10.0.26100 has earlier real trusted save/new-session recall evidence; this final candidate still requires exact-candidate clean-room review. Claude fixtures use 2.1.273; owner authentication and stable Stop prompt identity must be observed in the real lifecycle. Missing identity is refused, never inferred from reply text.
+- Neither a green deterministic suite nor this candidate version authorizes the dual-client release. Actual Claude/cross-client and final release/archive acceptance remain non-optional gates.
 
 ## v1.4.0
 

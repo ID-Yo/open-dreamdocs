@@ -8,6 +8,12 @@
 documented Claude Code 2.1.273 hook payloads and tested only with recorded fixtures. No authenticated
 Claude Code session has run it yet, so Claude Code stays unsupported until that run is recorded.
 
+The official hook reference rechecked 2026-10-22 documents command+args exec form used by setup;
+its exec-form paragraph states no minimum version. Adjacent version notes apply to other fields,
+not a blanket exec-form requirement. Authenticate and observe actual Stop identity/save/new-session
+recall on the chosen client before claiming support. See [support and sources](../support-matrix.md);
+this candidate never upgrades or logs in for you.
+
 The adapter uses the same [shared lifecycle](../../../scripts/lifecycle.py) as the [Codex adapter](codex.md):
 it never reads transcripts, never calls a model and never blocks or continues the agent.
 

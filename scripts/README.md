@@ -1,5 +1,9 @@
 # Validation and Dreamer Lifecycle
 
+[release_package.py](release_package.py) audits the exact committed public inventory/reachable
+history and builds a reproducible history-free ZIP with full inventory/updater hashes. It refuses
+private/runtime/CBM paths and credential patterns and never publishes; see [release gates](../docs/operations/release.md).
+
 `dreamdocs.py dreamer begin/start/finish/run/status` uses [dreamer_executor.py](dreamer_executor.py)
 for an explicitly configured operator/command and observed result/checkpoint readback. The optional
 [Windows scheduler](dreamer_schedule.py) needs a separate explicit `dreamer schedule install --apply`;

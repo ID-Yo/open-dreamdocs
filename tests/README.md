@@ -1,5 +1,12 @@
 # Tests
 
+Release-package tests audit synthetic Git snapshot/history contamination, credential patterns,
+empty material scaffolding, dirty-source refusal, non-overwrite and byte-identical ZIP/inventory/
+updater manifests. They do not replace real client download-to-memory or publication acceptance.
+Run the entire suite in both reviewed Git source and the generated ZIP. The history-free ZIP
+explicitly skips the single v1.4.0 archive test when its external historical Git fixture is absent;
+the Git-source suite must run that test before release. Record artifact skip counts honestly.
+
 Dreamer executor tests cover explicit operator/command identity, real process/CLI execution,
 budgets/timeout and owned descendant cleanup, shared locks, failed/partial/stale results and
 checkpoint interruption/readback. Scheduler tests simulate opt-in install/duplicates/disable/remove,

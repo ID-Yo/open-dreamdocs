@@ -26,8 +26,9 @@ TEXT_LIMIT, LESSON_LIMIT, MAX_LESSONS, MAX_EVIDENCE = 2000, 600, 10, 20
 EXIT = {"capture_episode": 0, "receipt_only": 0, "recall_only": 0, "duplicate": 0,
         "retry_pending": 1, "invalid": 2, "reject": 3, "degraded": 4, "conflict": 5}
 SECRET = re.compile(r"\bsk-[A-Za-z0-9_-]{16,}|\bgh[pousr]_[A-Za-z0-9]{20,}|github_pat_|\bAKIA[0-9A-Z]{16}\b|BEGIN [A-Z ]*PRIVATE KEY", re.I)
-# Observed 2026-10-22 on Windows 10.0.26100: both clients installed, no adapter shipped or tested.
-# Only issues #18/#19 may change a state to "tested", with client_version/os/surface/tested_at/evidence.
+# Candidate 1.5.0-rc.1: adapters/fixtures ship, but final exact-candidate dual-client gates remain.
+# Earlier Codex trusted-session proof is described in docs/operations/support-matrix.md.
+# Only accepted runtime evidence may change state to "tested", with client_version/os/surface/tested_at/evidence.
 SUPPORT = {
     "codex": {"state": "unsupported", "observed_client": "codex-cli 0.147.0", "os": "Windows 10.0.26100"},
     "claude-code": {"state": "unsupported", "observed_client": "Claude Code 2.1.273", "os": "Windows 10.0.26100"},
