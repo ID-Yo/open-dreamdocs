@@ -157,6 +157,32 @@ class CaptureTests(unittest.TestCase):
                 self.assertNotIn(SECRET, path.read_text(encoding="utf-8", errors="replace"), path)
                 self.assertNotIn("x" * 200, path.read_text(encoding="utf-8", errors="replace"), path)
 
+    def hold_lock(self):
+        lock = self.root / "memory/dreamer/command.lock"
+        lock.write_text("live writer", encoding="utf-8")
+        return lock
+
+    def test_missing_file_source_is_refused_before_queueing(self):
+        self.hold_lock()
+        missing = event(outcome={"evidence": ["file:docs/missing.md"]})
+        result = mc.capture(self.root, missing, budget=0)
+        self.assertEqual((result["exit"], result["decision"], result["saved"]), (2, "invalid", False))
+        self.assertEqual(self.files("memory/automation/pending"), [])
+
+    def test_refused_pending_entry_is_kept_and_reported_never_dropped(self):
+        lock = self.hold_lock()
+        unknown = event(turn_id="unknown-id", outcome={"evidence": ["id:no-such-record"]})
+        self.assertEqual(mc.capture(self.root, unknown, budget=0)["decision"], "queued")
+        lock.unlink()
+        other = mc.capture(self.root, event(turn_id="other"))
+        self.assertTrue(other["saved"])
+        self.assertEqual([(u["event_id"], u["decision"]) for u in other["unpublished"]], [(ac.event_id(unknown), "invalid")])
+        reconciled = mc.reconcile(self.root)
+        self.assertEqual((reconciled["exit"], reconciled["published"]), (2, 0))
+        self.assertEqual([u["event_id"] for u in reconciled["unpublished"]], [ac.event_id(unknown)])
+        self.assertEqual(self.files("memory/automation/pending"), [f"{ac.event_id(unknown)}.json"])
+        self.assertFalse((self.root / "memory/automation/receipts" / f"{ac.event_id(unknown)}.json").exists())
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)

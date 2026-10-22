@@ -94,16 +94,25 @@ def write_receipt(root, plan, status, episode=None, episode_sha256=None):
     return receipt
 
 
-def verify_sources(root, meta, items):
+def check_files(root, meta):
+    """Checks that need no lock or record scan; run before queueing so the caller learns about them at once."""
     try:
         pm.validate_record(meta, "episodes")
+        for ref in meta["source"]:
+            if ref.startswith("file:"):
+                pm.require(pm.confined(root, ref[5:]).is_file(), f"missing source file {ref[5:]}")
+    except (ValueError, TypeError) as exc:
+        raise Invalid(str(exc)) from exc
+
+
+def verify_sources(root, meta, items):
+    check_files(root, meta)
+    try:
         ids = {item["metadata"]["id"] for item in items}
         pm.require({item["metadata"]["project"] for item in items} <= {meta["project"]}, "memory belongs to another project")
         for ref in meta["source"]:
             if ref.startswith("id:"):
                 pm.require(ref[3:] in ids, f"unknown source ID {ref[3:]}")
-            elif ref.startswith("file:"):
-                pm.require(pm.confined(root, ref[5:]).is_file(), f"missing source file {ref[5:]}")
     except (ValueError, TypeError) as exc:
         raise Invalid(str(exc)) from exc
 
@@ -146,8 +155,10 @@ def queue(root, plan):
 
 
 def session(root, own):
-    """Run under the writer lock with no Dreamer run active: drain the queue, then publish own plan."""
-    items, results = pm.records(root), {}
+    """Run under the writer lock with no Dreamer run active: drain the queue, then publish own plan.
+
+    Returns every result by event ID and the drained entries that stay queued (refused or conflicting)."""
+    items, results, unpublished = pm.records(root), {}, []
     plans = []
     for path in pending_files(root):
         plan = pm.read_json(path)
@@ -157,15 +168,21 @@ def session(root, own):
         plans.append((own, None))
     for plan, path in plans:
         try:
-            results[plan["event_id"]] = (publish(root, plan, items), [])
+            decision, findings = publish(root, plan, items), []
         except Conflict as exc:
-            results[plan["event_id"]] = ("conflict", [str(exc)])
-            continue
+            decision, findings = "conflict", [str(exc)]
         except Invalid as exc:
-            results[plan["event_id"]] = ("invalid", [str(exc)])
+            decision, findings = "invalid", [str(exc)]
+        results[plan["event_id"]] = (decision, findings)
+        if decision in {"conflict", "invalid"}:
+            if path is not None:
+                unpublished.append({"event_id": plan["event_id"], "decision": decision, "findings": findings})
+            continue
+        if plan["episode"] is not None:
+            items.append({"metadata": pm.metadata(plan["episode"])})
         if path is not None:
             path.unlink()
-    return results
+    return results, unpublished
 
 
 @contextlib.contextmanager
@@ -202,13 +219,20 @@ def capture(root, event, budget=1.0):
         if result["decision"] not in {"capture_episode", "receipt_only"}:
             return {**report, "decision": result["decision"], "exit": result["exit"]}
         own = make_plan(event, result)
+        if own["episode"] is not None:
+            try:
+                check_files(root, pm.metadata(own["episode"]))
+            except Invalid as exc:
+                return {**report, "decision": "invalid", "exit": 2, "findings": [str(exc)]}
         deadline, queued = time.monotonic() + budget, False
         while True:
             with writer(root) as free:
                 if free:
-                    decision, findings = session(root, own)[own["event_id"]]
+                    results, unpublished = session(root, own)
+                    decision, findings = results[own["event_id"]]
                     return {**report, "decision": decision, "exit": outcome_exit(decision, own["outcome"]),
-                            "saved": decision not in {"invalid", "conflict"}, "findings": findings}
+                            "saved": decision not in {"invalid", "conflict"}, "findings": findings,
+                            "unpublished": [u for u in unpublished if u["event_id"] != own["event_id"]]}
             dreamer = pm.runtime(root, "lock.json").exists()
             if not queued:
                 queue(root, own)
@@ -227,9 +251,9 @@ def reconcile(root):
         if not free:
             return {"decision": "queued", "exit": 1, "published": 0, "pending": len(pending_files(root)),
                     "findings": ["writer lock busy or Dreamer run active"]}
-        results = session(root, None)
+        results, unpublished = session(root, None)
     published = sum(decision not in {"invalid", "conflict"} for decision, _ in results.values())
-    conflicts = sorted(eid for eid, (decision, _) in results.items() if decision == "conflict")
-    return {"decision": "reconciled", "exit": 5 if conflicts else 0, "published": published,
-            "pending": len(pending_files(root)), "conflicts": conflicts}
+    decisions = {u["decision"] for u in unpublished}
+    return {"decision": "reconciled", "exit": 5 if "conflict" in decisions else 2 if decisions else 0,
+            "published": published, "pending": len(pending_files(root)), "unpublished": unpublished}
 
