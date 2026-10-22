@@ -286,6 +286,14 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
         with pm.operation(root):
             if pm.confined(root, "memory/dreamer/lock.json").exists():
                 raise ValueError("Dreamer run active; evidence metadata not changed")
-            pm.atomic(pm.confined(root, install.MANIFEST), manifest)
-            result["applied"] = True
+            if install.read(root, install.MANIFEST) != manifest_raw:
+                finding("manifest_changed_during_scan", install.MANIFEST, "Install metadata changed after observation; rerun doctor against the new revision. No metadata was overwritten.", "setup")
+                result["exit"] = 1
+            else:
+                current = json.loads(manifest_raw)
+                for client, record in manifest.get("clients", {}).items():
+                    for key in ("trust", "probe", "health"):
+                        current["clients"][client][key] = record[key]
+                pm.atomic(pm.confined(root, install.MANIFEST), current)
+                result["applied"] = True
     return result

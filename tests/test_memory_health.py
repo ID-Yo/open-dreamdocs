@@ -140,6 +140,22 @@ class HealthTests(unittest.TestCase):
         result = mh.doctor(self.root, checkpoints=[{"task_id": "not-due", "status": "done", "expected_at": "2099-01-01T00:00:00Z"}])
         self.assertFalse({"missing_save", "invalid_checkpoint"} & self.codes(result))
 
+    def test_fix_refuses_manifest_changed_after_scan(self):
+        original_operation = pm.operation
+        from contextlib import contextmanager
+        @contextmanager
+        def change_before_lock(root):
+            manifest = pm.read_json(root / install.MANIFEST)
+            manifest["package"]["version"] = "concurrent-owner-edit"
+            pm.atomic(root / install.MANIFEST, manifest)
+            with original_operation(root):
+                yield
+        with patch.object(pm, "operation", side_effect=change_before_lock):
+            result = mh.doctor(self.root, fix=True)
+        self.assertIn("manifest_changed_during_scan", self.codes(result))
+        self.assertEqual(pm.read_json(self.root / install.MANIFEST)["package"]["version"], "concurrent-owner-edit")
+        self.assertFalse(result["applied"])
+
     def test_cli_smoke_is_machine_readable_and_does_not_mutate_the_project(self):
         import subprocess
         before = self.snapshot()
