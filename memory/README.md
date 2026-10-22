@@ -10,8 +10,10 @@
 | [contradictions](contradictions/README.md) | Unresolved and resolved contradictions |
 | [archive](archive/README.md) | Terminal records with preserved sources |
 | [dreamer](dreamer/README.md) | Isolated runtime state, reports and proposals |
+| [automation](automation/README.md) | Capture receipts and the local pending queue |
 
 [Dreamer policy](DREAMER_POLICY.md) is the single contract for automatic changes. [config.json](config.json) contains only the daily schedule and optional episode review interval. Null means an unset setting or no deadline. There is no universal TTL.
+Automatic capture writes only episodes and receipts under the [automation contract](../docs/operations/automation-contract.md).
 
 After meaningful work, record an episode only if it will help future work. Do not record the entire conversation. A new memory type requires a description, README and schema/validator changes; creating a folder does not automatically include it in Dreamer.
 

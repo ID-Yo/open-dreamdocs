@@ -5,6 +5,7 @@
 - Added opt-in versioned task evidence snapshot/schema and a read-only continuity checker for actual-start, handoff, blocker, candidate/review acceptance and observed health/freshness gaps. Existing memory validation remains compatible; no scheduler or automatic dispatch is introduced.
 - Added the automation lifecycle contract (#13): event schema v1, stable event and receipt identity, commit order, privacy classes, exit codes, project binding and rollback data rules, with a read-only event checker and fixtures. Codex and Claude Code remain unsupported until adapters are tested.
 - Bounded validation to managed template files (#14): dependency, VCS, build and runtime folders and nested repositories are skipped before listing, links and junctions in managed folders and unreadable folders fail visibly, and the portable copy test uses an explicit size-limited file list.
+- Added `scripts/dreamdocs.py memory capture` and `reconcile` (#16): checked outcome events become an episode plus receipt with readback, replay is idempotent, captures queue under the writer lock shared with Dreamer, and failures never report saved. Includes the outcome event schema and README files for the new automation folders. No client adapter calls it yet.
 
 ## v1.4.0
 

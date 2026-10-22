@@ -15,6 +15,9 @@ python -B scripts/automation_contract.py --root . --event EVENT.json
 
 It validates one event, prints the decision and planned identifiers, and writes
 nothing. Machine-readable cases live in [tests/fixtures/automation](../../tests/fixtures/automation/).
+The writer is `python -B scripts/dreamdocs.py memory capture --event FILE` (#16),
+with a `reconcile` command for queued captures; no client adapter calls it yet.
+The event shape is also published as [outcome-event.schema.json](../../templates/outcome-event.schema.json).
 
 ## Lifecycle
 
@@ -166,8 +169,8 @@ The checker does not detect personal data; the producing agent must exclude it.
 | Exit | Decision | Meaning |
 |---|---|---|
 | 0 | `capture_episode`, `receipt_only`, `recall_only`, `duplicate` | Allowed; duplicate is an idempotent replay |
-| 1 | `retry_pending`, or capture of a `partial`/`failed` outcome | Recorded or pending; never a success checkpoint |
-| 2 | `invalid` | Malformed event, binding or receipt, or an unknown future version |
+| 1 | `retry_pending`, `queued`, or capture of a `partial`/`failed` outcome | Recorded or pending; never a success checkpoint |
+| 2 | `invalid`, `error` | Malformed event, binding or receipt, an unknown future version, or a failed write that saved nothing |
 | 3 | `reject` | Foreign project, prohibited class or unsafe content |
 | 4 | `degraded` | Not installed for this project or adapter; manual only |
 | 5 | `conflict` | Same identity, different payload |

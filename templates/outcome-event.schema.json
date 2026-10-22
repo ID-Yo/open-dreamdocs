@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dreamdocs outcome event v1",
+  "description": "Shape only; identity, privacy, credential, binding and receipt rules are enforced by scripts/automation_contract.py. Adapters write the exact event file before first delivery and redeliver only those bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "kind",
+    "adapter",
+    "session_id",
+    "turn_id",
+    "project_id",
+    "worktree",
+    "agent",
+    "occurred_at",
+    "privacy",
+    "task",
+    "outcome"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "kind": {
+      "enum": [
+        "session_start",
+        "task_start",
+        "task_outcome",
+        "session_end"
+      ]
+    },
+    "adapter": {
+      "enum": [
+        "codex",
+        "claude-code"
+      ]
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "turn_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "worktree": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "privacy": {
+      "enum": [
+        "public",
+        "project",
+        "restricted",
+        "prohibited"
+      ]
+    },
+    "task": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "status"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "status": {
+              "enum": [
+                "backlog",
+                "ready",
+                "in-progress",
+                "review",
+                "blocked",
+                "paused",
+                "done"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "outcome": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "summary",
+            "evidence",
+            "lessons"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "success",
+                "no_lesson",
+                "partial",
+                "failed",
+                "interrupted"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "evidence": {
+              "type": "array",
+              "maxItems": 20,
+              "items": {
+                "type": "string",
+                "pattern": "^(id:|file:|https://|ref:)",
+                "maxLength": 200
+              }
+            },
+            "lessons": {
+              "type": "array",
+              "maxItems": 10,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 600
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -6,6 +6,15 @@ It reads `memory/automation.json` and an existing receipt when present, prints t
 identifiers, and writes nothing. Exit codes: 0 allowed, 1 pending or non-success outcome, 2 invalid,
 3 rejected, 4 degraded (not installed, manual only), 5 conflict.
 
+[dreamdocs.py](dreamdocs.py) persists events through [memory_capture.py](memory_capture.py):
+
+```text
+python -B scripts/dreamdocs.py memory capture --event FILE [--budget-ms 1000]
+python -B scripts/dreamdocs.py memory reconcile
+```
+
+`capture` checks the event, then under the writer lock shared with Dreamer writes the episode, reads it back, writes the receipt and reads it back; only then is `saved` true. Replaying the same bytes returns `duplicate`. If the lock is busy past the budget or a Dreamer run is active, the checked capture is queued in `memory/automation/pending/` (exit 1, not saved) and published by the next capture or by `reconcile`. Write failures return `error` (exit 2) and never report saved. Refused events (`reject`, `invalid`) write nothing; the exit code and findings report them without echoing event content. Call `capture` at `Stop`; at `SessionEnd` keep the default 1000 ms budget so the hook finishes inside a 1.5 s limit. No client adapter calls these commands yet.
+
 [task_continuity.py](task_continuity.py) audits an explicitly named private task
 snapshot: `python -B scripts/task_continuity.py --file PATH`. Exit 0 means consistent
 reported metadata; exit 1 means findings or unreadable input. It never dispatches,
