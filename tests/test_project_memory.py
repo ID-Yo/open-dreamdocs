@@ -318,6 +318,17 @@ class BoundedScanTests(unittest.TestCase):
         with self.assertRaisesRegex(pm.MemoryError, "broken"):
             pm.validate(self.root)
 
+    def test_private_automation_runtime_is_neither_validated_nor_copied(self):
+        (self.root / "memory/automation").mkdir()
+        (self.root / "memory/automation/README.md").write_text("# Automation\n", encoding="utf-8")
+        for folder in ("events", "pending"):
+            (self.root / "memory/automation" / folder).mkdir()
+            (self.root / "memory/automation" / folder / "evt.json").write_text("{}", encoding="utf-8")
+            (self.root / "memory/automation" / folder / "note.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        self.assertTrue(pm.validate(self.root)["ok"])
+        files = pm.managed_files(self.root)
+        self.assertFalse([f for f in files if {"events", "pending"} & set(f.relative_to(self.root).parts)])
+
     def test_generic_folder_names_inside_managed_trees_are_still_validated(self):
         (self.root / "docs/build").mkdir()
         (self.root / "docs/build/README.md").write_text("[x](missing.md)\n", encoding="utf-8")

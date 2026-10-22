@@ -30,7 +30,7 @@ MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts",
 MANAGED_FILES = ("LICENSE", ".gitignore", "human-materials/README.md", "human-materials/.gitignore")
 # Tool folders are skipped anywhere; generic names (build, dist, work) only at their known runtime path.
 PRUNE = {".git", ".hg", ".svn", "node_modules", ".venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".tox", ".next"}
-RUNTIME = {"memory/dreamer/work"}
+RUNTIME = {"memory/dreamer/work", "memory/automation/events", "memory/automation/pending"}
 
 
 class MemoryError(ValueError):

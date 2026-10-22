@@ -138,9 +138,13 @@ becomes a `duplicate`. Concurrent duplicate deliveries produce identical bytes;
 the same identity with a different payload is a `conflict`.
 
 Redelivery uses exact bytes. Before the first delivery, an adapter writes the
-event file and then redelivers only that file. `payload_sha256` covers every
+event file to `memory/automation/events/` and then redelivers only that file;
+after a saved receipt it may delete the file. `payload_sha256` covers every
 field, so an event rebuilt later (for example with a new `occurred_at` at
 `SessionEnd` or after `StopFailure`) is a `conflict` by design.
+`memory/automation/events/` and the pending queue `memory/automation/pending/`
+hold summaries, so both are private local runtime state: Git ignores them,
+validation skips them and they are never copied or published.
 Worktrees of one project write the same deterministic files, so Git merges equal
 events cleanly and shows different ones as conflicts.
 
