@@ -165,6 +165,14 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(before, self.snapshot())
 
 
+    def test_uninstall_keeps_a_binding_setup_did_not_create(self):
+        (self.root / "memory/automation.json").write_text(json.dumps({"version": 1, "project_id": "mine", "adapters": ["claude-code"]}), encoding="utf-8")
+        self.setup(apply=True)
+        self.assertEqual(pm.read_json(self.root / "memory/automation.json")["adapters"], ["claude-code", "codex"])
+        install.uninstall(self.root, apply=True)
+        self.assertEqual(pm.read_json(self.root / "memory/automation.json"), {"version": 1, "project_id": "mine", "adapters": ["claude-code"]})
+
+
     def test_generated_hook_command_runs_from_the_system_shell(self):
         self.setup(apply=True)
         command = self.hooks()["hooks"]["Stop"][0]["hooks"][0]["command"]

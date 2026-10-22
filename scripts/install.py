@@ -222,6 +222,9 @@ def plan(root, project_id=None):
     package = sorted(path.relative_to(root).as_posix() for path in pm.managed_files(root)
                      if path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
     created = sorted(set(previous.get("created", [])) | {p for p in (HOOKS, AGENTS) if read(root, p) is None})
+    known = previous.get("binding", {})
+    added = set(known.get("added_adapters", [])) | ({"codex"} - set(binding["adapters"] if binding else []))
+    binding_record = {"created": known.get("created", binding is None and text is None), "added_adapters": sorted(added)}
     manifest = {"version": 1, "package": {"version": PACKAGE_VERSION}, "project_id": identity,
                 "installed_at": previous.get("installed_at") or pm.now(),
                 "python": platform.python_version(),
@@ -231,6 +234,7 @@ def plan(root, project_id=None):
                 "package_files": {p: pm.digest((root / p).read_bytes()) for p in package},
                 "merged": {AGENTS: {"block": "dreamdocs:automation", "sha256": pm.digest(block.replace("\r\n", "\n").encode()), "prefix": prefix}},
                 "created": created,
+                "binding": binding_record,
                 "user_owned": ["docs/", "memory/ records and receipts", "human-materials/", "PROJECT.md"],
                 "local_only": ["memory/automation/events/", "memory/automation/pending/", "absolute paths in " + HOOKS]}
     if previous and {k: v for k, v in previous.items() if k != "installed_at"} == {k: v for k, v in manifest.items() if k != "installed_at"}:
@@ -288,9 +292,15 @@ def uninstall(root, apply=False):
         remaining = without_block(agents, merged.get("prefix", ""))
         gone = not remaining.strip() and AGENTS in created
         actions.append((AGENTS, "delete" if gone else "update", None if gone else remaining))
-    for path in (BINDING, MANIFEST):
-        if read(root, path) is not None:
-            actions.append((path, "delete", None))
+    bound, record = read(root, BINDING), manifest.get("binding", {})
+    if bound is not None and record.get("created"):
+        actions.append((BINDING, "delete", None))
+    elif bound is not None:  # the user's binding: take back only the adapters setup added
+        data = json.loads(bound)
+        data["adapters"] = [a for a in data.get("adapters", []) if a not in set(record.get("added_adapters", ["codex"]))]
+        actions.append((BINDING, "update", json.dumps(data, indent=2) + "\n"))
+    if read(root, MANIFEST) is not None:
+        actions.append((MANIFEST, "delete", None))
     if apply:
         for path, action, text in actions:
             target = pm.confined(root, path)
