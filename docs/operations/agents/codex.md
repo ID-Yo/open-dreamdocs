@@ -11,7 +11,7 @@ transcripts, never calls a model and never blocks or continues the agent.
 
 | Event | What the hook does | Output |
 |---|---|---|
-| `SessionStart` | Recalls project memory (up to 4000 characters) | `additionalContext`, framed as untrusted data |
+| `SessionStart` | Recalls the project briefing: recall without a query, so accepted facts and procedures, open contradictions and the most recent episodes (up to 4000 characters); topic selection happens at `UserPromptSubmit` | `additionalContext`, framed as untrusted data |
 | `UserPromptSubmit` | Recalls memory related to the prompt when it has at least three meaningful words (up to 2000 characters, 3 episodes) | `additionalContext` or nothing |
 | `Stop` | Saves the turn: the last `dreamdocs-outcome` block in the final message becomes an episode; without a block only a receipt (`no_lesson`) is written | `{}`, or a `systemMessage` when the capture was queued, refused or failed |
 | `SessionEnd` | Publishes queued captures when any exist | nothing |
