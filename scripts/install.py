@@ -58,15 +58,20 @@ def short_path(text):
     return buffer.value if 0 < length < len(buffer) else None
 
 
-def shell_path(path):
-    """A path usable unquoted by both cmd and PowerShell when possible; otherwise quoted with a warning."""
-    text = str(path)
-    if " " not in text:
-        return text, None
-    short = short_path(text)
-    if short and " " not in short:
-        return short, None
-    return f'"{text}"', f"path with spaces is quoted and untested in the Codex hook shell: {text}"
+def hook_command(python, script):
+    """A hook command for the shell Codex uses. Quoted arguments work in cmd and PowerShell; a quoted
+    program does not, so the interpreter stays unquoted (or its 8.3 name is used) where possible."""
+    script = f'"{script}"' if " " in str(script) else str(script)
+    python = str(python)
+    if " " in python:
+        short = short_path(python)
+        if short and " " not in short:
+            python = short
+    if " " not in python:
+        return f"{python} -B {script}", None
+    return (f'& "{python}" -B {script}',
+            "the Python path has spaces and no short name; the hook uses the PowerShell call form, which Codex "
+            "on Windows uses (verified with 0.147.0), so it will not run from cmd")
 
 
 def is_ours(handler):
@@ -197,10 +202,9 @@ def plan(root, project_id=None):
     identity = project_identity(root, project_id, binding)
     adapters = sorted(set(binding["adapters"] if binding else []) | {"codex"})
     writes[BINDING] = json.dumps({"version": 1, "project_id": identity, "adapters": adapters}, indent=2) + "\n"
-    python, warn_python = shell_path(Path(sys.executable).resolve())
-    script, warn_script = shell_path(root / HOOK_SCRIPT)
-    warnings += [w for w in (warn_python, warn_script) if w]
-    command = f"{python} -B {script}"
+    # absolute(), not resolve(): resolving could turn a venv launcher into the base interpreter
+    command, warning = hook_command(Path(sys.executable).absolute(), root / HOOK_SCRIPT)
+    warnings += [warning] if warning else []
     existing = read(root, HOOKS)
     try:
         current = json.loads(existing) if existing is not None else None

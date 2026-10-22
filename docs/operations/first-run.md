@@ -37,7 +37,11 @@ Codex CLI are required; Claude Code support is not available yet.
 
 Until a real trusted session has saved and recalled memory, the manifest keeps the trust and probe
 states `pending`. The hook command contains absolute paths for this computer, so run setup again after
-moving or copying the project folder.
+moving or copying the project folder. On Windows, Codex 0.147.0 runs hooks through PowerShell. The
+command keeps the Python path unquoted and quotes only the hook script, which works in PowerShell and
+cmd even when the project path has spaces and the drive has no 8.3 names. If the Python path itself
+has spaces, setup uses the PowerShell form `& "...python.exe" ...` and warns that it will not run
+from cmd. Both forms ran under Codex 0.147.0 on Windows.
 
 ## Remove
 

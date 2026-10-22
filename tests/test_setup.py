@@ -173,6 +173,26 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(pm.read_json(self.root / "memory/automation.json"), {"version": 1, "project_id": "mine", "adapters": ["claude-code"]})
 
 
+    def test_spaced_paths_without_short_names_run_in_powershell_and_cmd(self):
+        pwsh = shutil.which("pwsh") or shutil.which("powershell")
+        if os.name != "nt" or not pwsh:
+            self.skipTest("Windows shells only")
+        import _winapi
+        spaced_python = Path(self.temp.name) / "py with spaces"
+        _winapi.CreateJunction(str(Path(sys.executable).resolve().parent), str(spaced_python))
+        try:
+            payload = json.dumps({"hook_event_name": "Stop", "session_id": "s", "turn_id": "t", "stop_hook_active": False, "last_assistant_message": "Done."}).encode()
+            for python, shells in ((Path(sys.executable).resolve(), ("cmd", "pwsh")), (spaced_python / Path(sys.executable).name, ("pwsh",))):
+                with patch.object(install, "short_path", return_value=None), patch.object(install.sys, "executable", str(python)):
+                    command = install.setup(self.root)["hook_command"]
+                for shell in shells:
+                    argv = f'cmd /d /s /c "{command}"' if shell == "cmd" else [pwsh, "-NoProfile", "-Command", command]
+                    run = subprocess.run(argv, input=payload, capture_output=True, cwd=self.root, timeout=60)
+                    self.assertEqual((run.returncode, run.stdout.strip()[:1]), (0, b"{"), (shell, command, run.stderr))
+        finally:
+            os.rmdir(spaced_python)
+
+
     def test_generated_hook_command_runs_from_the_system_shell(self):
         self.setup(apply=True)
         command = self.hooks()["hooks"]["Stop"][0]["hooks"][0]["command"]
