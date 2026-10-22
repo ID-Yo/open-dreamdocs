@@ -51,13 +51,22 @@ Observed 2026-10-22 on Windows 10.0.26100: codex-cli 0.147.0 and Claude Code
 `automatic` stays false until an entry is `tested` with client version, OS,
 surface, test date and evidence. Every other combination is unsupported.
 
-| Client | Candidate triggers (unverified) | Trust requirement | Status |
+| Client | Lifecycle hooks | Trust requirement | Status |
 |---|---|---|---|
-| Codex | Turn-complete notification and any hook API the installed version exposes; verified in #18 | Trusted project; user-level config changes need owner approval | unsupported |
-| Claude Code | Session start, prompt submit, stop and session end hooks; verified in #19 | Hook definitions approved in the client; changed hooks need new approval | unsupported |
+| Codex | `SessionStart`, `UserPromptSubmit`, `Stop`, `SessionEnd` fired in a throwaway probe of 0.147.0 on Windows, run with the trust bypass flag; `SessionEnd` timeout is clamped to 3 s | Untrusted or changed hooks are skipped; setup and every upgrade include an explicit review and trust step | unsupported |
+| Claude Code | `SessionStart` and `UserPromptSubmit` fired in a 2.1.273 probe; a failed turn fired `StopFailure`; `Stop` and `SessionEnd` (1.5 s default budget) are unverified | Hook definitions are reviewed in the client; changed hooks need new review | unsupported |
 
-Candidate triggers come from client documentation and are not evidence. Windows is
-a required acceptance target for both clients.
+Probe results show client behavior and are not product support. Windows is a
+required acceptance target for both clients. Adapters follow four rules:
+
+- `Stop` is the durable save point. `SessionEnd` may only run a fast, idempotent
+  finish for an event already saved at `Stop`.
+- Claude Code `StopFailure` is non-durable: the adapter reports the outcome as
+  `interrupted`, so nothing is written and the same identity is redelivered later.
+- Setup, upgrade and acceptance runs never use `--dangerously-bypass-hook-trust`
+  or an equivalent bypass.
+- Hook commands call an absolute Python interpreter path with arguments and do not
+  depend on a particular shell (Git Bash, PowerShell or cmd).
 
 **Auth and cost.** Validation and persistence are deterministic local Python with
 no network or model calls. Extraction that needs judgment uses the already
