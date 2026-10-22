@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 import re
 import sys
@@ -132,8 +133,10 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         meta = r["meta"]
         sources = [source_status(root, ref, meta, by_id) for ref in meta["source"]]
         body = r["body"] if len(r["body"]) <= BODY_LIMIT else r["body"][:BODY_LIMIT] + " [truncated]"
-        cited = ", ".join(f"{s['ref']} ({s['status']})" for s in sources)
-        entry = neutral(f"\n[{label(r, disputes)}] {meta['id']} ({r['path']}, created {meta['created_at']})\nsources: {cited}\n{body}\n")
+        cited = ", ".join(f"{json.dumps(s['ref'], ensure_ascii=False)} ({s['status']})" for s in sources)
+        quoted = "\n".join("| " + line for line in body.split("\n"))  # record text can never start a header line
+        entry = neutral(f"\n[{label(r, disputes)}] {meta['id']} ({json.dumps(r['path'])}, created {meta['created_at']})\n"
+                        f"sources: {cited}\n{quoted}\n")
         if used + len(entry) > max_chars:
             omitted += 1
             continue
