@@ -68,7 +68,9 @@ def baseline(root, refs):
             except (ValueError, OSError):
                 continue  # check_files refuses it
             if path.is_file():
-                hashes[ref] = pm.digest(path.read_bytes())
+                sha = pm.bounded_digest(path)
+                if sha is not None:
+                    hashes[ref] = sha
     return hashes
 
 

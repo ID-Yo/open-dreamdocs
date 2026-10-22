@@ -25,6 +25,7 @@ STATUSES = {
 }
 KINDS = {"fact", "procedure", "contradiction", "duplicate", "archive"}
 IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,99}\Z")
+SOURCE_HASH_LIMIT = 1_048_576  # larger cited files are not hashed by capture or recall
 # Managed template surface; everything else in an adopted project is out of scope.
 MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts", "tests")
 MANAGED_FILES = ("LICENSE", ".gitignore", "human-materials/README.md", "human-materials/.gitignore")
@@ -59,6 +60,11 @@ def canonical(value):
 
 def digest(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def bounded_digest(path):
+    """SHA-256 of a cited file, or None when it is larger than SOURCE_HASH_LIMIT."""
+    return None if path.stat().st_size > SOURCE_HASH_LIMIT else digest(path.read_bytes())
 
 
 def confined(root, relative):

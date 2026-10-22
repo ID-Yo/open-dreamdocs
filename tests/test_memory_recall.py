@@ -153,6 +153,19 @@ class RecallTests(unittest.TestCase):
         self.source("docs/note.md", "note v2\n")
         self.assertEqual(mr.recall(self.root, query="focused")["items"][0]["sources"][0]["status"], "changed")
 
+    def test_large_sources_are_not_hashed(self):
+        big = self.root / "docs/big.bin"
+        big.write_bytes(b"x" * (pm.SOURCE_HASH_LIMIT + 1))
+        self.fact("fact-big", "Build fact.", source=["file:docs/big.bin"], source_sha256={"file:docs/big.bin": "0" * 64})
+        source = mr.recall(self.root, query="build")["items"][0]["sources"][0]
+        self.assertEqual(source, {"ref": "file:docs/big.bin", "status": "unverified", "size": pm.SOURCE_HASH_LIMIT + 1})
+        value = copy.deepcopy(EVENT)
+        value["outcome"]["evidence"] = ["file:docs/big.bin"]
+        self.assertTrue(mc.capture(self.root, value)["saved"])
+        episode = next((self.root / "memory/episodes").glob("auto-*.md"))
+        self.assertNotIn("source_sha256", pm.metadata(episode.read_text(encoding="utf-8")))
+
+
     def test_linked_source_is_refused_without_reading(self):
         outside = self.base / "outside"
         outside.mkdir()

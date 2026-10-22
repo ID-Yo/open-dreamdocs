@@ -56,7 +56,9 @@ def source_status(root, ref, meta, by_id):
             return {"ref": ref, "status": "refused"}
         if not path.is_file():
             return {"ref": ref, "status": "missing"}
-        digest = pm.digest(path.read_bytes())
+        digest = pm.bounded_digest(path)
+        if digest is None:
+            return {"ref": ref, "status": "unverified", "size": path.stat().st_size}
         recorded = meta.get("source_sha256")
         expected = recorded.get(ref) if isinstance(recorded, dict) else None
         status = "unverified" if not isinstance(expected, str) else "ok" if expected == digest else "changed"
