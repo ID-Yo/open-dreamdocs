@@ -124,6 +124,23 @@ class SetupTests(unittest.TestCase):
         self.assertNotIn(install.BLOCK_START, (self.root / "AGENTS.md").read_text(encoding="utf-8"))
         self.assertTrue(pm.validate(self.root)["ok"])
 
+    def test_newline_style_final_newline_and_hook_formatting_survive_setup_and_uninstall(self):
+        for name, original in (("crlf", b"# Rules\r\n\r\nKeep CRLF.\r\n"), ("no-final-newline", b"# Rules\n\nNo final newline")):
+            with self.subTest(name):
+                (self.root / "AGENTS.md").write_bytes(original)
+                hooks = '{\r\n    "description": "caf\u00e9 team",\r\n    "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "team"}]}]}\r\n}\r\n'.encode("utf-8")
+                (self.root / ".codex").mkdir(exist_ok=True)
+                (self.root / ".codex/hooks.json").write_bytes(hooks)
+                self.setup(apply=True)
+                merged = (self.root / "AGENTS.md").read_bytes()
+                self.assertTrue(merged.startswith(original))
+                if name == "crlf":
+                    self.assertEqual(merged.replace(b"\r\n", b"").count(b"\n"), 0)
+                self.assertEqual(install.uninstall(self.root, apply=True)["exit"], 0)
+                self.assertEqual((self.root / "AGENTS.md").read_bytes(), original)
+                self.assertEqual((self.root / ".codex/hooks.json").read_bytes(), hooks)
+
+
     def test_generated_hook_command_runs_from_the_system_shell(self):
         self.setup(apply=True)
         command = self.hooks()["hooks"]["Stop"][0]["hooks"][0]["command"]

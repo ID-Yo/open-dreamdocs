@@ -24,6 +24,7 @@ import project_memory as pm
 PACKAGE_VERSION = "unreleased"
 BINDING, MANIFEST, HOOKS, AGENTS = "memory/automation.json", "memory/automation/install.json", ".codex/hooks.json", "AGENTS.md"
 HOOK_SCRIPT, BLOCK_FILE = "adapters/codex/hook.py", "adapters/outcome-block.md"
+LOCAL, BACKUP = ".dreamdocs", ".dreamdocs/backup"  # machine-local state; .dreamdocs/.gitignore ignores the folder
 EVENTS = ("SessionStart", "UserPromptSubmit", "Stop", "SessionEnd")
 TIMEOUTS = {"SessionStart": 15, "UserPromptSubmit": 10, "Stop": 30, "SessionEnd": 3}
 BLOCK_START, BLOCK_END = "<!-- dreamdocs:automation:start -->", "<!-- dreamdocs:automation:end -->"
@@ -90,6 +91,8 @@ def without_ours(data):
             hooks[event] = groups
         else:
             del hooks[event]
+    if not hooks:
+        data.pop("hooks", None)
     return data
 
 
@@ -102,29 +105,46 @@ def merged_hooks(existing, command):
     return data
 
 
-def with_block(text, block):
-    if text is None:
-        return block
-    start, end = text.find(BLOCK_START), text.find(BLOCK_END)
-    if start >= 0 and end > start:
-        stop = text.find("\n", end)
-        return text[:start] + block + (text[stop + 1:] if stop >= 0 else "")
-    return text + ("" if text.endswith("\n") else "\n") + "\n" + block
+def newline_of(text):
+    return "\r\n" if "\r\n" in text else "\n"
 
 
-def without_block(text):
+def block_span(text):
     start, end = text.find(BLOCK_START), text.find(BLOCK_END)
     if start < 0 or end < start:
-        return text
+        return None
     stop = text.find("\n", end)
-    tail = text[stop + 1:] if stop >= 0 else ""
-    head = text[:start]
-    return (head[:-1] if head.endswith("\n\n") else head) + tail
+    return start, (stop + 1 if stop >= 0 else len(text))
+
+
+def with_block(text, block, prefix=None):
+    """Insert or replace the block in the file's own newline style. Returns (text, prefix inserted before it)."""
+    if not text:
+        return block, ""
+    block = block.replace("\r\n", "\n").replace("\n", newline_of(text))
+    span = block_span(text)
+    if span:
+        return text[:span[0]] + block + text[span[1]:], prefix or ""
+    sep = newline_of(text)
+    prefix = ("" if text.endswith(("\n", "\r")) else sep) + sep
+    return text + prefix + block, prefix
+
+
+def without_block(text, prefix):
+    """Remove the block; when it is still at the end, also remove exactly the prefix setup inserted."""
+    span = block_span(text)
+    if span is None:
+        return text
+    head, tail = text[:span[0]], text[span[1]:]
+    if not tail and prefix and head.endswith(prefix):
+        head = head[:-len(prefix)]
+    return head + tail
 
 
 def read(root, relative):
+    """Exact file text: newlines are never translated, so user files keep their bytes."""
     path = pm.confined(root, relative)
-    return path.read_text(encoding="utf-8") if path.is_file() else None
+    return path.read_bytes().decode("utf-8") if path.is_file() else None
 
 
 def project_identity(root, requested, binding):
@@ -178,26 +198,29 @@ def plan(root, project_id=None):
     if toml is not None and re.search(r"^\s*\[\[?hooks", toml, re.M):
         warnings.append(".codex/config.toml also defines hooks; Codex loads both and warns at startup.")
     block = read(root, BLOCK_FILE)
-    writes[AGENTS] = with_block(read(root, AGENTS), block)
-    package = sorted(path.relative_to(root).as_posix() for path in pm.managed_files(root)
-                     if path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
     old = read(root, MANIFEST)
     previous = json.loads(old) if old else {}
+    writes[AGENTS], prefix = with_block(read(root, AGENTS), block, previous.get("merged", {}).get(AGENTS, {}).get("prefix"))
+    if existing is not None and HOOKS in writes and HOOKS not in previous.get("created", []) and read(root, f"{BACKUP}/{HOOKS}") is None:
+        writes[f"{BACKUP}/{HOOKS}"], writes[f"{LOCAL}/.gitignore"] = existing, "*\n"  # original bytes for uninstall
+    package = sorted(path.relative_to(root).as_posix() for path in pm.managed_files(root)
+                     if path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
     created = sorted(set(previous.get("created", [])) | {p for p in (HOOKS, AGENTS) if read(root, p) is None})
     manifest = {"version": 1, "package": {"version": PACKAGE_VERSION}, "project_id": identity,
                 "installed_at": previous.get("installed_at") or pm.now(),
                 "python": platform.python_version(),
                 "clients": {"codex": {"version": version, "hook_file": HOOKS, "events": list(EVENTS),
-                                      "hook_sha256": pm.digest(command.encode()), "trust": "pending", "probe": "pending"}},
+                                      "hook_sha256": pm.digest(command.encode()), "trust": "pending", "probe": "pending",
+                                      "written_sha256": pm.digest(writes[HOOKS].encode()) if HOOKS in writes else None}},
                 "package_files": {p: pm.digest((root / p).read_bytes()) for p in package},
-                "merged": {AGENTS: {"block": "dreamdocs:automation", "sha256": pm.digest(block.encode())}},
+                "merged": {AGENTS: {"block": "dreamdocs:automation", "sha256": pm.digest(block.replace("\r\n", "\n").encode()), "prefix": prefix}},
                 "created": created,
                 "user_owned": ["docs/", "memory/ records and receipts", "human-materials/", "PROJECT.md"],
                 "local_only": ["memory/automation/events/", "memory/automation/pending/", "absolute paths in " + HOOKS]}
     if previous and {k: v for k, v in previous.items() if k != "installed_at"} == {k: v for k, v in manifest.items() if k != "installed_at"}:
         manifest = previous
     writes[MANIFEST] = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-    for path in (BINDING, HOOKS, AGENTS, MANIFEST):
+    for path in (BINDING, HOOKS, AGENTS, MANIFEST, f"{BACKUP}/{HOOKS}", f"{LOCAL}/.gitignore"):
         if path in writes:
             before = read(root, path)
             actions.append({"path": path, "action": "create" if before is None else "unchanged" if before == writes[path] else "update"})
@@ -225,15 +248,24 @@ def setup(root, apply=False, project_id=None):
 def uninstall(root, apply=False):
     root = Path(root).resolve()
     manifest = json.loads(read(root, MANIFEST) or "{}")
-    created, actions = set(manifest.get("created", [])), []
+    created, actions, notes = set(manifest.get("created", [])), [], []
     hooks = read(root, HOOKS)
+    backup = read(root, f"{BACKUP}/{HOOKS}")
     if hooks is not None:
+        unchanged = pm.digest(hooks.encode()) == manifest.get("clients", {}).get("codex", {}).get("written_sha256")
         data = without_ours(json.loads(hooks))
-        empty = data == {"hooks": {}} and HOOKS in created
-        actions.append((HOOKS, "delete" if empty else "update", None if empty else json.dumps(data, indent=2) + "\n"))
+        if not data and HOOKS in created:
+            actions.append((HOOKS, "delete", None))
+        elif unchanged and backup is not None:
+            actions.append((HOOKS, "restore", backup))
+        else:
+            actions.append((HOOKS, "update", json.dumps(data, indent=2, ensure_ascii=False) + "\n"))
+            notes.append(f"{HOOKS} changed after setup: Dreamdocs entries removed, other content kept, formatting not preserved")
+    if backup is not None:
+        actions += [(f"{BACKUP}/{HOOKS}", "delete", None), (f"{LOCAL}/.gitignore", "delete", None)]
     agents = read(root, AGENTS)
     if agents is not None and BLOCK_START in agents:
-        remaining = without_block(agents)
+        remaining = without_block(agents, manifest.get("merged", {}).get(AGENTS, {}).get("prefix", ""))
         gone = not remaining.strip() and AGENTS in created
         actions.append((AGENTS, "delete" if gone else "update", None if gone else remaining))
     for path in (BINDING, MANIFEST):
@@ -243,11 +275,13 @@ def uninstall(root, apply=False):
         for path, action, text in actions:
             target = pm.confined(root, path)
             if action == "delete":
-                target.unlink()
+                target.unlink(missing_ok=True)
             elif text != read(root, path):
                 mc.atomic_text(target, text)
-        if HOOKS in created and pm.confined(root, ".codex").is_dir() and not any(pm.confined(root, ".codex").iterdir()):
-            pm.confined(root, ".codex").rmdir()
-    return {"exit": 0, "applied": apply, "actions": [{"path": p, "action": a} for p, a, _ in actions],
+        for folder in (BACKUP + "/.codex", BACKUP, LOCAL, ".codex"):
+            path = pm.confined(root, folder)
+            if path.is_dir() and not any(path.iterdir()) and (folder != ".codex" or HOOKS in created):
+                path.rmdir()
+    return {"exit": 0, "applied": apply, "actions": [{"path": p, "action": a} for p, a, _ in actions], "notes": notes,
             "kept": ["docs/", "memory/ records, receipts and events", "human-materials/"]}
 

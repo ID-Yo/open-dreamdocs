@@ -47,3 +47,8 @@ python -B scripts/dreamdocs.py uninstall --apply
 
 This removes the Dreamdocs hook entries, the instruction block, the binding and the manifest. Your
 documents, memory records, receipts and other hooks stay. Without `--apply` it only lists the changes.
+
+Setup keeps your file's newline style and inserts or removes only the instruction block. It saves the
+original bytes of an existing `.codex/hooks.json` in the local, Git-ignored `.dreamdocs/` folder;
+uninstall restores those bytes when the file is unchanged since setup. If you edited it afterwards,
+uninstall removes only the Dreamdocs entries and keeps the rest of the content, without its formatting.
