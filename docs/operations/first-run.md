@@ -5,7 +5,8 @@
 # First run: automatic memory
 
 This connects Codex to project memory. The documents work without it. Python 3.11 or newer and
-Codex CLI are required; Claude Code support is not available yet.
+Codex CLI are required. Claude Code can be set up with `--client claude-code`; its adapter is
+[unverified](agents/claude-code.md) until an authenticated session has used it.
 
 1. Preview the setup. Nothing is written:
 
@@ -20,7 +21,7 @@ Codex CLI are required; Claude Code support is not available yet.
 2. Apply it:
 
    ```text
-   python -B scripts/dreamdocs.py setup --apply [--project-id ID]
+   python -B scripts/dreamdocs.py setup --apply [--project-id ID] [--client codex] [--client claude-code]
    ```
 
    Setup writes only project files: `memory/automation.json`, Dreamdocs entries merged into

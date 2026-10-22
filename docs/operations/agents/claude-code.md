@@ -23,6 +23,15 @@ Claude's `Stop` payload has no `turn_id`. The adapter uses `prompt_id` when pres
 a common field, seen on `UserPromptSubmit` and `StopFailure`, not yet seen on `Stop`), otherwise a
 hash of the final message, so a repeated `Stop` for the same answer is saved once.
 
+## Setup
+
+`python -B scripts/dreamdocs.py setup --client claude-code` previews and `--apply` writes the hooks into
+`.claude/settings.local.json`, Claude Code's project file that is not shared, because each handler holds
+this computer's Python path. The shared `.claude/settings.json` is never changed. Handlers use exec form
+(`command` plus `args`, no shell) with `${CLAUDE_PROJECT_DIR}` for the script path, so spaces need no
+quoting. The outcome instruction block goes into `CLAUDE.md`. Setup adds `.claude/.gitignore` for the
+local file when it creates it, and uninstall restores your files byte for byte when unchanged since setup.
+
 ## Still to verify after sign-in
 
 - `Stop` and `SessionEnd` firing and their payloads, including `prompt_id` on `Stop`.

@@ -31,8 +31,11 @@ class SetupTests(unittest.TestCase):
             shutil.copyfile(path, target)
         self.client = patch.object(install, "codex_version", return_value="0.147.0")
         self.client.start()
+        self.claude = patch.object(install, "claude_version", return_value="2.1.273")
+        self.claude.start()
 
     def tearDown(self):
+        self.claude.stop()
         self.client.stop()
         self.temp.cleanup()
 
@@ -211,6 +214,58 @@ class SetupTests(unittest.TestCase):
         self.assertTrue(any("not inside a Git repository" in w for w in self.setup()["warnings"]))
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         self.assertFalse(any("Git repository" in w for w in self.setup()["warnings"]))
+
+
+    def test_claude_code_setup_merges_local_settings_and_claude_md_and_uninstall_restores_them(self):
+        shared = b'{\n  "permissions": {"allow": ["Bash(git status)"]}\n}\n'
+        local = b'{\r\n  "permissions": {"allow": ["Bash(npm test)"]},\r\n  "hooks": {"Stop": [{"hooks": [{"type": "command", "command": "team-stop"}]}]}\r\n}\r\n'
+        (self.root / ".claude").mkdir()
+        (self.root / ".claude/settings.json").write_bytes(shared)
+        (self.root / ".claude/settings.local.json").write_bytes(local)
+        claude_md = b"# Team notes\r\nUse small commits.\r\n"
+        (self.root / "CLAUDE.md").write_bytes(claude_md)
+        result = self.setup(apply=True, project_id="demo", clients=("claude-code",))
+        self.assertEqual((result["exit"], result["applied"]), (0, True), result["next_steps"])
+        self.assertEqual((self.root / ".claude/settings.json").read_bytes(), shared)
+        merged = json.loads((self.root / ".claude/settings.local.json").read_text(encoding="utf-8"))
+        self.assertEqual(merged["permissions"], {"allow": ["Bash(npm test)"]})
+        self.assertEqual(merged["hooks"]["Stop"][0], {"hooks": [{"type": "command", "command": "team-stop"}]})
+        self.assertEqual(sorted(merged["hooks"]), sorted(install.CLAUDE_EVENTS))
+        ours = merged["hooks"]["StopFailure"][0]["hooks"][0]
+        self.assertEqual(set(ours), {"type", "command", "args", "timeout"})
+        self.assertEqual(ours["args"], ["-B", "${CLAUDE_PROJECT_DIR}/adapters/claude-code/hook.py"])
+        self.assertEqual((self.root / "CLAUDE.md").read_bytes().count(install.BLOCK_START.encode()), 1)
+        self.assertFalse((self.root / ".codex").exists())
+        self.assertNotIn(install.BLOCK_START, (self.root / "AGENTS.md").read_text(encoding="utf-8"))
+        self.assertEqual(pm.read_json(self.root / "memory/automation.json")["adapters"], ["claude-code"])
+        before = self.snapshot()
+        self.assertEqual({a["action"] for a in self.setup(apply=True, project_id="demo", clients=("claude-code",))["actions"]}, {"unchanged"})
+        self.assertEqual(before, self.snapshot())
+        stop = merged["hooks"]["Stop"][1]["hooks"][0]
+        argv = [stop["command"], *(arg.replace("${CLAUDE_PROJECT_DIR}", str(self.root)) for arg in stop["args"])]
+        payload = json.dumps({"hook_event_name": "Stop", "session_id": "s", "prompt_id": "p", "stop_hook_active": False, "last_assistant_message": "Done."})
+        run = subprocess.run(argv, input=payload.encode(), capture_output=True, cwd=self.root, timeout=60)
+        self.assertEqual((run.returncode, json.loads(run.stdout)), (0, {}))
+        self.assertEqual(install.uninstall(self.root, apply=True)["exit"], 0)
+        self.assertEqual((self.root / ".claude/settings.local.json").read_bytes(), local)
+        self.assertEqual((self.root / ".claude/settings.json").read_bytes(), shared)
+        self.assertEqual((self.root / "CLAUDE.md").read_bytes(), claude_md)
+
+    def test_both_clients_share_one_binding_and_manifest(self):
+        self.setup(apply=True, project_id="demo")
+        claude = self.setup(apply=True, clients=("claude-code",))
+        self.assertEqual(claude["exit"], 0)
+        self.assertEqual(pm.read_json(self.root / "memory/automation.json")["adapters"], ["claude-code", "codex"])
+        self.assertEqual(sorted(pm.read_json(self.root / "memory/automation/install.json")["clients"]), ["claude-code", "codex"])
+        self.assertEqual((self.root / ".claude/.gitignore").read_text(encoding="utf-8"), "settings.local.json\n")
+        with patch.object(install, "claude_version", return_value=None):
+            missing = self.setup(apply=True, clients=("claude-code",))
+        self.assertEqual(missing["exit"], 4)
+        self.assertTrue(any("Claude Code" in step for step in missing["next_steps"]))
+        install.uninstall(self.root, apply=True)
+        for path in (".codex", ".claude", "CLAUDE.md", "memory/automation.json", "memory/automation/install.json"):
+            self.assertFalse((self.root / path).exists(), path)
+        self.assertNotIn(install.BLOCK_START, (self.root / "AGENTS.md").read_text(encoding="utf-8"))
 
 
     def test_generated_hook_command_runs_from_the_system_shell(self):

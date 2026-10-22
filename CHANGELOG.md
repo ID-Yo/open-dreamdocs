@@ -10,6 +10,7 @@
 - Added the Codex hook adapter (#18): `adapters/codex/hook.py` recalls memory at `SessionStart` and for meaningful prompts, saves each turn at `Stop` from an optional `dreamdocs-outcome` block (receipt only without one), publishes queued captures at `SessionEnd`, never blocks the agent, reads no transcript and calls no model. Tested with recorded Codex 0.147.0 payloads; not yet verified end to end with trusted hooks.
 - Added `scripts/dreamdocs.py setup` and `uninstall` (#15): a dry-run plan by default; `--apply` writes only the binding, Dreamdocs entries merged into `.codex/hooks.json`, the outcome instruction block in `AGENTS.md` and a versioned install manifest, then prints the Codex trust step. Repeat runs change nothing and uninstall keeps memory, docs and other hooks. Includes the first-run guide and manifest schema.
 - Added the Claude Code hook adapter (#19), sharing `scripts/lifecycle.py` with the Codex adapter: turn identity from `prompt_id` or the final message, `StopFailure` treated as interrupted. Built from documented payloads and unverified until an authenticated session runs it.
+- Added `setup --client claude-code` (#19): exec-form hooks merged into `.claude/settings.local.json` and the instruction block in `CLAUDE.md`, sharing the binding and manifest with Codex.
 
 ## v1.4.0
 

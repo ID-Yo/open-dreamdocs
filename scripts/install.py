@@ -33,6 +33,10 @@ BLOCK_START, BLOCK_END = "<!-- dreamdocs:automation:start -->", "<!-- dreamdocs:
 MEMORY_POLICY = ("Memory stays in this project folder: episodes and receipts are ordinary files you may commit; "
                  "memory/automation/events and pending are local and Git-ignored. Nothing is sent to a cloud service "
                  "and no model is called by the hooks.")
+CLAUDE_EVENTS = ("SessionStart", "UserPromptSubmit", "Stop", "StopFailure", "SessionEnd")
+CLAUDE_TIMEOUTS = {"SessionStart": 15, "UserPromptSubmit": 10, "Stop": 30, "StopFailure": 5, "SessionEnd": 3}
+CLAUDE_TRUST = ("Open Claude Code in this project and review the Dreamdocs hooks if it asks; run /hooks to see them. "
+                "The Claude Code adapter is unverified until an authenticated session has saved and recalled memory.")
 TRUST_STEP = ("Open Codex in this project, run /hooks, review the four Dreamdocs hooks (SessionStart, UserPromptSubmit, "
               "Stop, SessionEnd) and trust them; trust the project's .codex folder if asked. Do not use "
               "--dangerously-bypass-hook-trust. Changed hooks need review again after every setup or upgrade.")
@@ -45,6 +49,18 @@ def codex_version():
     if not found:
         return None
     package = Path(found).resolve().parent / "node_modules" / "@openai" / "codex" / "package.json"
+    try:
+        return json.loads(package.read_text(encoding="utf-8")).get("version") or "unknown"
+    except (OSError, ValueError):
+        return "unknown"
+
+
+def claude_version():
+    """Installed Claude Code version from its npm package, without running the client; None when not found."""
+    found = shutil.which("claude")
+    if not found:
+        return None
+    package = Path(found).resolve().parent / "node_modules" / "@anthropic-ai" / "claude-code" / "package.json"
     try:
         return json.loads(package.read_text(encoding="utf-8")).get("version") or "unknown"
     except (OSError, ValueError):
@@ -83,42 +99,6 @@ def hook_command(python, script):
     return (f'& "{python}" -B {script}',
             "the Python path has spaces and no short name; the hook uses the PowerShell call form, which Codex "
             "on Windows uses (verified with 0.147.0), so it will not run from cmd")
-
-
-def is_ours(handler):
-    command = str(handler.get("command", "")).replace("\\", "/") if isinstance(handler, dict) else ""
-    return command.endswith("/" + HOOK_SCRIPT) or command.endswith("/" + HOOK_SCRIPT + '"')
-
-
-def without_ours(data):
-    """Remove Dreamdocs handlers; keep every other key, group and handler exactly."""
-    hooks = data.get("hooks", {})
-    for event in list(hooks):
-        if not isinstance(hooks[event], list):
-            continue
-        groups = []
-        for group in hooks[event]:
-            if isinstance(group, dict) and isinstance(group.get("hooks"), list) and any(is_ours(h) for h in group["hooks"]):
-                group = {**group, "hooks": [h for h in group["hooks"] if not is_ours(h)]}
-                if not group["hooks"]:
-                    continue
-            groups.append(group)
-        if groups:
-            hooks[event] = groups
-        else:
-            del hooks[event]
-    if not hooks:
-        data.pop("hooks", None)
-    return data
-
-
-def merged_hooks(existing, command):
-    data = without_ours(json.loads(json.dumps(existing))) if existing is not None else {}
-    hooks = data.setdefault("hooks", {})
-    for event in EVENTS:
-        hooks.setdefault(event, []).append({"hooks": [{"type": "command", "command": command, "timeout": TIMEOUTS[event],
-                                                         "statusMessage": "Dreamdocs memory"}]})
-    return data
 
 
 def newline_of(text):
@@ -177,6 +157,66 @@ def read(root, relative):
     return path.read_bytes().decode("utf-8") if path.is_file() else None
 
 
+CLIENTS = {
+    "codex": {"name": "Codex", "hook_file": HOOKS, "ignore": HOOKS_IGNORE, "folder": ".codex", "instructions": AGENTS,
+              "script": HOOK_SCRIPT, "events": EVENTS, "timeouts": TIMEOUTS, "version": "codex_version",
+              "missing": "Install Codex CLI (npm install -g @openai/codex), then run setup again.", "trust": TRUST_STEP},
+    "claude-code": {"name": "Claude Code", "hook_file": ".claude/settings.local.json", "ignore": ".claude/.gitignore",
+                    "folder": ".claude", "instructions": "CLAUDE.md", "script": "adapters/claude-code/hook.py",
+                    "events": CLAUDE_EVENTS, "timeouts": CLAUDE_TIMEOUTS, "version": "claude_version",
+                    "missing": "Install Claude Code (npm install -g @anthropic-ai/claude-code), then run setup again.",
+                    "trust": CLAUDE_TRUST},
+}
+
+
+def is_ours(handler, script):
+    if not isinstance(handler, dict):
+        return False
+    parts = [str(handler.get("command", ""))] + [str(a) for a in handler.get("args", []) if isinstance(handler.get("args"), list)]
+    return any(p.replace("\\", "/").rstrip('"').endswith("/" + script) for p in parts)
+
+
+def without_ours(data, script=HOOK_SCRIPT):
+    """Remove Dreamdocs handlers; keep every other key, group and handler exactly."""
+    hooks = data.get("hooks", {})
+    for event in list(hooks):
+        if not isinstance(hooks[event], list):
+            continue
+        groups = []
+        for group in hooks[event]:
+            if isinstance(group, dict) and isinstance(group.get("hooks"), list) and any(is_ours(h, script) for h in group["hooks"]):
+                group = {**group, "hooks": [h for h in group["hooks"] if not is_ours(h, script)]}
+                if not group["hooks"]:
+                    continue
+            groups.append(group)
+        if groups:
+            hooks[event] = groups
+        else:
+            del hooks[event]
+    if not hooks:
+        data.pop("hooks", None)
+    return data
+
+
+def handler(client, root, event):
+    spec = CLIENTS[client]
+    if client == "codex":
+        command, _ = hook_command(Path(sys.executable).absolute(), root / spec["script"])
+        return {"type": "command", "command": command, "timeout": spec["timeouts"][event], "statusMessage": "Dreamdocs memory"}
+    # exec form: no shell, so spaces in either path need no quoting; the project path stays a placeholder
+    return {"type": "command", "command": str(Path(sys.executable).absolute()),
+            "args": ["-B", "${CLAUDE_PROJECT_DIR}/" + spec["script"]], "timeout": spec["timeouts"][event]}
+
+
+def merged_hooks(existing, client, root):
+    spec = CLIENTS[client]
+    data = without_ours(json.loads(json.dumps(existing)), spec["script"]) if existing is not None else {}
+    hooks = data.setdefault("hooks", {})
+    for event in spec["events"]:
+        hooks.setdefault(event, []).append({"hooks": [handler(client, root, event)]})
+    return data
+
+
 def project_identity(root, requested, binding):
     if binding is not None:
         return binding["project_id"]
@@ -191,15 +231,13 @@ def project_identity(root, requested, binding):
     return re.sub(r"[^a-z0-9._-]+", "-", root.name.lower()).strip("-._") or "project"
 
 
-def plan(root, project_id=None):
-    """Compute every write without performing it. Returns (report, writes)."""
+def plan(root, project_id=None, clients=("codex",)):
+    """Compute every write without performing it. Returns (report, writes, conflicts)."""
     root = Path(root).resolve()
-    conflicts, warnings, writes, actions = [], [], {}, []
-    version = codex_version()
-    if version is None:
-        conflicts.append(("client", "Install Codex CLI (npm install -g @openai/codex), then run setup again."))
-    binding = None
-    text = read(root, BINDING)
+    conflicts, warnings, writes, actions, order = [], [], {}, [], [BINDING]
+    old = read(root, MANIFEST)
+    previous = json.loads(old) if old else {}
+    binding, text = None, read(root, BINDING)
     if text is not None:
         try:
             binding = json.loads(text)
@@ -211,72 +249,86 @@ def plan(root, project_id=None):
             if project_id and project_id != binding["project_id"]:
                 conflicts.append((BINDING, f"{BINDING} belongs to project '{binding['project_id']}'; rerun without --project-id or remove the binding."))
     identity = project_identity(root, project_id, binding)
-    adapters = sorted(set(binding["adapters"] if binding else []) | {"codex"})
+    adapters = sorted(set(binding["adapters"] if binding else []) | set(clients))
     writes[BINDING] = json.dumps({"version": 1, "project_id": identity, "adapters": adapters}, indent=2) + "\n"
-    # absolute(), not resolve(): resolving could turn a venv launcher into the base interpreter
-    command, warning = hook_command(Path(sys.executable).absolute(), root / HOOK_SCRIPT)
-    warnings += [warning] if warning else []
-    existing = read(root, HOOKS)
-    if not any((folder / ".git").exists() for folder in (root, *root.parents)):
-        warnings.append("This folder is not inside a Git repository. Codex treats it as untrusted, and codex exec refuses to run "
-                        "there (\"Not inside a trusted directory\") even after hooks are trusted. Run git init, or trust this "
-                        "directory in Codex, before using it.")
-    if existing is None and read(root, HOOKS_IGNORE) is None:
-        writes[HOOKS_IGNORE] = "hooks.json\n"  # the hook command holds machine-local paths
-    elif existing is not None and tracked(root, HOOKS):
-        warnings.append(f"{HOOKS} is tracked by Git; after setup it holds machine-local paths for this computer, so do not commit it.")
-    try:
-        current = json.loads(existing) if existing is not None else None
-        pm.require(current is None or isinstance(current, dict) and isinstance(current.get("hooks", {}), dict), "not a hooks object")
-        writes[HOOKS] = json.dumps(merged_hooks(current, command), indent=2) + "\n"
-    except ValueError:
-        conflicts.append((HOOKS, f"Fix {HOOKS}: it is not a valid Codex hooks JSON object. Setup never overwrites it."))
-    toml = read(root, ".codex/config.toml")
-    if toml is not None and re.search(r"^\s*\[\[?hooks", toml, re.M):
-        warnings.append(".codex/config.toml also defines hooks; Codex loads both and warns at startup.")
     block = read(root, BLOCK_FILE)
-    old = read(root, MANIFEST)
-    previous = json.loads(old) if old else {}
-    if dangling_marker(read(root, AGENTS) or ""):
-        conflicts.append((AGENTS, f"{AGENTS} has a {BLOCK_START} line without a matching end line; complete or remove it, then run setup again."))
-    writes[AGENTS], prefix = with_block(read(root, AGENTS), block, previous.get("merged", {}).get(AGENTS, {}).get("prefix"))
-    if existing is not None and HOOKS in writes and HOOKS not in previous.get("created", []) and read(root, f"{BACKUP}/{HOOKS}") is None:
-        writes[f"{BACKUP}/{HOOKS}"], writes[f"{LOCAL}/.gitignore"] = existing, "*\n"  # original bytes for uninstall
+    clients_record, merged, report_clients, steps = dict(previous.get("clients", {})), dict(previous.get("merged", {})), {}, []
+    created = set(previous.get("created", []))
+    for client in clients:
+        spec = CLIENTS[client]
+        version = globals()[spec["version"]]()
+        if version is None:
+            conflicts.append(("client", spec["missing"]))
+        hook_file, ignore = spec["hook_file"], spec["ignore"]
+        existing = read(root, hook_file)
+        if client == "codex" and not any((folder / ".git").exists() for folder in (root, *root.parents)):
+            warnings.append("This folder is not inside a Git repository. Codex treats it as untrusted, and codex exec refuses to run "
+                            "there (\"Not inside a trusted directory\") even after hooks are trusted. Run git init, or trust this "
+                            "directory in Codex, before using it.")
+        if client == "codex":
+            _, warning = hook_command(Path(sys.executable).absolute(), root / spec["script"])
+            warnings += [warning] if warning else []
+        if existing is None and read(root, ignore) is None:
+            writes[ignore] = Path(hook_file).name + "\n"  # the hook entries hold machine-local paths
+        elif existing is not None and tracked(root, hook_file):
+            warnings.append(f"{hook_file} is tracked by Git; after setup it holds machine-local paths for this computer, so do not commit it.")
+        try:
+            current = json.loads(existing) if existing is not None else None
+            pm.require(current is None or isinstance(current, dict) and isinstance(current.get("hooks", {}), dict), "not a hooks object")
+            writes[hook_file] = json.dumps(merged_hooks(current, client, root), indent=2, ensure_ascii=False) + "\n"
+        except ValueError:
+            conflicts.append((hook_file, f"Fix {hook_file}: it is not a valid JSON settings object. Setup never overwrites it."))
+        if existing is not None and hook_file in writes and hook_file not in created and read(root, f"{BACKUP}/{hook_file}") is None:
+            writes[f"{BACKUP}/{hook_file}"], writes[f"{LOCAL}/.gitignore"] = existing, "*\n"  # original bytes for uninstall
+        if client == "codex":
+            toml = read(root, ".codex/config.toml")
+            if toml is not None and re.search(r"^\s*\[\[?hooks", toml, re.M):
+                warnings.append(".codex/config.toml also defines hooks; Codex loads both and warns at startup.")
+        doc = spec["instructions"]
+        if doc not in writes:
+            if dangling_marker(read(root, doc) or ""):
+                conflicts.append((doc, f"{doc} has a {BLOCK_START} line without a matching end line; complete or remove it, then run setup again."))
+            writes[doc], prefix = with_block(read(root, doc), block, merged.get(doc, {}).get("prefix"))
+            merged[doc] = {"block": "dreamdocs:automation", "sha256": pm.digest(block.replace("\r\n", "\n").encode()), "prefix": prefix}
+        created |= {p for p in (hook_file, ignore, doc) if read(root, p) is None and p in writes}
+        clients_record[client] = {"version": version, "hook_file": hook_file, "events": list(spec["events"]),
+                                  "hook_sha256": pm.digest(json.dumps(handler(client, root, "Stop"), sort_keys=True).encode()),
+                                  "trust": "pending", "probe": "pending",
+                                  "written_sha256": pm.digest(writes[hook_file].encode()) if hook_file in writes else None}
+        report_clients[client] = {"version": version, "support": ac.SUPPORT[client]["state"]}
+        steps.append(spec["trust"])
+        order += [hook_file, ignore, doc, f"{BACKUP}/{hook_file}"]
     package = sorted(path.relative_to(root).as_posix() for path in pm.managed_files(root)
                      if path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
-    created = sorted(set(previous.get("created", [])) | {p for p in (HOOKS, AGENTS, HOOKS_IGNORE) if read(root, p) is None and p in writes})
     known = previous.get("binding", {})
-    added = set(known.get("added_adapters", [])) | ({"codex"} - set(binding["adapters"] if binding else []))
+    added = set(known.get("added_adapters", [])) | (set(clients) - set(binding["adapters"] if binding else []))
     binding_record = {"created": known.get("created", binding is None and text is None), "added_adapters": sorted(added)}
     manifest = {"version": 1, "package": {"version": PACKAGE_VERSION}, "project_id": identity,
-                "installed_at": previous.get("installed_at") or pm.now(),
-                "python": platform.python_version(),
-                "clients": {"codex": {"version": version, "hook_file": HOOKS, "events": list(EVENTS),
-                                      "hook_sha256": pm.digest(command.encode()), "trust": "pending", "probe": "pending",
-                                      "written_sha256": pm.digest(writes[HOOKS].encode()) if HOOKS in writes else None}},
+                "installed_at": previous.get("installed_at") or pm.now(), "python": platform.python_version(),
+                "clients": dict(sorted(clients_record.items())),
                 "package_files": {p: pm.digest((root / p).read_bytes()) for p in package},
-                "merged": {AGENTS: {"block": "dreamdocs:automation", "sha256": pm.digest(block.replace("\r\n", "\n").encode()), "prefix": prefix}},
-                "created": created,
-                "binding": binding_record,
+                "merged": dict(sorted(merged.items())), "created": sorted(created), "binding": binding_record,
                 "user_owned": ["docs/", "memory/ records and receipts", "human-materials/", "PROJECT.md"],
-                "local_only": ["memory/automation/events/", "memory/automation/pending/", "absolute paths in " + HOOKS]}
+                "local_only": ["memory/automation/events/", "memory/automation/pending/"] +
+                              [f"absolute paths in {CLIENTS[c]['hook_file']}" for c in sorted(clients_record)]}
     if previous and {k: v for k, v in previous.items() if k != "installed_at"} == {k: v for k, v in manifest.items() if k != "installed_at"}:
         manifest = previous
     writes[MANIFEST] = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-    for path in (BINDING, HOOKS, HOOKS_IGNORE, AGENTS, MANIFEST, f"{BACKUP}/{HOOKS}", f"{LOCAL}/.gitignore"):
+    for path in dict.fromkeys(order + [MANIFEST, f"{LOCAL}/.gitignore"]):
         if path in writes:
             before = read(root, path)
             actions.append({"path": path, "action": "create" if before is None else "unchanged" if before == writes[path] else "update"})
-    report = {"root": str(root), "python": sys.executable, "hook_command": command, "project_id": identity,
-              "clients": {"codex": {"version": version, "support": ac.SUPPORT["codex"]["state"]}},
+    hook = handler(clients[0], root, "Stop")
+    report = {"root": str(root), "python": sys.executable, "project_id": identity, "clients": report_clients,
+              "hook_command": " ".join([hook["command"], *hook.get("args", [])]),
               "actions": actions, "warnings": warnings, "memory_policy": MEMORY_POLICY, "removal": REMOVAL,
-              "conflicts": [c for _, c in conflicts], "next_steps": [c for _, c in conflicts] or [TRUST_STEP]}
+              "conflicts": [c for _, c in conflicts], "next_steps": [c for _, c in conflicts] or steps}
     return report, writes, conflicts
 
 
-def setup(root, apply=False, project_id=None):
+def setup(root, apply=False, project_id=None, clients=("codex",)):
     root = Path(root).resolve()
-    report, writes, conflicts = plan(root, project_id)
+    report, writes, conflicts = plan(root, project_id, tuple(clients))
     exit_code = 5 if any(kind != "client" for kind, _ in conflicts) else 4 if conflicts else 0
     report.update(exit=exit_code, applied=False, state="needs action" if conflicts else "planned; nothing written (use --apply)")
     if not apply or conflicts:
@@ -284,7 +336,8 @@ def setup(root, apply=False, project_id=None):
     for action in report["actions"]:
         if action["action"] != "unchanged":
             mc.atomic_text(pm.confined(root, action["path"]), writes[action["path"]])
-    report.update(applied=True, state="installed; Codex hook trust pending; probe pending")
+    names = " and ".join(CLIENTS[c]["name"] for c in clients)
+    report.update(applied=True, state=f"installed; {names} hook trust pending; probe pending")
     return report
 
 
@@ -292,31 +345,42 @@ def uninstall(root, apply=False):
     root = Path(root).resolve()
     manifest = json.loads(read(root, MANIFEST) or "{}")
     created, actions, notes = set(manifest.get("created", [])), [], []
-    hooks = read(root, HOOKS)
-    backup = read(root, f"{BACKUP}/{HOOKS}")
-    if hooks is not None:
-        unchanged = pm.digest(hooks.encode()) == manifest.get("clients", {}).get("codex", {}).get("written_sha256")
-        data = without_ours(json.loads(hooks))
-        if not data and HOOKS in created:
-            actions.append((HOOKS, "delete", None))
-        elif unchanged and backup is not None:
-            actions.append((HOOKS, "restore", backup))
-        else:
-            actions.append((HOOKS, "update", json.dumps(data, indent=2, ensure_ascii=False) + "\n"))
-            notes.append(f"{HOOKS} changed after setup: Dreamdocs entries removed, other content kept, formatting not preserved")
-    if backup is not None:
-        actions += [(f"{BACKUP}/{HOOKS}", "delete", None), (f"{LOCAL}/.gitignore", "delete", None)]
-    if HOOKS_IGNORE in created and read(root, HOOKS_IGNORE) == "hooks.json\n":
-        actions.append((HOOKS_IGNORE, "delete", None))
-    agents = read(root, AGENTS)
-    merged = manifest.get("merged", {}).get(AGENTS, {})
-    if agents is not None and block_span(agents):
-        if block_digest(agents) != merged.get("sha256"):
-            step = f"The Dreamdocs block in {AGENTS} was edited after setup; remove it by hand (the lines from {BLOCK_START} to {BLOCK_END}), then run uninstall again."
-            return {"exit": 5, "applied": False, "actions": [], "notes": notes, "next_steps": [step]}
-        remaining = without_block(agents, merged.get("prefix", ""))
-        gone = not remaining.strip() and AGENTS in created
-        actions.append((AGENTS, "delete" if gone else "update", None if gone else remaining))
+    clients = [c for c in CLIENTS if c in manifest.get("clients", {})] or list(CLIENTS)
+    docs = []
+    for client in clients:
+        spec = CLIENTS[client]
+        hook_file = spec["hook_file"]
+        hooks, backup = read(root, hook_file), read(root, f"{BACKUP}/{hook_file}")
+        if hooks is not None:
+            unchanged = pm.digest(hooks.encode()) == manifest.get("clients", {}).get(client, {}).get("written_sha256")
+            data = without_ours(json.loads(hooks), spec["script"])
+            if not data and hook_file in created:
+                actions.append((hook_file, "delete", None))
+            elif unchanged and backup is not None:
+                actions.append((hook_file, "restore", backup))
+            elif unchanged and hook_file not in created and backup is None:
+                actions.append((hook_file, "update", json.dumps(data, indent=2, ensure_ascii=False) + "\n"))
+            else:
+                actions.append((hook_file, "update", json.dumps(data, indent=2, ensure_ascii=False) + "\n"))
+                notes.append(f"{hook_file} changed after setup: Dreamdocs entries removed, other content kept, formatting not preserved")
+        if backup is not None:
+            actions.append((f"{BACKUP}/{hook_file}", "delete", None))
+        if spec["ignore"] in created and read(root, spec["ignore"]) == Path(hook_file).name + "\n":
+            actions.append((spec["ignore"], "delete", None))
+        if spec["instructions"] not in docs:
+            docs.append(spec["instructions"])
+    for doc in docs:
+        text = read(root, doc)
+        merged = manifest.get("merged", {}).get(doc, {})
+        if text is not None and block_span(text):
+            if block_digest(text) != merged.get("sha256"):
+                step = f"The Dreamdocs block in {doc} was edited after setup; remove it by hand (the lines from {BLOCK_START} to {BLOCK_END}), then run uninstall again."
+                return {"exit": 5, "applied": False, "actions": [], "notes": notes, "next_steps": [step]}
+            remaining = without_block(text, merged.get("prefix", ""))
+            gone = not remaining.strip() and doc in created
+            actions.append((doc, "delete" if gone else "update", None if gone else remaining))
+    if read(root, f"{LOCAL}/.gitignore") is not None and any(a[0].startswith(BACKUP) for a in actions):
+        actions.append((f"{LOCAL}/.gitignore", "delete", None))
     bound, record = read(root, BINDING), manifest.get("binding", {})
     if bound is not None and record.get("created"):
         actions.append((BINDING, "delete", None))
@@ -333,10 +397,11 @@ def uninstall(root, apply=False):
                 target.unlink(missing_ok=True)
             elif text != read(root, path):
                 mc.atomic_text(target, text)
-        for folder in (BACKUP + "/.codex", BACKUP, LOCAL, ".codex"):
+        folders = [f"{BACKUP}/{CLIENTS[c]['folder']}" for c in clients] + [BACKUP, LOCAL]
+        folders += [CLIENTS[c]["folder"] for c in clients if CLIENTS[c]["hook_file"] in created]
+        for folder in folders:
             path = pm.confined(root, folder)
-            if path.is_dir() and not any(path.iterdir()) and (folder != ".codex" or HOOKS in created):
+            if path.is_dir() and not any(path.iterdir()):
                 path.rmdir()
     return {"exit": 0, "applied": apply, "actions": [{"path": p, "action": a} for p, a, _ in actions], "notes": notes, "next_steps": [],
             "kept": ["docs/", "memory/ records, receipts and events", "human-materials/"]}
-

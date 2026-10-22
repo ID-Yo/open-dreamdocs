@@ -30,6 +30,8 @@ def main():
         command.add_argument("--apply", action="store_true", help="Write the planned changes.")
         if name == "setup":
             command.add_argument("--project-id", help="Project identity for a new binding.")
+            command.add_argument("--client", action="append", choices=sorted(install.CLIENTS),
+                                 help="Client to set up (repeatable); default codex.")
     memory = groups.add_parser("memory").add_subparsers(dest="command", required=True)
     capture = memory.add_parser("capture", help="Persist one outcome event file (exact bytes written by the adapter).")
     capture.add_argument("--event", required=True)
@@ -44,7 +46,7 @@ def main():
     root = Path(args.root).resolve()
     try:
         if args.group == "setup":
-            result = install.setup(root, args.apply, args.project_id)
+            result = install.setup(root, args.apply, args.project_id, tuple(dict.fromkeys(args.client or ["codex"])))
         elif args.group == "uninstall":
             result = install.uninstall(root, args.apply)
         elif args.command == "capture":
