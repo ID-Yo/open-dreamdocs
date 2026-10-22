@@ -303,8 +303,11 @@ def operation(root):
         raise MemoryError("another runner command is active; investigate command.lock before manual recovery") from exc
     try:
         os.write(fd, canonical({"owner_pid": os.getpid(), "acquired_at": now()}).encode())
-    finally:
+    except BaseException:
         os.close(fd)
+        path.unlink(missing_ok=True)
+        raise
+    os.close(fd)
     try:
         yield
     finally:

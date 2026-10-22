@@ -133,6 +133,13 @@ class MemoryLifecycleTests(unittest.TestCase):
                     pass
         self.assertFalse((self.root / "memory/dreamer/command.lock").exists())
 
+    def test_failed_owner_record_releases_lock_and_fails(self):
+        with patch.object(pm.os, "write", side_effect=OSError(28, "No space left on device")):
+            with self.assertRaises(OSError):
+                with pm.operation(self.root):
+                    self.fail("must not run without an owner record")
+        self.assertFalse((self.root / "memory/dreamer/command.lock").exists())
+
     def test_snapshot_tamper_fails(self):
         run = pm.begin(self.root)
         snapshot = self.root / run["snapshot"]
