@@ -20,6 +20,10 @@ Known synthetic fixtures remain synthetic; secret checks report object IDs, neve
 The marker-only unsafe-input fixture is excepted by its exact reviewed whole-blob SHA-256
 `43da2685a25718c3b2a6dd96cc276c265a62134d57c6826467bd6ec331718cb7`; it contains no key material.
 No test directory is exempt. Any changed bytes need new review and real credentials still fail.
+The source-history audit also checks reachable commit messages and every local annotated tag
+message for those credential patterns. Every historical human-materials/README.md version must
+match the reviewed empty-index privacy rule, not just the tip. A later clean snapshot does not
+erase private history; findings block packaging and report only object IDs, never matched content.
 
 ```text
 python -B scripts/release_package.py --root . --revision FULL_REVIEWED_COMMIT

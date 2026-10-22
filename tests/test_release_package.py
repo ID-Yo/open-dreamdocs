@@ -87,6 +87,32 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertTrue(any(f["scope"] == "history" for f in result["findings"]))
 
+    def test_commit_and_annotated_tag_credential_messages_are_refused_without_echo(self):
+        credential = "sk-" + "AbCdEf1234567890" * 2
+        self.git("commit", "--allow-empty", "-qm", "Synthetic message credential " + credential)
+        self.revision = self.git("rev-parse", "HEAD").decode().strip()
+        report = rp.prepare(self.root, self.revision)
+        self.assertFalse(report["ok"])
+        self.assertNotIn(credential, json.dumps(report))
+        clean_root = self.git("rev-parse", "HEAD~1").decode().strip()
+        self.git("reset", "--hard", clean_root)
+        self.revision = clean_root
+        self.git("tag", "-a", "synthetic-tag", "-m", "Synthetic tag credential " + credential)
+        report = rp.prepare(self.root, self.revision)
+        self.assertFalse(report["ok"])
+        self.assertNotIn(credential, json.dumps(report))
+
+    def test_populated_historical_material_index_refuses_even_after_tip_is_clean(self):
+        path = "human-materials/README.md"
+        clean = (self.root / path).read_bytes()
+        self.put(path, "# Private historical filenames and descriptions\n")
+        self.commit()
+        (self.root / path).write_bytes(clean)
+        self.commit()
+        report = rp.prepare(self.root, self.revision)
+        self.assertFalse(report["ok"])
+        self.assertTrue(any(f["scope"] == "history" and f["code"] == "nonempty_or_modified_material_index" for f in report["findings"]))
+
     def test_secret_content_is_not_silently_exported(self):
         self.put("docs/operations/accidental.md", "token=" + "sk-" + "AbCdEf1234567890" * 2)
         self.commit()

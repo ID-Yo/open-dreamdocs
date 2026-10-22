@@ -74,29 +74,44 @@ def prepare(root, revision, output=None):
                 decoded = name.decode("utf-8")
                 if not allowed(decoded) and not any(p.startswith(decoded + "/") for p in SCAFFOLD):
                     issue("history", "private_or_unapproved_history_path", decoded)
+        # Annotated tag messages are not reachable from a commit; include every local tag object.
+        all_ids = list(dict.fromkeys(all_ids + git("for-each-ref", "--format=%(objectname)", "refs/tags").splitlines()))
         pm.require(len(all_ids) <= 20000, "history exceeds bounded audit; perform an independent offline audit")
         sizes = git("cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)", data=b"\n".join(all_ids) + b"\n").splitlines()
-        blob_ids = []
+        content_ids = []
         for line in sizes:
             oid, kind, size = line.split()
-            if kind == b"blob":
+            if kind in {b"blob", b"commit", b"tag"}:
                 pm.require(int(size) <= 4194304, "history blob exceeds 4 MiB audit bound")
-                blob_ids.append(oid)
+                content_ids.append(oid)
         pm.require(sum(int(line.split()[2]) for line in sizes) <= 100000000, "history exceeds 100 MB audit bound")
-        packed = git("cat-file", "--batch", data=b"\n".join(blob_ids) + b"\n")
+        packed = git("cat-file", "--batch", data=b"\n".join(content_ids) + b"\n")
         blobs, position, synthetic = {}, 0, 0
-        for oid in blob_ids:
+        for oid in content_ids:
             end = packed.index(b"\n", position)
             actual, kind, size = packed[position:end].split()
-            pm.require(actual == oid and kind == b"blob", "unexpected history object response")
+            pm.require(actual == oid and kind in {b"blob", b"commit", b"tag"}, "unexpected history object response")
             position = end + 1; body = packed[position:position + int(size)]; position += int(size) + 1
-            blobs[oid.decode()] = body
+            if kind == b"blob":
+                blobs[oid.decode()] = body
             if SECRET.search(body):
-                if pm.digest(body) in SYNTHETIC_MARKER_BLOBS:
+                if kind == b"blob" and pm.digest(body) in SYNTHETIC_MARKER_BLOBS:
                     synthetic += 1
                 else:
-                    issue("history", "credential_pattern", oid.decode())  # never echo a matched credential
+                    issue("history", "credential_pattern" if kind == b"blob" else "credential_message", oid.decode())  # never echo a matched credential
+        index_versions = set()
+        for commit in git("log", "--full-history", "--format=%H", revision, "--", "human-materials/README.md").splitlines():
+            for entry in git("ls-tree", commit.decode(), "--", "human-materials/README.md").splitlines():
+                header, _ = entry.split(b"\t", 1)
+                mode, kind, oid = header.split()
+                pm.require(kind == b"blob" and mode in {b"100644", b"100755"}, "unsafe historical material index")
+                index_versions.add(oid.decode())
+        for oid in sorted(index_versions):
+            old_index = blobs[oid].decode("utf-8-sig").replace("\r\n", "\n")
+            if pm.digest(old_index.encode()) != hm.EMPTY_INDEX_SHA256:
+                issue("history", "nonempty_or_modified_material_index", oid)
         report["history_audited"] = True
+        report["historical_material_index_versions"] = len(index_versions)
         report["synthetic_fixture_exceptions"] = synthetic
         files = {name: blobs[oid] for name, oid in paths.items()}
         required = {"README.md", "LICENSE", "scripts/install.py", "scripts/dreamdocs.py", "scripts/project_memory.py", "adapters/outcome-block.md", "human-materials/README.md"}
