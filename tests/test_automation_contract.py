@@ -21,7 +21,7 @@ def load(name):
 
 def receipt_for(fixture):
     if "receipt" not in fixture:
-        return None
+        return ac.MISSING
     if not isinstance(fixture["receipt"], str):
         return fixture["receipt"]
     first = ac.check(fixture["event"], fixture["binding"])
@@ -129,6 +129,12 @@ class ContractRuleTests(unittest.TestCase):
             self.assertEqual(before, sorted(p.relative_to(root) for p in root.rglob("*")))
             event.write_text("{not json", encoding="utf-8")
             self.assertEqual(subprocess.run(command, capture_output=True, text=True).returncode, 2)
+            event.write_text(json.dumps(self.event), encoding="utf-8")
+            receipts = root / "memory/automation/receipts"
+            receipts.mkdir(parents=True)
+            (receipts / f"{ac.event_id(self.event)}.json").write_text("null", encoding="utf-8")
+            corrupt = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual((corrupt.returncode, json.loads(corrupt.stdout)["decision"]), (2, "invalid"))
 
 
 if __name__ == "__main__":

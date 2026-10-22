@@ -20,6 +20,7 @@ FIELDS = {"version", "privacy", "occurred_at", "task", "outcome", *IDENTITY}
 RECEIPT_FIELDS = {"version", "event_id", "payload_sha256", "decision", "outcome", "status", "episode", "episode_sha256", "recorded_at"}
 RECEIPT_STATUSES = {"persisted", "receipt_only"}
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
+MISSING = object()  # no receipt file; any existing file content, including null, is validated
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}\Z")
 TEXT_LIMIT, LESSON_LIMIT, MAX_LESSONS, MAX_EVIDENCE = 2000, 600, 10, 20
 EXIT = {"capture_episode": 0, "receipt_only": 0, "recall_only": 0, "duplicate": 0,
@@ -93,7 +94,7 @@ def validate_receipt(receipt):
             and SHA256.fullmatch(receipt["payload_sha256"]) and receipt["status"] in RECEIPT_STATUSES, "invalid receipt values")
 
 
-def decide(event, binding, receipt):
+def decide(event, binding, receipt=MISSING):
     try:
         validate_event(event)
     except (ContractError, ValueError, TypeError, KeyError, AttributeError) as exc:
@@ -110,7 +111,7 @@ def decide(event, binding, receipt):
         return "reject", ["event belongs to another project"]
     if event["adapter"] not in binding["adapters"]:
         return "degraded", [f"adapter {event['adapter']} is not installed for this project"]
-    if receipt is not None:
+    if receipt is not MISSING:
         try:
             validate_receipt(receipt)
         except ContractError as exc:
@@ -129,7 +130,7 @@ def decide(event, binding, receipt):
     return "capture_episode", []
 
 
-def check(event, binding, receipt=None):
+def check(event, binding, receipt=MISSING):
     decision, findings = decide(event, binding, receipt)
     eid = event_id(event) if isinstance(event, dict) else None
     exit_code = EXIT[decision]
@@ -158,10 +159,10 @@ def main():
         event = read(Path(args.event))
         binding_path = root / "memory" / "automation.json"
         binding = read(binding_path) if binding_path.is_file() else None
-        receipt = None
+        receipt = MISSING
         if isinstance(event, dict) and binding is not None:
             receipt_path = root / "memory" / "automation" / "receipts" / f"{event_id(event)}.json"
-            receipt = read(receipt_path) if receipt_path.is_file() else None
+            receipt = read(receipt_path) if receipt_path.is_file() else MISSING
         result = check(event, binding, receipt)
     except (OSError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

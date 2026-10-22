@@ -55,7 +55,7 @@ surface, test date and evidence. Every other combination is unsupported.
 | Client | Lifecycle hooks | Trust requirement | Status |
 |---|---|---|---|
 | Codex | `SessionStart`, `UserPromptSubmit`, `Stop`, `SessionEnd` fired in a throwaway probe of 0.147.0 on Windows, run with the trust bypass flag; `SessionEnd` timeout is clamped to 3 s | Untrusted or changed hooks are skipped; setup and every upgrade include an explicit review and trust step | unsupported |
-| Claude Code | `SessionStart` and `UserPromptSubmit` fired in a 2.1.273 probe; a failed turn fired `StopFailure`; `Stop` and `SessionEnd` (1.5 s default budget) are unverified | Hook definitions are reviewed in the client; changed hooks need new review | unsupported |
+| Claude Code | `SessionStart` and `UserPromptSubmit` fired in a 2.1.273 probe; a failed turn fired `StopFailure`; `Stop` and `SessionEnd` (1.5 s default budget) are unverified | Hooks passed with `-p --settings` ran without any review prompt; whether interactive sessions require review of new or changed hooks is unverified | unsupported |
 
 Probe results show client behavior and are not product support. Windows is a
 required acceptance target for both clients. Adapters follow four rules:
