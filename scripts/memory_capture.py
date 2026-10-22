@@ -150,8 +150,11 @@ def pending_files(root):
 
 def queue(root, plan):
     path = ensure(root, PENDING) / f"{plan['event_id']}.json"
-    if not path.exists():
-        pm.atomic(path, plan)
+    if path.exists():
+        if pm.read_json(path).get("payload_sha256") != plan["payload_sha256"]:
+            raise Conflict("a different payload with this identity is already pending")
+        return
+    pm.atomic(path, plan)
 
 
 def session(root, own):
@@ -164,8 +167,13 @@ def session(root, own):
         plan = pm.read_json(path)
         pm.require(set(plan) == PLAN_FIELDS and plan.get("version") == 1, f"invalid pending capture {path.name}")
         plans.append((plan, path))
-    if own is not None and own["event_id"] not in {plan["event_id"] for plan, _ in plans}:
-        plans.append((own, None))
+    own_result = None
+    if own is not None:
+        queued = [plan for plan, _ in plans if plan["event_id"] == own["event_id"]]
+        if queued and queued[0]["payload_sha256"] != own["payload_sha256"]:
+            own_result = ("conflict", ["a different payload with this identity is already pending"])
+        elif not queued:
+            plans.append((own, None))
     for plan, path in plans:
         try:
             decision, findings = publish(root, plan, items), []
@@ -182,6 +190,8 @@ def session(root, own):
             items.append({"metadata": pm.metadata(plan["episode"])})
         if path is not None:
             path.unlink()
+    if own_result is not None:
+        results[own["event_id"]] = own_result
     return results, unpublished
 
 
@@ -235,7 +245,10 @@ def capture(root, event, budget=1.0):
                             "unpublished": [u for u in unpublished if u["event_id"] != own["event_id"]]}
             dreamer = pm.runtime(root, "lock.json").exists()
             if not queued:
-                queue(root, own)
+                try:
+                    queue(root, own)
+                except Conflict as exc:
+                    return {**report, "decision": "conflict", "exit": 5, "findings": [str(exc)]}
                 queued = True
             if dreamer or time.monotonic() >= deadline:
                 return {**report, "decision": "queued", "exit": 1,

@@ -183,6 +183,21 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(self.files("memory/automation/pending"), [f"{ac.event_id(unknown)}.json"])
         self.assertFalse((self.root / "memory/automation/receipts" / f"{ac.event_id(unknown)}.json").exists())
 
+    def test_same_identity_different_payload_in_queue_is_conflict(self):
+        lock = self.hold_lock()
+        rebuilt = event(occurred_at="2026-01-02T10:00:05Z")
+        self.assertEqual(mc.capture(self.root, EVENT, budget=0)["decision"], "queued")
+        pending = self.root / "memory/automation/pending" / f"{ac.event_id(EVENT)}.json"
+        before = pending.read_bytes()
+        busy = mc.capture(self.root, rebuilt, budget=0)
+        self.assertEqual((busy["exit"], busy["decision"], busy["saved"]), (5, "conflict", False))
+        self.assertEqual(before, pending.read_bytes())
+        lock.unlink()
+        free = mc.capture(self.root, rebuilt)
+        self.assertEqual((free["exit"], free["decision"], free["saved"]), (5, "conflict", False))
+        self.assertEqual(self.receipt(EVENT)["payload_sha256"], json.loads(before)["payload_sha256"])
+
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)
