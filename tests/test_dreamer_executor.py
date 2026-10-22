@@ -222,6 +222,51 @@ class ExecutorTests(unittest.TestCase):
         subprocess.run(["git", "add", "-f", "--", de.CONFIG], cwd=self.root, check=True, capture_output=True, timeout=10)
         self.assertEqual(de.begin(self.root, "operator")["state"], "blocked")
 
+    def test_original_material_paths_are_refused_before_reading_configured_or_episode_evidence(self):
+        original = self.root / "human-materials/private-synthetic.txt"
+        original.write_text("Synthetic original; must not be opened by executor.", encoding="utf-8")
+        episode = self.root / "memory/episodes/review.md"
+        episode_text = episode.read_text(encoding="utf-8")
+        read = Path.read_bytes
+        for origin in ("configuration", "episode"):
+            for relative in ("human-materials/private-synthetic.txt", "./human-materials/private-synthetic.txt",
+                             ".\\human-materials\\private-synthetic.txt", "./human-materials//private-synthetic.txt"):
+                with self.subTest(origin=origin, relative=relative):
+                    self.config["evidence_files"] = [relative] if origin == "configuration" else []
+                    self.configure()
+                    episode.write_text(episode_text.replace("file:docs/overview/platform.md", "file:" + relative)
+                                       if origin == "episode" else episode_text, encoding="utf-8")
+                    opened = []
+                    def observe(path):
+                        if path.resolve() == original.resolve():
+                            opened.append(str(path))
+                        return read(path)
+                    with patch.object(Path, "read_bytes", observe):
+                        result = de.begin(self.root, "operator")
+                    self.assertEqual(result["state"], "blocked")
+                    self.assertEqual(opened, [])
+                    self.assertFalse((self.root / "memory/dreamer/lock.json").exists())
+
+    def test_pre_dispatch_privacy_subprocess_failure_aborts_only_our_preparation(self):
+        self.command("import sys\nsys.exit(0)\n")
+        checkpoint = {"version": 1, "last_successful_at": "2026-01-01T00:00:00Z", "completed_at": "2026-01-01T00:00:01Z",
+                      "last_run_id": "prior-success", "source_hashes": {}}
+        state = self.root / "memory/dreamer/state.json"
+        pm.atomic(state, checkpoint)
+        before = state.read_bytes()
+        for failure in (subprocess.TimeoutExpired("git", 5), subprocess.CalledProcessError(1, "git")):
+            with self.subTest(failure=type(failure).__name__):
+                with patch.object(de.subprocess, "run", side_effect=failure), patch.object(de, "OwnedProcess") as launch:
+                    result = de.run(self.root, "operator")
+                self.assertEqual(result["state"], "blocked")
+                launch.assert_not_called()
+                self.assertFalse((self.root / "memory/dreamer/command.lock").exists())
+                self.assertFalse((self.root / "memory/dreamer/lock.json").exists())
+                self.assertEqual(state.read_bytes(), before)
+                retry = de.begin(self.root, "operator")
+                self.assertEqual(retry["state"], "prepared", retry)
+                pm.abort(self.root, retry["run_id"])
+
     def test_interrupted_finish_or_orphan_proposal_never_reports_a_committed_success(self):
         run = de.begin(self.root, "operator")["run_id"]
         de.start(self.root, run, "operator")

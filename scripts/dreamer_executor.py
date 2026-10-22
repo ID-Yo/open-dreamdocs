@@ -115,9 +115,10 @@ def evidence(root, cfg, snapshot):
         selected |= {s[5:] for s in record["metadata"]["source"] if s.startswith("file:")}
     hashes, size = {}, 0
     for relative in sorted(selected):
-        pm.require(not relative.replace("\\", "/").casefold().startswith("human-materials/")
+        path = pm.confined(root, relative.replace("\\", "/"))
+        relative = path.relative_to(root).as_posix()
+        pm.require(Path(relative).parts and Path(relative).parts[0].casefold() != "human-materials"
                    and not any(p.casefold().startswith(".env") for p in Path(relative).parts), "original/credential evidence needs a separate consented reader; not read by this executor wrapper")
-        path = pm.confined(root, relative)
         pm.require(path.is_file() and path.stat().st_size <= pm.SOURCE_HASH_LIMIT, "missing or oversized selected evidence")
         raw = path.read_bytes()
         hashes[relative] = pm.digest(raw)
@@ -152,7 +153,7 @@ def begin(root, executor, trigger="manual"):
                          "checkpoint": None, "proposal_hashes": {}, "provenance": "Operator timestamps are explicit operator reports; command timestamps/PID/exit are locally observed. No semantic truth attestation."}
             store(root, execution)
         return {"exit": 0, "state": "prepared", "run_id": run, "execution": execution, "snapshot": result["snapshot"]}
-    except (OSError, ValueError):
+    except (OSError, ValueError, subprocess.SubprocessError):
         # This run has not dispatched an executor, so aborting our own preparation cannot steal live work.
         pm.abort(root, run)
         raise

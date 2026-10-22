@@ -120,7 +120,10 @@ def plan(root):
 def task_signature(xml):
     # COM may normalize XML formatting and identity attributes; compare every operational field used here.
     pm.require(isinstance(xml, str) and len(xml) <= 131072, "invalid scheduler XML")
-    root = ET.fromstring(xml)
+    try:
+        root = ET.fromstring(xml)
+    except ET.ParseError as error:
+        raise ValueError("malformed scheduler task XML; observation blocked without task mutation") from error
     fields = ("RegistrationInfo/Description", "Triggers/CalendarTrigger/StartBoundary", "Triggers/CalendarTrigger/Enabled",
               "Triggers/CalendarTrigger/ScheduleByDay/DaysInterval", "Principals/Principal/UserId", "Principals/Principal/LogonType",
               "Principals/Principal/RunLevel", "Actions/Exec/Command", "Actions/Exec/Arguments", "Actions/Exec/WorkingDirectory")

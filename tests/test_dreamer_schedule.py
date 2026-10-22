@@ -150,6 +150,23 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(status["state"], "installed_unobserved")
         self.assertNotEqual(status["health"], "healthy")
 
+    def test_malformed_task_or_local_plan_xml_returns_blocked_without_scheduler_mutation(self):
+        self.enable(); backend = FakeBackend()
+        with patch.object(ds, "local_zone_matches", return_value=True):
+            selection = ds.manage(self.root, "install", apply=True, backend=backend)["plan"]
+            original = backend.tasks[0]["xml"]
+            backend.tasks[0]["xml"] = "<Task"
+            for action in ("status", "install", "disable", "remove"):
+                result = ds.manage(self.root, action, apply=True, backend=backend)
+                self.assertEqual(result["state"], "blocked")
+                self.assertNotEqual(result["exit"], 0)
+            backend.tasks[0]["xml"] = original
+            record = pm.read_json(self.root / ds.INSTALL)
+            record["plan"]["xml"] = "<Task"
+            pm.atomic(self.root / ds.INSTALL, record)
+            self.assertEqual(ds.scheduled_gate(self.root, selection["schedule_id"], backend=backend)["state"], "blocked")
+        self.assertEqual(backend.calls, ["create"])
+
 
 if __name__ == "__main__":
     unittest.main()
