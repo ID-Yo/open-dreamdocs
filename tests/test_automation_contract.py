@@ -62,6 +62,14 @@ class ContractRuleTests(unittest.TestCase):
         self.assertEqual(first["episode"], f"memory/episodes/auto-{first['event_id']}.md")
         self.assertEqual(first["receipt"], f"memory/automation/receipts/{first['event_id']}.json")
 
+    def test_redelivery_matches_only_identical_event_bytes(self):
+        receipt = receipt_for({**load("duplicate-delivery"), "event": self.event})
+        self.assertEqual(ac.check(self.event, self.binding, receipt)["decision"], "duplicate")
+        rebuilt = {**self.event, "occurred_at": "2026-01-02T10:00:05Z"}
+        self.assertEqual(ac.event_id(rebuilt), ac.event_id(self.event))
+        result = ac.check(rebuilt, self.binding, receipt)
+        self.assertEqual((result["exit"], result["decision"]), (5, "conflict"))
+
     def test_strict_schema_blocks_promotion_and_bulk_capture(self):
         cases = [
             {**self.event, "promote": True},

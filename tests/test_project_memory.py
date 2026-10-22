@@ -123,6 +123,16 @@ class MemoryLifecycleTests(unittest.TestCase):
         self.assertTrue((self.root / "memory/dreamer/lock.json").exists())
         pm.abort(self.root, run["run_id"])
 
+    def test_command_lock_records_owner_and_time(self):
+        with pm.operation(self.root):
+            lock = pm.read_json(self.root / "memory/dreamer/command.lock")
+            self.assertEqual(lock["owner_pid"], os.getpid())
+            pm.timestamp(lock["acquired_at"])
+            with self.assertRaisesRegex(pm.MemoryError, "another runner command"):
+                with pm.operation(self.root):
+                    pass
+        self.assertFalse((self.root / "memory/dreamer/command.lock").exists())
+
     def test_snapshot_tamper_fails(self):
         run = pm.begin(self.root)
         snapshot = self.root / run["snapshot"]

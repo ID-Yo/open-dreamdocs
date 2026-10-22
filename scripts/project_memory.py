@@ -296,7 +296,10 @@ def operation(root):
         fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
         raise MemoryError("another runner command is active; investigate command.lock before manual recovery") from exc
-    os.close(fd)
+    try:
+        os.write(fd, canonical({"owner_pid": os.getpid(), "acquired_at": now()}).encode())
+    finally:
+        os.close(fd)
     try:
         yield
     finally:

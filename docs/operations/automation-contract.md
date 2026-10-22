@@ -112,7 +112,10 @@ an event cannot set record status, owner or acceptance.
 Commit order for a writer (#16):
 
 1. Check the event. Only exit 0 decisions write anything.
-2. Take an exclusive per-event lock file; if it exists, report `retry_pending`.
+2. Take the writer lock `memory/dreamer/command.lock`, which Dreamer commands also
+   use. It records the owner process and acquisition time. If it is held or a
+   Dreamer run is active, queue the checked capture as pending (exit 1); never
+   remove another writer's lock.
 3. Render the episode deterministically from the event (no write-time values) and
    create it atomically. If the file already exists, identical bytes continue;
    different bytes are a conflict.
@@ -120,10 +123,19 @@ Commit order for a writer (#16):
 5. Write the receipt atomically, read it back and compare hashes.
 6. Release the lock and only then report success.
 
-A crash before step 3 leaves nothing. A crash between 3 and 5 leaves an episode
-without a receipt, and redelivery completes the receipt after comparing bytes. A
-crash after step 5 becomes a `duplicate`. Concurrent duplicate deliveries produce
-identical bytes; the same identity with a different payload is a `conflict`.
+A crash after step 2 and before step 3 leaves only the lock. Captures then queue
+as pending until the lock is recovered: nobody takes it over automatically. After
+confirming that the recorded owner process has stopped, the operator removes only
+that lock, as for Dreamer, and the doctor (#22) reports locks older than its
+threshold. A crash between 3 and 5 leaves an episode without a receipt, and
+redelivery completes the receipt after comparing bytes. A crash after step 5
+becomes a `duplicate`. Concurrent duplicate deliveries produce identical bytes;
+the same identity with a different payload is a `conflict`.
+
+Redelivery uses exact bytes. Before the first delivery, an adapter writes the
+event file and then redelivers only that file. `payload_sha256` covers every
+field, so an event rebuilt later (for example with a new `occurred_at` at
+`SessionEnd` or after `StopFailure`) is a `conflict` by design.
 Worktrees of one project write the same deterministic files, so Git merges equal
 events cleanly and shows different ones as conflicts.
 
