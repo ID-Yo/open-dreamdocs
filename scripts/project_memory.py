@@ -113,7 +113,7 @@ def walk(root, top, strict=False):
             skipped = entry.name in PRUNE or relative in RUNTIME
             if not skipped:
                 require(not linked(path), f"linked path: {relative}")
-                skipped = entry.is_dir(follow_symlinks=False) and (path / ".git").exists()
+                skipped = entry.is_dir(follow_symlinks=False) and ((path / ".git").exists() or (path / "pyvenv.cfg").exists())
             if skipped:
                 require(not strict, f"unexpected dependency, runtime or repository folder in memory records: {relative}")
                 continue

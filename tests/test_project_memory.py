@@ -341,6 +341,21 @@ class BoundedScanTests(unittest.TestCase):
         with self.assertRaisesRegex(pm.MemoryError, "missing fields"):
             pm.validate(self.root)
 
+    def test_python_environments_are_skipped_by_marker_not_by_name(self):
+        env = self.root / "docs/tools/env-any-name"
+        (env / "lib").mkdir(parents=True)
+        (env / "pyvenv.cfg").write_text("home = x\n", encoding="utf-8")
+        (env / "lib/broken.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        (self.root / "docs/tools/README.md").write_text("# Tools\n", encoding="utf-8")
+        visited, reads, scan, read = self.spy()
+        with scan, read:
+            self.assertTrue(pm.validate(self.root)["ok"])
+        self.assertNotIn(env, visited)
+        (self.root / "docs/venv").mkdir()
+        (self.root / "docs/venv/README.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        with self.assertRaisesRegex(pm.MemoryError, "broken"):
+            pm.validate(self.root)
+
     def test_skipped_folders_inside_memory_records_fail_visibly(self):
         for folder in ("node_modules", "nested-repo/.git"):
             with self.subTest(folder=folder):
