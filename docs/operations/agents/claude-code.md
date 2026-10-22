@@ -20,8 +20,10 @@ it never reads transcripts, never calls a model and never blocks or continues th
 | `SessionEnd` | Publishes queued captures when any exist |
 
 Claude's `Stop` payload has no `turn_id`. The adapter uses `prompt_id` when present (documented as
-a common field, seen on `UserPromptSubmit` and `StopFailure`, not yet seen on `Stop`), otherwise a
-hash of the final message, so a repeated `Stop` for the same answer is saved once.
+a common field, seen on `UserPromptSubmit` and `StopFailure`, not yet seen on `Stop`). Without it,
+capture reports missing identity and writes nothing: hashing reply text would silently collapse
+different turns with identical answers. Automatic capture remains unverified pending an observed
+stable identity on `Stop`; fixture support is not evidence that a real client provides that field.
 
 ## Setup
 

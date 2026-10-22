@@ -60,10 +60,12 @@ class ClaudeAdapterTests(unittest.TestCase):
         self.assertEqual(out["hookSpecificOutput"]["hookEventName"], "SessionStart")
         self.assertIn("RECALL-C9", out["hookSpecificOutput"]["additionalContext"])
 
-    def test_without_prompt_id_the_turn_is_keyed_by_the_final_message(self):
+    def test_without_prompt_id_identical_answers_are_not_silently_deduplicated(self):
         for message in ("First answer.", "Second answer.", "First answer."):
-            self.assertEqual(self.hook(self.payload("stop", prompt_id=None, last_assistant_message=message)), {})
-        self.assertEqual(len(self.files("memory/automation/receipts")), 2)
+            out = self.hook(self.payload("stop", prompt_id=None, last_assistant_message=message))
+            self.assertIn("no session or turn ID", out["systemMessage"])
+        self.assertEqual(self.files("memory/automation/receipts"), [])
+        self.assertEqual(self.files("memory/automation/events"), [])
 
     def test_stop_failure_is_interrupted_and_writes_nothing(self):
         self.assertIsNone(self.hook(self.payload("stop_failure")))

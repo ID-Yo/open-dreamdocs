@@ -3,7 +3,6 @@
 
 Built from documented Claude Code 2.1.273 payloads; not yet observed in an authenticated session.
 """
-import hashlib
 from pathlib import Path
 import sys
 
@@ -14,11 +13,10 @@ import lifecycle
 
 
 def turn(payload):
-    """Claude's Stop has no turn_id: use prompt_id when present, else a hash of the final message."""
+    """Only a client prompt identity can distinguish identical replies in different turns."""
     if payload.get("prompt_id"):
         return str(payload["prompt_id"])
-    message = payload.get("last_assistant_message") if isinstance(payload.get("last_assistant_message"), str) else ""
-    return "msg-" + hashlib.sha256(message.encode("utf-8")).hexdigest()[:16]
+    return None
 
 
 if __name__ == "__main__":
