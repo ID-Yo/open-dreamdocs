@@ -13,6 +13,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import subprocess
 import sys
 
 sys.dont_write_bytecode = True
@@ -23,6 +24,7 @@ import project_memory as pm
 
 PACKAGE_VERSION = "unreleased"
 BINDING, MANIFEST, HOOKS, AGENTS = "memory/automation.json", "memory/automation/install.json", ".codex/hooks.json", "AGENTS.md"
+HOOKS_IGNORE = ".codex/.gitignore"
 HOOK_SCRIPT, BLOCK_FILE = "adapters/codex/hook.py", "adapters/outcome-block.md"
 LOCAL, BACKUP = ".dreamdocs", ".dreamdocs/backup"  # machine-local state; .dreamdocs/.gitignore ignores the folder
 EVENTS = ("SessionStart", "UserPromptSubmit", "Stop", "SessionEnd")
@@ -56,6 +58,15 @@ def short_path(text):
     buffer = ctypes.create_unicode_buffer(32768)
     length = ctypes.windll.kernel32.GetShortPathNameW(text, buffer, len(buffer))
     return buffer.value if 0 < length < len(buffer) else None
+
+
+def tracked(root, relative):
+    """True when Git tracks the file; False when it does not or Git is unavailable."""
+    try:
+        return subprocess.run(["git", "-C", str(root), "ls-files", "--error-unmatch", relative],
+                              capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def hook_command(python, script):
@@ -206,6 +217,10 @@ def plan(root, project_id=None):
     command, warning = hook_command(Path(sys.executable).absolute(), root / HOOK_SCRIPT)
     warnings += [warning] if warning else []
     existing = read(root, HOOKS)
+    if existing is None and read(root, HOOKS_IGNORE) is None:
+        writes[HOOKS_IGNORE] = "hooks.json\n"  # the hook command holds machine-local paths
+    elif existing is not None and tracked(root, HOOKS):
+        warnings.append(f"{HOOKS} is tracked by Git; after setup it holds machine-local paths for this computer, so do not commit it.")
     try:
         current = json.loads(existing) if existing is not None else None
         pm.require(current is None or isinstance(current, dict) and isinstance(current.get("hooks", {}), dict), "not a hooks object")
@@ -225,7 +240,7 @@ def plan(root, project_id=None):
         writes[f"{BACKUP}/{HOOKS}"], writes[f"{LOCAL}/.gitignore"] = existing, "*\n"  # original bytes for uninstall
     package = sorted(path.relative_to(root).as_posix() for path in pm.managed_files(root)
                      if path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
-    created = sorted(set(previous.get("created", [])) | {p for p in (HOOKS, AGENTS) if read(root, p) is None})
+    created = sorted(set(previous.get("created", [])) | {p for p in (HOOKS, AGENTS, HOOKS_IGNORE) if read(root, p) is None and p in writes})
     known = previous.get("binding", {})
     added = set(known.get("added_adapters", [])) | ({"codex"} - set(binding["adapters"] if binding else []))
     binding_record = {"created": known.get("created", binding is None and text is None), "added_adapters": sorted(added)}
@@ -244,7 +259,7 @@ def plan(root, project_id=None):
     if previous and {k: v for k, v in previous.items() if k != "installed_at"} == {k: v for k, v in manifest.items() if k != "installed_at"}:
         manifest = previous
     writes[MANIFEST] = json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
-    for path in (BINDING, HOOKS, AGENTS, MANIFEST, f"{BACKUP}/{HOOKS}", f"{LOCAL}/.gitignore"):
+    for path in (BINDING, HOOKS, HOOKS_IGNORE, AGENTS, MANIFEST, f"{BACKUP}/{HOOKS}", f"{LOCAL}/.gitignore"):
         if path in writes:
             before = read(root, path)
             actions.append({"path": path, "action": "create" if before is None else "unchanged" if before == writes[path] else "update"})
@@ -287,6 +302,8 @@ def uninstall(root, apply=False):
             notes.append(f"{HOOKS} changed after setup: Dreamdocs entries removed, other content kept, formatting not preserved")
     if backup is not None:
         actions += [(f"{BACKUP}/{HOOKS}", "delete", None), (f"{LOCAL}/.gitignore", "delete", None)]
+    if HOOKS_IGNORE in created and read(root, HOOKS_IGNORE) == "hooks.json\n":
+        actions.append((HOOKS_IGNORE, "delete", None))
     agents = read(root, AGENTS)
     merged = manifest.get("merged", {}).get(AGENTS, {})
     if agents is not None and block_span(agents):

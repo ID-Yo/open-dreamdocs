@@ -50,7 +50,7 @@ class SetupTests(unittest.TestCase):
         plan = self.setup()
         self.assertEqual((plan["exit"], plan["applied"]), (0, False))
         self.assertEqual({a["path"]: a["action"] for a in plan["actions"]},
-                         {"memory/automation.json": "create", ".codex/hooks.json": "create", "AGENTS.md": "update", "memory/automation/install.json": "create"})
+                         {"memory/automation.json": "create", ".codex/hooks.json": "create", ".codex/.gitignore": "create", "AGENTS.md": "update", "memory/automation/install.json": "create"})
         for key in ("root", "python", "clients", "memory_policy", "removal", "next_steps"):
             self.assertIn(key, plan)
         self.assertEqual(before, self.snapshot())
@@ -191,6 +191,20 @@ class SetupTests(unittest.TestCase):
                     self.assertEqual((run.returncode, run.stdout.strip()[:1]), (0, b"{"), (shell, command, run.stderr))
         finally:
             os.rmdir(spaced_python)
+
+
+    def test_created_hook_file_is_git_ignored_and_a_tracked_one_is_warned_about(self):
+        self.setup(apply=True)
+        self.assertEqual((self.root / ".codex/.gitignore").read_text(encoding="utf-8"), "hooks.json\n")
+        install.uninstall(self.root, apply=True)
+        self.assertFalse((self.root / ".codex").exists())
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        (self.root / ".codex").mkdir()
+        (self.root / ".codex/hooks.json").write_text('{"hooks": {}}', encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.root), "add", ".codex/hooks.json"], check=True)
+        plan = self.setup()
+        self.assertTrue(any("tracked by Git" in w for w in plan["warnings"]), plan["warnings"])
+        self.assertNotIn(".codex/.gitignore", {a["path"] for a in plan["actions"]})
 
 
     def test_generated_hook_command_runs_from_the_system_shell(self):

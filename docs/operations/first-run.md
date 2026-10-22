@@ -26,6 +26,8 @@ Codex CLI are required; Claude Code support is not available yet.
    Setup writes only project files: `memory/automation.json`, Dreamdocs entries merged into
    `.codex/hooks.json` (your own hooks stay as they are), the outcome instruction block in
    `AGENTS.md` (your own rules stay as they are) and the manifest `memory/automation/install.json`.
+   When setup creates `.codex/hooks.json` it also adds `.codex/.gitignore` so the file, which holds
+   paths for this computer, is not committed; if your existing hooks file is tracked, setup warns.
    Running it again changes nothing. It never edits your user-level Codex config, never runs Codex and
    never installs a schedule.
 3. Trust the hooks. Open Codex in the project, run `/hooks`, review the four Dreamdocs hooks and
