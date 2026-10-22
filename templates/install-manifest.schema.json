@@ -52,7 +52,7 @@
             "version",
             "hook_file",
             "events",
-            "hook_sha256",
+            "command_sha256",
             "trust",
             "probe"
           ],
@@ -79,7 +79,8 @@
             },
             "hook_sha256": {
               "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Name used before command_sha256; still read."
             },
             "trust": {
               "enum": [
@@ -94,6 +95,68 @@
                 "verified",
                 "failed"
               ]
+            },
+            "command_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 of the generated Stop handler definition (JSON, sorted keys)."
+            }
+          }
+        },
+        "claude-code": {
+          "type": "object",
+          "required": [
+            "version",
+            "hook_file",
+            "events",
+            "command_sha256",
+            "trust",
+            "probe"
+          ],
+          "properties": {
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hook_file": {
+              "const": ".codex/hooks.json"
+            },
+            "events": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "SessionStart",
+                  "UserPromptSubmit",
+                  "Stop",
+                  "SessionEnd"
+                ]
+              }
+            },
+            "hook_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Name used before command_sha256; still read."
+            },
+            "trust": {
+              "enum": [
+                "pending",
+                "trusted",
+                "changed"
+              ]
+            },
+            "probe": {
+              "enum": [
+                "pending",
+                "verified",
+                "failed"
+              ]
+            },
+            "command_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 of the generated Stop handler definition (JSON, sorted keys)."
             }
           }
         }

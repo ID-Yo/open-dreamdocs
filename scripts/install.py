@@ -217,6 +217,11 @@ def merged_hooks(existing, client, root):
     return data
 
 
+def command_digest(record):
+    """Hash of the generated Stop handler definition; manifests before the rename used hook_sha256."""
+    return record.get("command_sha256") or record.get("hook_sha256")
+
+
 def project_identity(root, requested, binding):
     if binding is not None:
         return binding["project_id"]
@@ -292,7 +297,7 @@ def plan(root, project_id=None, clients=("codex",)):
             merged[doc] = {"block": "dreamdocs:automation", "sha256": pm.digest(block.replace("\r\n", "\n").encode()), "prefix": prefix}
         created |= {p for p in (hook_file, ignore, doc) if read(root, p) is None and p in writes}
         clients_record[client] = {"version": version, "hook_file": hook_file, "events": list(spec["events"]),
-                                  "hook_sha256": pm.digest(json.dumps(handler(client, root, "Stop"), sort_keys=True).encode()),
+                                  "command_sha256": pm.digest(json.dumps(handler(client, root, "Stop"), sort_keys=True).encode()),
                                   "trust": "pending", "probe": "pending",
                                   "written_sha256": pm.digest(writes[hook_file].encode()) if hook_file in writes else None}
         report_clients[client] = {"version": version, "support": ac.SUPPORT[client]["state"]}

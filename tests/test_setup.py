@@ -268,6 +268,15 @@ class SetupTests(unittest.TestCase):
         self.assertNotIn(install.BLOCK_START, (self.root / "AGENTS.md").read_text(encoding="utf-8"))
 
 
+    def test_manifest_uses_command_sha256_and_still_reads_the_old_key(self):
+        self.setup(apply=True)
+        record = pm.read_json(self.root / "memory/automation/install.json")["clients"]["codex"]
+        self.assertIn("command_sha256", record)
+        self.assertNotIn("hook_sha256", record)
+        self.assertEqual(install.command_digest(record), record["command_sha256"])
+        self.assertEqual(install.command_digest({"hook_sha256": "a" * 64}), "a" * 64)
+
+
     def test_generated_hook_command_runs_from_the_system_shell(self):
         self.setup(apply=True)
         command = self.hooks()["hooks"]["Stop"][0]["hooks"][0]["command"]
