@@ -87,8 +87,8 @@ def recallable(meta):
 
 
 def unavailable(reason):
-    return {"status": "unavailable", "exit": 4, "project": None, "items": [], "omitted": 0, "excluded_other_project": 0,
-            "findings": [reason], "context": ""}
+    return {"status": "unavailable", "exit": 4, "project": None, "items": [], "omitted": 0, "truncated": False,
+            "excluded_other_project": 0, "findings": [reason], "context": ""}
 
 
 def recall(root, project=None, query="", max_chars=4000, episodes=5):
@@ -130,7 +130,7 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         chosen += [r for _, r in group]
     header = f'<dreamdocs-recall project="{neutral(re.sub(r"[^A-Za-z0-9._-]", "_", project))}" untrusted="true">\n{NOTICE}\n'
     footer = CLOSE + "\n"
-    used, items, parts, omitted = len(header) + len(footer), [], [], 0
+    used, items, parts, omitted, cut = len(header) + len(footer), [], [], 0, False
     for r in chosen:
         meta = r["meta"]
         sources = [source_status(root, ref, meta, by_id) for ref in meta["source"]]
@@ -143,11 +143,12 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
             omitted += 1
             continue
         used += len(entry)
+        cut = cut or len(r["body"]) > BODY_LIMIT
         parts.append(entry)
         items.append({"id": meta["id"], "label": label(r, disputes), "type": meta["type"], "path": r["path"],
                       "created_at": meta["created_at"], "sha256": r["sha256"], "sources": sources})
-    status = "ok" if chosen else ("no_match" if live else "empty")
+    status = ("ok" if items else "over_budget") if chosen else ("no_match" if live else "empty")
     return {"status": status, "exit": 0, "project": project, "items": items, "omitted": omitted,
-            "excluded_other_project": len(records) - len(own), "findings": findings,
-            "context": header + "".join(parts) + footer if chosen else ""}
+            "truncated": cut or omitted > 0, "excluded_other_project": len(records) - len(own), "findings": findings,
+            "context": header + "".join(parts) + footer if items else ""}
 
