@@ -15,6 +15,15 @@ import project_memory as pm
 def shape(value, schema):
     """Small assertion for the features used by this manifest schema (not a general validator)."""
     types = {"object": dict, "array": list, "string": str, "integer": int, "null": type(None), "boolean": bool}
+    if "anyOf" in schema:
+        matches = []
+        for option in schema["anyOf"]:
+            try:
+                shape(value, option)
+                matches.append(True)
+            except AssertionError:
+                pass
+        assert matches, "anyOf"
     if "type" in schema:
         names = schema["type"] if isinstance(schema["type"], list) else [schema["type"]]
         assert type(value) in tuple(types[n] for n in names), "type"
@@ -58,6 +67,11 @@ class InstallSchemaTests(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     shape(generated, schema)
                 del container["unexpected"]
+            for record in generated["clients"].values():
+                record["hook_sha256"] = record.pop("command_sha256")
+            shape(generated, schema)
+            if "jsonschema" in sys.modules:
+                sys.modules["jsonschema"].validate(generated, schema)
             install.uninstall(self.root, True)
 
 

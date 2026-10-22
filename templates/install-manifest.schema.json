@@ -54,7 +54,6 @@
             "version",
             "hook_file",
             "events",
-            "command_sha256",
             "trust",
             "probe",
             "written_sha256"
@@ -227,7 +226,19 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "command_sha256"
+              ]
+            },
+            {
+              "required": [
+                "hook_sha256"
+              ]
+            }
+          ]
         },
         "claude-code": {
           "type": "object",
@@ -235,7 +246,6 @@
             "version",
             "hook_file",
             "events",
-            "command_sha256",
             "trust",
             "probe",
             "written_sha256"
@@ -409,7 +419,19 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "command_sha256"
+              ]
+            },
+            {
+              "required": [
+                "hook_sha256"
+              ]
+            }
+          ]
         }
       },
       "additionalProperties": false
