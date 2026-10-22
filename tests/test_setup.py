@@ -141,6 +141,30 @@ class SetupTests(unittest.TestCase):
                 self.assertEqual((self.root / ".codex/hooks.json").read_bytes(), hooks)
 
 
+    def test_marker_text_in_user_prose_is_never_treated_as_the_block(self):
+        original = ("# Rules\nWe once used " + install.BLOCK_START + " inline.\nImportant user rule.\n").encode("utf-8")
+        (self.root / "AGENTS.md").write_bytes(original)
+        self.setup(apply=True)
+        self.assertEqual(install.uninstall(self.root, apply=True)["exit"], 0)
+        self.assertEqual((self.root / "AGENTS.md").read_bytes(), original)
+
+    def test_edited_block_makes_uninstall_a_conflict_that_removes_nothing(self):
+        self.setup(apply=True)
+        agents = self.root / "AGENTS.md"
+        agents.write_text(agents.read_text(encoding="utf-8").replace("Skip it for trivial replies.", "Skip it for trivial replies. Team addition."), encoding="utf-8")
+        before = self.snapshot()
+        result = install.uninstall(self.root, apply=True)
+        self.assertEqual(result["exit"], 5)
+        self.assertTrue(any("AGENTS.md" in step for step in result["next_steps"]))
+        self.assertEqual(before, self.snapshot())
+
+    def test_dangling_start_marker_line_stops_setup(self):
+        (self.root / "AGENTS.md").write_text("# Rules\n" + install.BLOCK_START + "\nNo end marker.\n", encoding="utf-8")
+        before = self.snapshot()
+        self.assertEqual(self.setup(apply=True)["exit"], 5)
+        self.assertEqual(before, self.snapshot())
+
+
     def test_generated_hook_command_runs_from_the_system_shell(self):
         self.setup(apply=True)
         command = self.hooks()["hooks"]["Stop"][0]["hooks"][0]["command"]

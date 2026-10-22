@@ -110,11 +110,25 @@ def newline_of(text):
 
 
 def block_span(text):
-    start, end = text.find(BLOCK_START), text.find(BLOCK_END)
-    if start < 0 or end < start:
-        return None
-    stop = text.find("\n", end)
-    return start, (stop + 1 if stop >= 0 else len(text))
+    """Span of the first complete block whose markers are whole lines; marker text inside prose never counts."""
+    position, start = 0, None
+    for line in text.splitlines(keepends=True):
+        bare = line.rstrip("\r\n")
+        if bare == BLOCK_START and start is None:
+            start = position
+        elif bare == BLOCK_END and start is not None:
+            return start, position + len(line)
+        position += len(line)
+    return None
+
+
+def dangling_marker(text):
+    return block_span(text) is None and any(line.rstrip("\r\n") == BLOCK_START for line in text.splitlines())
+
+
+def block_digest(text):
+    span = block_span(text)
+    return pm.digest(text[span[0]:span[1]].replace("\r\n", "\n").encode()) if span else None
 
 
 def with_block(text, block, prefix=None):
@@ -200,6 +214,8 @@ def plan(root, project_id=None):
     block = read(root, BLOCK_FILE)
     old = read(root, MANIFEST)
     previous = json.loads(old) if old else {}
+    if dangling_marker(read(root, AGENTS) or ""):
+        conflicts.append((AGENTS, f"{AGENTS} has a {BLOCK_START} line without a matching end line; complete or remove it, then run setup again."))
     writes[AGENTS], prefix = with_block(read(root, AGENTS), block, previous.get("merged", {}).get(AGENTS, {}).get("prefix"))
     if existing is not None and HOOKS in writes and HOOKS not in previous.get("created", []) and read(root, f"{BACKUP}/{HOOKS}") is None:
         writes[f"{BACKUP}/{HOOKS}"], writes[f"{LOCAL}/.gitignore"] = existing, "*\n"  # original bytes for uninstall
@@ -264,8 +280,12 @@ def uninstall(root, apply=False):
     if backup is not None:
         actions += [(f"{BACKUP}/{HOOKS}", "delete", None), (f"{LOCAL}/.gitignore", "delete", None)]
     agents = read(root, AGENTS)
-    if agents is not None and BLOCK_START in agents:
-        remaining = without_block(agents, manifest.get("merged", {}).get(AGENTS, {}).get("prefix", ""))
+    merged = manifest.get("merged", {}).get(AGENTS, {})
+    if agents is not None and block_span(agents):
+        if block_digest(agents) != merged.get("sha256"):
+            step = f"The Dreamdocs block in {AGENTS} was edited after setup; remove it by hand (the lines from {BLOCK_START} to {BLOCK_END}), then run uninstall again."
+            return {"exit": 5, "applied": False, "actions": [], "notes": notes, "next_steps": [step]}
+        remaining = without_block(agents, merged.get("prefix", ""))
         gone = not remaining.strip() and AGENTS in created
         actions.append((AGENTS, "delete" if gone else "update", None if gone else remaining))
     for path in (BINDING, MANIFEST):
@@ -282,6 +302,6 @@ def uninstall(root, apply=False):
             path = pm.confined(root, folder)
             if path.is_dir() and not any(path.iterdir()) and (folder != ".codex" or HOOKS in created):
                 path.rmdir()
-    return {"exit": 0, "applied": apply, "actions": [{"path": p, "action": a} for p, a, _ in actions], "notes": notes,
+    return {"exit": 0, "applied": apply, "actions": [{"path": p, "action": a} for p, a, _ in actions], "notes": notes, "next_steps": [],
             "kept": ["docs/", "memory/ records, receipts and events", "human-materials/"]}
 
