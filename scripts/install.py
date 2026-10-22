@@ -222,6 +222,44 @@ def command_digest(record):
     return record.get("command_sha256") or record.get("hook_sha256")
 
 
+def validate_manifest(value):
+    """Validate the bundled install schema's shape without a runtime dependency."""
+    schema = pm.read_json(Path(__file__).resolve().parents[1] / "templates/install-manifest.schema.json")
+    types = {"object": dict, "array": list, "string": str, "integer": int, "null": type(None), "boolean": bool}
+
+    def check(item, rule):
+        if "anyOf" in rule:
+            valid = False
+            for option in rule["anyOf"]:
+                try:
+                    check(item, option)
+                    valid = True
+                except ValueError:
+                    pass
+            pm.require(valid, "manifest requires a current or legacy command hash")
+        if "type" in rule:
+            names = rule["type"] if isinstance(rule["type"], list) else [rule["type"]]
+            pm.require(type(item) in tuple(types[n] for n in names), "invalid manifest field type")
+        if "const" in rule:
+            pm.require(item == rule["const"], "invalid manifest constant")
+        if "enum" in rule:
+            pm.require(item in rule["enum"], "invalid manifest value")
+        if isinstance(item, dict):
+            pm.require(set(rule.get("required", [])) <= item.keys(), "missing required manifest field")
+            for key, child in item.items():
+                selected = rule.get("properties", {}).get(key, rule.get("additionalProperties", {}))
+                pm.require(selected is not False, "unknown manifest field: " + key)
+                if isinstance(selected, dict):
+                    check(child, selected)
+        elif isinstance(item, list):
+            for child in item:
+                check(child, rule.get("items", {}))
+        elif isinstance(item, str) and "pattern" in rule:
+            pm.require(re.fullmatch(rule["pattern"], item), "invalid manifest hash")
+    check(value, schema)
+    return value
+
+
 def project_identity(root, requested, binding):
     if binding is not None:
         return binding["project_id"]

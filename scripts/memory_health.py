@@ -100,10 +100,16 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
             finding("invalid_json", relative, "Inspect the file locally; restore valid JSON without discarding user data.")
             return default
 
-    manifest = load(install.MANIFEST, {})
-    if not isinstance(manifest, dict) or manifest.get("version") != 1:
+    manifest_raw = install.read(root, install.MANIFEST)
+    manifest_valid = False
+    try:
+        manifest = install.validate_manifest(json.loads(manifest_raw))
+        age(manifest["installed_at"])
+        manifest_valid = True
+    except (OSError, ValueError, TypeError, KeyError, AttributeError):
         manifest = {}
-        finding("not_installed", install.MANIFEST, "Run setup preview, review and apply.", "setup")
+        finding("invalid_manifest" if manifest_raw is not None else "not_installed", install.MANIFEST,
+                "Inspect the install manifest shape locally; restore valid metadata or run setup preview. No health metadata was written.", "setup")
     if manifest.get("package", {}).get("version") != install.PACKAGE_VERSION:
         finding("package_version_changed", "package", "Review the selected package and upgrade plan; do not mark a new version installed from file presence alone.", "setup")
     for relative, expected in manifest.get("package_files", {}).items():
@@ -259,7 +265,7 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
         if not all(result["smoke"][k] for k in ("saved", "retrieved")):
             finding("smoke_failed", "local-engine", "Inspect isolated capture/recall failure before enabling hooks.")
             result["exit"] = 1
-    if fix and manifest and not any(f["component"] == "writer" for f in findings):
+    if fix and manifest_valid and not any(f["component"] == "writer" for f in findings):
         with pm.operation(root):
             if pm.confined(root, "memory/dreamer/lock.json").exists():
                 raise ValueError("Dreamer run active; evidence metadata not changed")

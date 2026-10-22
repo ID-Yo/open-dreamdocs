@@ -110,6 +110,17 @@ class HealthTests(unittest.TestCase):
         self.assertIn("missing_save", self.codes(result))
         self.assertEqual([f["scope"] for f in result["findings"] if f["code"] == "missing_save"], ["task-1"])
 
+    def test_malformed_manifest_shapes_report_findings_without_tracebacks(self):
+        original = pm.read_json(self.root / install.MANIFEST)
+        for changed in ([], None, {**original, "package": []}, {**original, "clients": []},
+                        {**original, "clients": {"codex": {"health": []}}}, {**original, "package_files": []}):
+            pm.atomic(self.root / install.MANIFEST, changed)
+            before = self.snapshot()
+            result = mh.doctor(self.root, fix=True)
+            self.assertNotEqual(result["exit"], 0)
+            self.assertIn("invalid_manifest", self.codes(result))
+            self.assertEqual(before, self.snapshot())
+
     def test_cli_smoke_is_machine_readable_and_does_not_mutate_the_project(self):
         import subprocess
         before = self.snapshot()
