@@ -225,7 +225,13 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
                 matched = False
         if not matched:
             finding("missing_save", task.get("task_id", "unknown"), "Reconcile the authoritative task outcome with its event/receipt; retry exact local capture only. Never repeat an uncertain external operation.", "continuity")
-    supplied = evidence.get("clients", {}) if isinstance(evidence, dict) and evidence.get("version") == 1 else {}
+    evidence_valid = (evidence is None or isinstance(evidence, dict) and set(evidence) == {"version", "clients"}
+                      and type(evidence["version"]) is int and evidence["version"] == 1 and isinstance(evidence["clients"], dict)
+                      and set(evidence["clients"]) <= set(install.CLIENTS)
+                      and all(isinstance(v, dict) and set(v) <= {"trust", "recall"} and all(isinstance(o, dict) for o in v.values()) for v in evidence["clients"].values()))
+    if not evidence_valid:
+        finding("invalid_evidence", "evidence", "Supply version 1 with a clients object and per-client trust/recall observation objects. No metadata was written.", "doctor")
+    supplied = evidence["clients"] if evidence is not None and evidence_valid else {}
     for client, record in manifest.get("clients", {}).items():
         if client not in install.CLIENTS or not isinstance(record, dict):
             finding("unknown_adapter", client, "Install a supported adapter or remove the invalid manifest entry explicitly.", "adapter")
@@ -286,7 +292,7 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
     dreamer = {"schedule": "configured_only" if configured else "unconfigured", "scheduler": "unverified", "executor": "unconfigured",
                "checkpoint": load("memory/dreamer/state.json"), "active_run": pm.confined(root, "memory/dreamer/lock.json").exists()}
     finding("scheduler_unverified", "dreamer", "Scheduling/executor installation requires separate explicit opt-in (#21); configured fields are not runtime evidence.", "dreamer")
-    result = {"exit": 2 if manifest_raw is not None and not manifest_valid else 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
+    result = {"exit": 2 if not evidence_valid or manifest_raw is not None and not manifest_valid else 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
               "clients": clients, "capture": {"readback": readback, "last_persisted_at": last, "receipts": len(receipts), "trigger_delivery": "unknown"},
               "dreamer": dreamer, "findings": findings, "notification": "local report only; no external reporting or background monitor",
               "applied": False, "limits": "Configuration, receipts, smoke and source-backed reported observations prove different things; no process, product or schedule is started."}
@@ -295,7 +301,7 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
         if not all(result["smoke"][k] for k in ("saved", "retrieved")):
             finding("smoke_failed", "local-engine", "Inspect isolated capture/recall failure before enabling hooks.")
             result["exit"] = 1
-    if fix and manifest_valid and not any(f["component"] == "writer" for f in findings):
+    if fix and manifest_valid and evidence_valid and not any(f["component"] == "writer" for f in findings):
         with pm.operation(root):
             if pm.confined(root, "memory/dreamer/lock.json").exists():
                 raise ValueError("Dreamer run active; evidence metadata not changed")

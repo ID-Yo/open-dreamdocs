@@ -178,6 +178,16 @@ class HealthTests(unittest.TestCase):
         self.assertEqual(mh.ac.check(event, pm.read_json(self.root / "memory/automation.json"), receipt)["decision"], "invalid")
         self.assertFalse(mc.capture(self.root, event)["saved"])
 
+    def test_invalid_evidence_shapes_are_structured_and_never_written(self):
+        for value in ([], {}, {"version": 1, "clients": []}, {"version": 1, "clients": None},
+                      {"version": 1, "clients": {"codex": []}}, {"version": 1, "clients": {"codex": {"trust": None}}}):
+            before = self.snapshot()
+            result = mh.doctor(self.root, fix=True, evidence=value)
+            self.assertIn("invalid_evidence", self.codes(result))
+            self.assertEqual(result["exit"], 2)
+            self.assertFalse(result["applied"])
+            self.assertEqual(before, self.snapshot())
+
 
 if __name__ == "__main__":
     unittest.main()
