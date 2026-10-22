@@ -311,6 +311,27 @@ class BoundedScanTests(unittest.TestCase):
         with self.assertRaisesRegex(pm.MemoryError, "broken"):
             pm.validate(self.root)
 
+    def test_generic_folder_names_inside_managed_trees_are_still_validated(self):
+        (self.root / "docs/build").mkdir()
+        (self.root / "docs/build/README.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        with self.assertRaisesRegex(pm.MemoryError, "broken"):
+            pm.validate(self.root)
+        shutil.rmtree(self.root / "docs/build")
+        record = self.root / "memory/episodes/work/ep.md"
+        record.parent.mkdir()
+        record.write_text("---\n{\"id\": \"ep-1\"}\n---\n", encoding="utf-8")
+        with self.assertRaisesRegex(pm.MemoryError, "missing fields"):
+            pm.validate(self.root)
+
+    def test_skipped_folders_inside_memory_records_fail_visibly(self):
+        for folder in ("node_modules", "nested-repo/.git"):
+            with self.subTest(folder=folder):
+                path = self.root / "memory/episodes" / folder
+                path.mkdir(parents=True)
+                with self.assertRaisesRegex(pm.MemoryError, "unexpected"):
+                    pm.validate(self.root)
+                shutil.rmtree(self.root / "memory/episodes" / folder.split("/")[0])
+
     def test_permission_denied_is_not_an_empty_scan(self):
         real = os.scandir
         def deny(path="."):

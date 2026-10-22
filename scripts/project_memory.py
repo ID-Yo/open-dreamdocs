@@ -28,8 +28,9 @@ IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,99}\Z")
 # Managed template surface; everything else in an adopted project is out of scope.
 MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts", "tests")
 MANAGED_FILES = ("LICENSE", ".gitignore", "human-materials/README.md", "human-materials/.gitignore")
-PRUNE = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache",
-         ".tox", "build", "dist", "target", ".next", "work"}
+# Tool folders are skipped anywhere; generic names (build, dist, work) only at their known runtime path.
+PRUNE = {".git", ".hg", ".svn", "node_modules", ".venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".tox", ".next"}
+RUNTIME = {"memory/dreamer/work"}
 
 
 class MemoryError(ValueError):
@@ -100,20 +101,24 @@ def listing(root, folder):
         raise MemoryError(f"permission denied in managed path: {folder.relative_to(root).as_posix() or '.'}") from exc
 
 
-def walk(root, top):
-    """List a managed folder; prune dependency/VCS/build/runtime trees and nested repositories before listing them."""
+def walk(root, top, strict=False):
+    """List a managed folder; skip tool/runtime trees and nested repositories before listing them (strict: fail instead)."""
     folders, files, stack = [], [], [top]
     while stack:
         folder = stack.pop()
         folders.append(folder)
         for entry in listing(root, folder):
             path = Path(entry.path)
-            if entry.name in PRUNE:
+            relative = path.relative_to(root).as_posix()
+            skipped = entry.name in PRUNE or relative in RUNTIME
+            if not skipped:
+                require(not linked(path), f"linked path: {relative}")
+                skipped = entry.is_dir(follow_symlinks=False) and (path / ".git").exists()
+            if skipped:
+                require(not strict, f"unexpected dependency, runtime or repository folder in memory records: {relative}")
                 continue
-            require(not linked(path), f"linked path: {path.relative_to(root).as_posix()}")
             if entry.is_dir(follow_symlinks=False):
-                if not (path / ".git").exists():
-                    stack.append(path)
+                stack.append(path)
             elif entry.is_file(follow_symlinks=False):
                 files.append(path)
     return sorted(folders), sorted(files)
@@ -162,7 +167,7 @@ def record_files(root, archive=True):
     for category in categories:
         folder = confined(root, f"memory/{category}")
         require(folder.is_dir(), f"missing memory/{category}")
-        for path in walk(root, folder)[1]:
+        for path in walk(root, folder, strict=True)[1]:
             if path.suffix == ".md" and path.name != "README.md":
                 files.append((category, path))
     return files
