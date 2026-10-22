@@ -90,7 +90,7 @@ All fields are required and no others are allowed.
 | `adapter` | `codex` or `claude-code` |
 | `session_id`, `turn_id` | Client session and turn, or task revision |
 | `project_id` | Must match the installed binding; events for other projects are rejected |
-| `worktree`, `agent` | Reported identity labels, not verified against the binding; `worktree` is a short name (letters, digits, `.`, `_`, `-`, at most 64) without path separators or drive prefix |
+| `worktree`, `agent` | Reported identity labels, not verified against the binding; each is a short name (letters, digits, `.`, `_`, `-`, at most 64) such as a branch or bot ID, without spaces, path separators or drive prefix |
 | `occurred_at` | Timestamp with timezone |
 | `privacy` | `public`, `project`, `restricted`, `prohibited` |
 | `task` | `null` or `{id, status}` with backlog/ready/in-progress/review/blocked/paused/done |

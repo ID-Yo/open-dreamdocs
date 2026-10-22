@@ -88,6 +88,7 @@ class ContractRuleTests(unittest.TestCase):
             {**self.event, "worktree": "/home/example/app"},
             {**self.event, "worktree": "..\\outside"},
             {**self.event, "worktree": "D:"},
+            {**self.event, "agent": "Alice Smith alice@example.com"},
         ]
         for event in cases:
             with self.subTest(event=event):

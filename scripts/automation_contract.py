@@ -60,6 +60,7 @@ def validate_event(event):
     require(event["kind"] in KINDS and event["adapter"] in SUPPORT and event["privacy"] in PRIVACY, "unknown kind/adapter/privacy")
     require(all(text(event[k]) for k in IDENTITY), "identity fields must be nonempty text")
     require(LABEL.fullmatch(event["worktree"]), "worktree must be a short label without path separators or drive prefix")
+    require(LABEL.fullmatch(event["agent"]), "agent must be a short label such as a role or bot ID")
     require(isinstance(event["occurred_at"], str) and "T" in event["occurred_at"]
             and datetime.fromisoformat(event["occurred_at"].replace("Z", "+00:00")).tzinfo is not None, "occurred_at needs a timezone")
     task = event["task"]
