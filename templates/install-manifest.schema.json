@@ -104,6 +104,127 @@
             "written_sha256": {
               "type": "string",
               "pattern": "^[0-9a-f]{64}$"
+            },
+            "health": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observations",
+                "capture_readback",
+                "checked_at"
+              ],
+              "properties": {
+                "observations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "trust": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "client-trust"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    "recall": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256",
+                        "client",
+                        "event_id",
+                        "marker",
+                        "capture_session",
+                        "recall_session"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "fresh-session-recall"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "client": {
+                          "enum": [
+                            "codex",
+                            "claude-code"
+                          ]
+                        },
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "marker": {
+                          "type": "string"
+                        },
+                        "capture_session": {
+                          "type": "string"
+                        },
+                        "recall_session": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "capture_readback": {
+                  "enum": [
+                    "verified",
+                    "unknown",
+                    "mismatch"
+                  ]
+                },
+                "checked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
             }
           },
           "additionalProperties": false
@@ -165,6 +286,127 @@
             "written_sha256": {
               "type": "string",
               "pattern": "^[0-9a-f]{64}$"
+            },
+            "health": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observations",
+                "capture_readback",
+                "checked_at"
+              ],
+              "properties": {
+                "observations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "trust": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "client-trust"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    "recall": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256",
+                        "client",
+                        "event_id",
+                        "marker",
+                        "capture_session",
+                        "recall_session"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "fresh-session-recall"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "client": {
+                          "enum": [
+                            "codex",
+                            "claude-code"
+                          ]
+                        },
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "marker": {
+                          "type": "string"
+                        },
+                        "capture_session": {
+                          "type": "string"
+                        },
+                        "recall_session": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "capture_readback": {
+                  "enum": [
+                    "verified",
+                    "unknown",
+                    "mismatch"
+                  ]
+                },
+                "checked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
             }
           },
           "additionalProperties": false

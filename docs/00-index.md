@@ -19,6 +19,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [First run: automatic memory](operations/first-run.md)
 - [Codex adapter](operations/agents/codex.md)
 - [Claude Code adapter (unverified)](operations/agents/claude-code.md)
+- [Memory health and isolated smoke test](operations/memory-health.md)
 
 ## Categories and pages
 
