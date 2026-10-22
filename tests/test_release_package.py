@@ -87,10 +87,17 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(result["ok"])
         self.assertTrue(any(f["scope"] == "history" for f in result["findings"]))
 
-    def test_secret_content_and_populated_index_are_not_silently_exported(self):
+    def test_secret_content_is_not_silently_exported(self):
         self.put("docs/operations/accidental.md", "token=" + "sk-" + "AbCdEf1234567890" * 2)
         self.commit()
         self.assertFalse(rp.prepare(self.root, self.revision)["ok"])
+
+    def test_populated_index_refuses_even_without_other_contamination(self):
+        self.put("human-materials/README.md", "# Private index without originals\n")
+        self.commit()
+        result = rp.prepare(self.root, self.revision)
+        self.assertFalse(result["ok"])
+        self.assertEqual([f["code"] for f in result["findings"]], ["nonempty_or_modified_material_index"])
 
     def test_exact_marker_only_fixture_is_allowed_but_modified_credential_content_is_not(self):
         fixture = "tests/fixtures/automation/unsafe-secret.json"
@@ -102,9 +109,6 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(clean["ok"], clean)
         self.assertEqual(clean["synthetic_fixture_exceptions"], 1)
         target.write_bytes(target.read_bytes() + b"\n" + b"sk-" + b"AbCdEf1234567890" * 2)
-        self.commit()
-        self.assertFalse(rp.prepare(self.root, self.revision)["ok"])
-        self.put("human-materials/README.md", "# Private index without originals\n")
         self.commit()
         self.assertFalse(rp.prepare(self.root, self.revision)["ok"])
 
