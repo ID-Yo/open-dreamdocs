@@ -21,6 +21,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Claude Code adapter (unverified)](operations/agents/claude-code.md)
 - [Memory health and isolated smoke test](operations/memory-health.md)
 - [Selected package upgrades](operations/upgrading.md)
+- [Sourced documentation refresh proposals](operations/documentation-refresh.md)
 
 ## Categories and pages
 

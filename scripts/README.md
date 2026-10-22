@@ -1,5 +1,11 @@
 # Validation and Dreamer Lifecycle
 
+[documentation_refresh.py](documentation_refresh.py) prepares/checks private documentation proposals
+from exact accepted task/source revisions, with status/index candidates and authorized coverage-only
+material inventory. It never applies canonical edits or reads originals. See the [refresh contract](../docs/operations/documentation-refresh.md).
+`human_materials.py --public-export` additionally rejects used material folders or any index that
+differs from the shipped empty template; publication of other exact content requires owner review.
+
 [automation_contract.py](automation_contract.py) checks one automation event against the
 [v1 contract](../docs/operations/automation-contract.md): `python -B scripts/automation_contract.py --root . --event FILE`.
 It reads `memory/automation.json` and an existing receipt when present, prints the decision and planned

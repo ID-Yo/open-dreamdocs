@@ -1,5 +1,11 @@
 # Tests
 
+Documentation refresh tests cover accepted candidate/source binding, independent acceptance,
+stale/rolled-back evidence, owner target limits, private immutable sidecars, routing/status/history,
+Dreamer committed-checkpoint linkage, concurrent edits and material add/move/remove/partial/failed
+coverage without reading originals. Public-export checks include populated indexes and private prose
+outside the table. These tests verify deterministic proposal transport, not semantic truth/promotion.
+
 `test_human_materials.py` verifies recursive indexing of synthetic nested files,
 special-character paths, adds/moves/removals, unread/unparseable status,
 duplicate/outside paths, original preservation and symlink rejection.
