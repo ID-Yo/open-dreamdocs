@@ -56,9 +56,11 @@ def source_status(root, ref, meta, by_id):
             return {"ref": ref, "status": "refused"}
         if not path.is_file():
             return {"ref": ref, "status": "missing"}
-        since = pm.timestamp(meta.get("last_verified") or meta["created_at"]).timestamp()
-        status = "changed" if path.stat().st_mtime > since else "ok"
-        return {"ref": ref, "status": status, "sha256": pm.digest(path.read_bytes())}
+        digest = pm.digest(path.read_bytes())
+        recorded = meta.get("source_sha256")
+        expected = recorded.get(ref) if isinstance(recorded, dict) else None
+        status = "unverified" if not isinstance(expected, str) else "ok" if expected == digest else "changed"
+        return {"ref": ref, "status": status, "sha256": digest}
     if ref.startswith("id:"):
         target = by_id.get(ref[3:])
         if target is None:

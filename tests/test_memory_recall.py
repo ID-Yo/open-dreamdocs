@@ -119,21 +119,39 @@ class RecallTests(unittest.TestCase):
         for text in ("Proposed build", "Old build", "Archived build", "Other project", "Proposal build", "Template build"):
             self.assertNotIn(text, result["context"])
 
-    def test_source_status_is_rehashed_and_explicit(self):
+    def sha(self, name):
+        return hashlib.sha256((self.root / name).read_bytes()).hexdigest()
+
+    def test_source_status_is_rehashed_against_the_recorded_baseline(self):
         self.source("docs/changed.md", "v1\n")
         self.source("docs/gone.md", "x\n")
+        self.source("docs/nobase.md", "n\n")
+        baseline = {f"file:docs/{n}.md": self.sha(f"docs/{n}.md") for n in ("build", "changed", "gone")}
         self.fact("fact-old", "Old.", status="superseded", superseded_by="fact-a")
-        self.fact("fact-a", "Build fact.", source=["file:docs/build.md", "file:docs/changed.md", "file:docs/gone.md", "id:fact-old", "https://example.com/doc", "file:../outside.md"])
-        self.source("docs/changed.md", "v2\n", mtime="2026-03-01T00:00:00Z")
+        self.fact("fact-a", "Build fact.", source_sha256=baseline, source=["file:docs/build.md", "file:docs/changed.md", "file:docs/gone.md", "file:docs/nobase.md", "id:fact-old", "https://example.com/doc", "file:../outside.md"])
+        self.source("docs/build.md", "# Build\nRun the suite.\n", mtime="2026-09-01T00:00:00Z")  # fresh clone: new mtime, same bytes
+        self.source("docs/changed.md", "v2\n", mtime=OLD)  # real edit that keeps the old mtime
         (self.root / "docs/gone.md").unlink()
         item = mr.recall(self.root, query="build")["items"][0]
         status = {s["ref"]: s["status"] for s in item["sources"]}
-        self.assertEqual(status, {"file:docs/build.md": "ok", "file:docs/changed.md": "changed", "file:docs/gone.md": "missing",
+        self.assertEqual(status, {"file:docs/build.md": "ok", "file:docs/changed.md": "changed", "file:docs/gone.md": "missing", "file:docs/nobase.md": "unverified",
                                   "id:fact-old": "superseded", "https://example.com/doc": "unverified", "file:../outside.md": "refused"})
         ok = next(s for s in item["sources"] if s["ref"] == "file:docs/build.md")
         self.assertEqual(ok["sha256"], hashlib.sha256((self.root / "docs/build.md").read_bytes()).hexdigest())
         self.assertIn("changed", result_text := mr.recall(self.root, query="build")["context"])
         self.assertIn("missing", result_text)
+
+    def test_capture_records_the_baseline_that_recall_checks(self):
+        self.source("docs/note.md", "note v1\n")
+        value = copy.deepcopy(EVENT)
+        value["outcome"]["evidence"] = ["file:docs/note.md", "ref:commit-abc123"]
+        self.assertTrue(mc.capture(self.root, value)["saved"])
+        episode = next((self.root / "memory/episodes").glob("auto-*.md"))
+        self.assertEqual(pm.metadata(episode.read_text(encoding="utf-8"))["source_sha256"], {"file:docs/note.md": self.sha("docs/note.md")})
+        first = mr.recall(self.root, query="focused")["items"][0]["sources"][0]
+        self.assertEqual((first["ref"], first["status"]), ("file:docs/note.md", "ok"))
+        self.source("docs/note.md", "note v2\n")
+        self.assertEqual(mr.recall(self.root, query="focused")["items"][0]["sources"][0]["status"], "changed")
 
     def test_linked_source_is_refused_without_reading(self):
         outside = self.base / "outside"

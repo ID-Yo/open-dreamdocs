@@ -58,12 +58,29 @@ def ensure(root, folder):
     return path
 
 
-def render(event, eid):
+def baseline(root, refs):
+    """Hash local file: evidence at capture time so recall can tell a real edit from a new checkout."""
+    hashes = {}
+    for ref in refs:
+        if ref.startswith("file:"):
+            try:
+                path = pm.confined(root, ref[5:])
+            except (ValueError, OSError):
+                continue  # check_files refuses it
+            if path.is_file():
+                hashes[ref] = pm.digest(path.read_bytes())
+    return hashes
+
+
+def render(root, event, eid):
     outcome, task = event["outcome"], event["task"]
     meta = {"id": f"auto-{eid}", "type": "episodic", "status": "active", "project": event["project_id"],
             "scope": f"task:{task['id']}" if task else "session", "created_at": event["occurred_at"],
             "source": outcome["evidence"] + [f"ref:{event['adapter']}/{event['session_id']}/{event['turn_id']}"],
             "pinned": False}
+    hashes = baseline(root, outcome["evidence"])
+    if hashes:
+        meta["source_sha256"] = hashes
     title = f"# Outcome: {outcome['status']}" + (f" ({task['id']}, reported {task['status']})" if task else "")
     lines = ["---", json.dumps(meta, ensure_ascii=False, indent=2), "---", "", title, "", outcome["summary"].strip(), ""]
     if outcome["lessons"]:
@@ -72,8 +89,8 @@ def render(event, eid):
     return "\n".join(lines)
 
 
-def make_plan(event, result):
-    episode = render(event, result["event_id"]) if result["decision"] == "capture_episode" else None
+def make_plan(root, event, result):
+    episode = render(root, event, result["event_id"]) if result["decision"] == "capture_episode" else None
     return {"version": 1, "event_id": result["event_id"], "payload_sha256": result["payload_sha256"],
             "decision": result["decision"], "outcome": event["outcome"]["status"], "episode": episode}
 
@@ -233,7 +250,7 @@ def capture(root, event, budget=1.0):
     try:
         if result["decision"] not in {"capture_episode", "receipt_only"}:
             return {**report, "decision": result["decision"], "exit": result["exit"]}
-        own = make_plan(event, result)
+        own = make_plan(root, event, result)
         saved = receipt_path(root, own["event_id"])
         if saved.exists():  # receipts are created atomically and never rewritten, so no lock is needed
             existing = pm.read_json(saved)
