@@ -166,6 +166,18 @@ class HealthTests(unittest.TestCase):
         self.assertTrue(result["smoke"]["retrieved"])
         self.assertEqual(before, self.snapshot())
 
+    def test_inconsistent_receipt_is_not_readback_or_duplicate_proof(self):
+        event = copy.deepcopy(EVENT)
+        mc.capture(self.root, event)
+        path = mc.receipt_path(self.root, mh.ac.event_id(event))
+        receipt = pm.read_json(path)
+        receipt.update(status="receipt_only", episode="memory/episodes/nonexistent.md")
+        pm.atomic(path, receipt)
+        self.assertIn("readback_mismatch", self.codes(mh.doctor(self.root)))
+        self.assertNotEqual(mh.doctor(self.root)["capture"]["readback"], "verified")
+        self.assertEqual(mh.ac.check(event, pm.read_json(self.root / "memory/automation.json"), receipt)["decision"], "invalid")
+        self.assertFalse(mc.capture(self.root, event)["saved"])
+
 
 if __name__ == "__main__":
     unittest.main()

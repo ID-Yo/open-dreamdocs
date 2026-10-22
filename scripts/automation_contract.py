@@ -91,7 +91,23 @@ def validate_receipt(receipt):
     require(receipt["version"] == 1, "unsupported receipt version; no migration is attempted")
     require(set(receipt) == RECEIPT_FIELDS, "invalid receipt fields")
     require(isinstance(receipt["event_id"], str) and isinstance(receipt["payload_sha256"], str)
-            and SHA256.fullmatch(receipt["payload_sha256"]) and receipt["status"] in RECEIPT_STATUSES, "invalid receipt values")
+            and SHA256.fullmatch(receipt["payload_sha256"]) and isinstance(receipt["status"], str)
+            and receipt["status"] in RECEIPT_STATUSES, "invalid receipt values")
+    require(re.fullmatch(r"evt-[0-9a-f]{32}", receipt["event_id"]), "invalid receipt identity")
+    require(isinstance(receipt["outcome"], str) and receipt["outcome"] in OUTCOMES - {"interrupted"}, "invalid receipt outcome")
+    require(isinstance(receipt["decision"], str) and receipt["decision"] in {"capture_episode", "receipt_only"}, "invalid persisted receipt decision")
+    try:
+        timestamp = datetime.fromisoformat(receipt["recorded_at"].replace("Z", "+00:00"))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ContractError("invalid receipt timestamp") from exc
+    require(timestamp.tzinfo is not None, "receipt timestamp requires timezone")
+    if receipt["status"] == "persisted":
+        require(receipt["decision"] == "capture_episode" and receipt["outcome"] != "no_lesson", "persisted receipt requires captured outcome")
+        require(receipt["episode"] == f"memory/episodes/auto-{receipt['event_id']}.md"
+                and isinstance(receipt["episode_sha256"], str) and SHA256.fullmatch(receipt["episode_sha256"]), "persisted receipt needs exact episode identity/hash")
+    else:
+        require(receipt["decision"] == "receipt_only" and receipt["episode"] is None and receipt["episode_sha256"] is None,
+                "receipt_only must have receipt_only decision and null episode/hash")
 
 
 def decide(event, binding, receipt=MISSING):
