@@ -15,6 +15,7 @@ import project_memory as pm
 
 MAX_AGE = 86400  # runtime evidence is an observation, not a perpetual health claim
 LOCK_AGE = 900
+UNSET = object()
 
 
 def age(value):
@@ -83,10 +84,10 @@ def observed(root, entry, kind, record, installed_at, receipts):
         return False
 
 
-def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
-    evidence_supplied = evidence is not None
-    if isinstance(evidence, tuple) and len(evidence) == 2:
-        evidence, evidence_supplied = evidence
+def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
+    evidence_supplied = evidence is not UNSET
+    if not evidence_supplied:
+        evidence = None
     root = Path(root).resolve()
     findings, clients, receipts = [], {}, {}
 

@@ -183,7 +183,7 @@ class HealthTests(unittest.TestCase):
                       {"version": 1, "clients": {"codex": {"trust": {"unexpected": 1}}}},
                       {"version": 1, "clients": {"codex": []}}, {"version": 1, "clients": {"codex": {"trust": None}}}):
             before = self.snapshot()
-            result = mh.doctor(self.root, fix=True, evidence=(value, True))
+            result = mh.doctor(self.root, fix=True, evidence=value)
             self.assertIn("invalid_evidence", self.codes(result))
             self.assertEqual(result["exit"], 2)
             self.assertFalse(result["applied"])

@@ -70,10 +70,9 @@ def main():
             print(json.dumps(upgrade.bundle_manifest(root, args.revision), sort_keys=True, indent=2))
             return 0
         elif args.group in {"doctor", "status"}:
-            evidence_supplied = args.evidence is not None
-            evidence = (json.loads(Path(args.evidence).read_text(encoding="utf-8")), True) if evidence_supplied else None
+            evidence = json.loads(Path(args.evidence).read_text(encoding="utf-8")) if args.evidence is not None else mh.UNSET
             checkpoints = json.loads(Path(args.checkpoints).read_text(encoding="utf-8")) if args.checkpoints else None
-            result = mh.doctor(root, args.fix, args.smoke, evidence, checkpoints)
+            result = mh.doctor(root, args.fix, args.smoke, evidence=evidence, checkpoints=checkpoints)
         elif args.group == "setup":
             result = install.setup(root, args.apply, args.project_id, tuple(dict.fromkeys(args.client or ["codex"])))
         elif args.group == "uninstall":
