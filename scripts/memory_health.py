@@ -100,7 +100,10 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
             finding("invalid_json", relative, "Inspect the file locally; restore valid JSON without discarding user data.")
             return default
 
-    manifest_raw = install.read(root, install.MANIFEST)
+    try:
+        manifest_raw = install.read(root, install.MANIFEST)
+    except (OSError, ValueError):
+        manifest_raw = ""  # unavailable metadata remains invalid and is never written
     manifest_valid = False
     try:
         manifest = install.validate_manifest(json.loads(manifest_raw))
@@ -210,7 +213,17 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
         except (ValueError, TypeError, KeyError, AttributeError):
             finding("invalid_checkpoint", task.get("task_id", "unknown"), "Supply the exact expected outcome event matching this task, project and installed adapter; an event ID alone cannot prove task persistence.")
             continue
-        if eid not in receipts or receipts[eid]["payload_sha256"] != payload_sha:
+        matched = eid in receipts and receipts[eid]["payload_sha256"] == payload_sha
+        if matched and receipts[eid]["status"] == "receipt_only":
+            finding("checkpoint_receipt_only_unverified", task["task_id"], "A receipt-only outcome has no persisted task episode to cross-check. Inspect the exact event and task evidence; do not infer task completion.", "continuity")
+        elif matched:
+            try:
+                meta = pm.metadata(pm.confined(root, receipts[eid]["episode"]).read_text(encoding="utf-8"))
+                matched = (meta["project"] == event["project_id"] and meta["scope"] == "task:" + task["task_id"]
+                           and f"ref:{event['adapter']}/{event['session_id']}/{event['turn_id']}" in meta["source"])
+            except (OSError, ValueError, TypeError, KeyError):
+                matched = False
+        if not matched:
             finding("missing_save", task.get("task_id", "unknown"), "Reconcile the authoritative task outcome with its event/receipt; retry exact local capture only. Never repeat an uncertain external operation.", "continuity")
     supplied = evidence.get("clients", {}) if isinstance(evidence, dict) and evidence.get("version") == 1 else {}
     for client, record in manifest.get("clients", {}).items():
@@ -273,7 +286,7 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
     dreamer = {"schedule": "configured_only" if configured else "unconfigured", "scheduler": "unverified", "executor": "unconfigured",
                "checkpoint": load("memory/dreamer/state.json"), "active_run": pm.confined(root, "memory/dreamer/lock.json").exists()}
     finding("scheduler_unverified", "dreamer", "Scheduling/executor installation requires separate explicit opt-in (#21); configured fields are not runtime evidence.", "dreamer")
-    result = {"exit": 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
+    result = {"exit": 2 if manifest_raw is not None and not manifest_valid else 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
               "clients": clients, "capture": {"readback": readback, "last_persisted_at": last, "receipts": len(receipts), "trigger_delivery": "unknown"},
               "dreamer": dreamer, "findings": findings, "notification": "local report only; no external reporting or background monitor",
               "applied": False, "limits": "Configuration, receipts, smoke and source-backed reported observations prove different things; no process, product or schedule is started."}

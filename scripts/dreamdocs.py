@@ -67,6 +67,11 @@ def main():
         else:
             result = mc.reconcile(root)
     except (OSError, ValueError) as exc:
+        if args.group in {"doctor", "status"}:
+            print(json.dumps({"exit": 2, "applied": False, "findings": [{"code": "unavailable_input", "component": "doctor",
+                "scope": "explicit input", "next_action": "Inspect the explicitly selected local JSON inputs and retry.",
+                "cause": type(exc).__name__}]}))
+            return 2
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, sort_keys=True, indent=2))  # ASCII-escaped: safe in any console code page
