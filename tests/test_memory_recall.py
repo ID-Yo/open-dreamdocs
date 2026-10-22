@@ -98,6 +98,13 @@ class RecallTests(unittest.TestCase):
         self.assertIn("Run the focused test before the full suite.", result["context"])
         self.assertIn("Claude found the focused test flaky", result["context"])
 
+    def test_non_ascii_words_match(self):
+        self.fact("fact-bg", "Сборката изисква кеш за тестовете.")
+        self.fact("fact-en", "Deploy uses the release pipeline.")
+        result = mr.recall(self.root, query="Защо сборката е бавна?")
+        self.assertEqual((result["status"], self.ids(result)), ("ok", ["fact-bg"]))
+
+
     def test_no_match_is_distinct_from_empty(self):
         self.fact("fact-build", "The build uses the standard suite.")
         result = mr.recall(self.root, query="kubernetes helm")
