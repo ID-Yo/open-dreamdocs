@@ -4,6 +4,12 @@ Maintain project memory and reduce repeated work. Do not summarize everything or
 
 ## Daily run
 
+When the project uses the [explicit executor workflow](../docs/operations/dreamer-execution.md),
+its wrapper already created the run. Do not call begin recursively. Record the explicit operator
+start, review the selected snapshot/evidence within budgets, and write only that run's result.
+Command executors return the result to the wrapper; the wrapper owns validation/finish/readback.
+Missing executor/auth/capacity or owner pause is blocked/unconfigured, never invented review.
+
 The project's scheduler starts this process once daily in local time. The package does not activate a scheduler. Each run holds an exclusive lock and starts from the last **successful** checkpoint.
 
 1. Run `python scripts/project_memory.py begin` after `validate`. If a lock is active, stop; do not automatically take it over.

@@ -14,6 +14,7 @@ import memory_capture as mc
 import memory_recall as mr
 import memory_health as mh
 import upgrade
+import dreamer_executor as de
 
 
 def positive(value):
@@ -27,6 +28,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".")
     groups = parser.add_subparsers(dest="group", required=True)
+    dreamer = groups.add_parser("dreamer", help="Explicit executor workflow; no schedule is enabled by default.").add_subparsers(dest="command", required=True)
+    for name in ("begin", "start", "finish", "run", "status"):
+        command = dreamer.add_parser(name)
+        if name != "status":
+            command.add_argument("--executor", required=True)
+        if name in {"start", "finish"}:
+            command.add_argument("--run-id", required=True)
+        if name == "run":
+            command.add_argument("--trigger", choices=["manual", "scheduled"], default="manual")
+            command.add_argument("--schedule-id")
+    schedule = dreamer.add_parser("schedule", help="Separately opt-in Windows scheduler; mutations require --apply.")
+    schedule.add_argument("action", choices=["install", "status", "disable", "remove"])
+    schedule.add_argument("--apply", action="store_true")
     update = groups.add_parser("upgrade", aliases=["update"], help="Plan or apply an explicitly selected, independently pinned offline package.")
     update.add_argument("--source", required=True)
     update.add_argument("--revision", required=True, help="Independently reviewed upstream revision (40 hexadecimal characters).")
@@ -62,7 +76,21 @@ def main():
     args = parser.parse_args()
     root = Path(args.root).resolve()
     try:
-        if args.group in {"upgrade", "update"}:
+        if args.group == "dreamer":
+            if args.command == "schedule":
+                import dreamer_schedule
+                result = dreamer_schedule.manage(root, args.action, args.apply)
+            elif args.command == "status":
+                result = de.status(root)
+            elif args.command == "begin":
+                result = de.begin(root, args.executor)
+            elif args.command == "start":
+                result = de.start(root, args.run_id, args.executor)
+            elif args.command == "finish":
+                result = de.finish(root, args.run_id, args.executor)
+            else:
+                result = de.run(root, args.executor, args.trigger, args.schedule_id)
+        elif args.group in {"upgrade", "update"}:
             if args.apply and args.dry_run:
                 raise ValueError("choose --apply or --dry-run")
             result = upgrade.update(root, args.source, args.manifest_sha256, args.revision, args.apply, args.from_version, args.client)

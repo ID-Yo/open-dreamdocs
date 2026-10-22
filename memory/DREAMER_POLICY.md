@@ -22,6 +22,11 @@ The snapshot contains selected records and a complete input manifest fixed at be
 
 Automatic writes are limited to `memory/dreamer/`: checkpoint, lock, snapshot, reports and proposals. Dreamer summarizes, categorizes and proposes facts, procedures, conflicts, duplicate markers or archiving with sources. It does not activate facts/methods, move or delete originals, or edit accepted documents, skills, code, configuration, deployments or external systems.
 
+The explicitly configured [executor wrapper](../docs/operations/dreamer-execution.md) additionally
+writes private operational receipts and installation identity under `.dreamdocs/`; these are not
+memory records or accepted facts. Optional Windows task registration/removal requires its separate
+explicit apply command. Neither operator selection nor a configured schedule silently enables it.
+
 The owner reviews proposals. An accepted proposal is recorded in the appropriate category or canonical documentation, and its status is noted in the proposal file. A new fact/procedure receives accepted_by and verification evidence. Routine daily organization does not require approval for every run.
 
 ## Lock, failure and recovery

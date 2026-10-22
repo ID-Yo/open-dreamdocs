@@ -298,7 +298,20 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
     configured = all(schedule.get(k) for k in ("timezone", "local_time", "owner"))
     dreamer = {"schedule": "configured_only" if configured else "unconfigured", "scheduler": "unverified", "executor": "unconfigured",
                "checkpoint": load("memory/dreamer/state.json"), "active_run": pm.confined(root, "memory/dreamer/lock.json").exists()}
-    finding("scheduler_unverified", "dreamer", "Scheduling/executor installation requires separate explicit opt-in (#21); configured fields are not runtime evidence.", "dreamer")
+    import dreamer_executor as de
+    if pm.confined(root, de.CONFIG).is_file():
+        observation = de.status(root)
+        dreamer["executor_observation"] = observation
+        dreamer["executor"] = observation["state"]
+        if observation["exit"]:
+            finding("executor_unverified", "dreamer", "Inspect explicit executor configuration and the last run/result/checkpoint readback; no live execution is inferred.", "dreamer")
+        import dreamer_schedule as ds
+        if pm.confined(root, ds.INSTALL).is_file():
+            scheduling = ds.manage(root, "status")
+            dreamer["scheduler_observation"] = scheduling
+            dreamer["scheduler"] = scheduling["state"]
+    if dreamer["scheduler"] != "observed_success":
+        finding("scheduler_unverified", "dreamer", "Scheduling requires separate explicit opt-in and live trigger/executor/checkpoint evidence; configured fields are not runtime proof.", "dreamer")
     result = {"exit": 2 if not evidence_valid or manifest_raw is not None and not manifest_valid else 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
               "clients": clients, "capture": {"readback": readback, "last_persisted_at": last, "receipts": len(receipts), "trigger_delivery": "unknown"},
               "dreamer": dreamer, "findings": findings, "notification": "local report only; no external reporting or background monitor",

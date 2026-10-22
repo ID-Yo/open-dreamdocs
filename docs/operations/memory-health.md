@@ -21,9 +21,10 @@ external task operation just to obtain a save.
 
 Receipt readback proves bytes persisted, including manual captures. It does not prove trigger
 delivery, client trust or fresh-session recall. Observations older than 24 hours are historical;
-doctor asks for a new check rather than inventing current health. Scheduler/executor health remains
-unverified until the separately authorized executor/scheduler work is implemented and observed;
-filled schedule fields only report `configured_only`. Owner-paused work is never resumed.
+doctor asks for a new check rather than inventing current health. When the [explicit executor](dreamer-execution.md)
+is configured, doctor includes its result/checkpoint readback and optional live installed-task
+observations. Missing/unconfigured/stale observations remain unverified; filled schedule fields
+only report `configured_only`. Owner-paused work is never resumed.
 
 `doctor --smoke` saves a unique synthetic value, reads it back and recalls it in a temporary isolated
 project that is removed afterwards. It proves the local memory engine only. Synthetic episodes,

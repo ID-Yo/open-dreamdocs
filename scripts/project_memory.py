@@ -387,11 +387,19 @@ def validate_result(snapshot, result):
             require(not set(refs) & pinned, "cannot propose automatic archival of pinned records")
 
 
-def finish(root, run_id):
+def finish(root, run_id, *, expected_result_sha256=None, evidence_hashes=None):
     with operation(root):
         snapshot, work = run_files(root, run_id)
-        result = read_json(work / "result.json")
+        result_bytes = (work / "result.json").read_bytes()
+        if expected_result_sha256 is not None:
+            require(digest(result_bytes) == expected_result_sha256, "executor result changed before finish")
+        result = json.loads(result_bytes, object_pairs_hook=unique_keys)
+        require(isinstance(result, dict), "expected result object")
         validate_result(snapshot, result)
+        def evidence_unchanged():
+            for path, sha in (evidence_hashes or {}).items():
+                require(digest(confined(root, path).read_bytes()) == sha, "executor evidence changed: " + path)
+        evidence_unchanged()
         require(input_manifest(root, records(root)) == snapshot["manifest"], "input changed during run; abort and retry without advancing checkpoint")
         proposal_ids = []
         if result["status"] == "success":
@@ -404,9 +412,13 @@ def finish(root, run_id):
                     atomic(path, {"id": proposal_id, "status": "proposed", "created_at": now(), "run_id": run_id, **normalized})
         report = {**result, "started_at": snapshot["started_at"], "finished_at": now(), "proposal_ids": proposal_ids}
         atomic(runtime(root, "reports/" + run_id + ".json"), report)
+        require(read_json(runtime(root, "reports/" + run_id + ".json")) == report, "report readback mismatch")
         if result["status"] == "success":
             require(input_manifest(root, records(root)) == snapshot["manifest"], "input changed before checkpoint; retry")
-            atomic(runtime(root, "state.json"), {"version": 1, "last_successful_at": snapshot["started_at"], "completed_at": report["finished_at"], "last_run_id": run_id, "source_hashes": snapshot["manifest"]})
+            evidence_unchanged()
+            state = {"version": 1, "last_successful_at": snapshot["started_at"], "completed_at": report["finished_at"], "last_run_id": run_id, "source_hashes": snapshot["manifest"]}
+            atomic(runtime(root, "state.json"), state)
+            require(read_json(runtime(root, "state.json")) == state, "checkpoint readback mismatch")
         runtime(root, "lock.json").unlink()
         return {"run_id": run_id, "status": result["status"], "checkpoint_advanced": result["status"] == "success", "proposals": len(proposal_ids)}
 

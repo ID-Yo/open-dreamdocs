@@ -12,6 +12,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Daily Dreamer policy](../memory/DREAMER_POLICY.md)
 - [Settings](../memory/config.json)
 - [Dreamer setup](operations/dreamer-setup.md)
+- [Explicit Dreamer executor and optional Windows schedule](operations/dreamer-execution.md)
 - [Original human materials and recursive index](../human-materials/README.md)
 - [Adopting Dreamdocs and optional companion](operations/adopting-dreamdocs.md)
 - [Reusable GitHub labels and import procedure](operations/github-labels.md)

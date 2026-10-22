@@ -1,5 +1,10 @@
 # Validation and Dreamer Lifecycle
 
+`dreamdocs.py dreamer begin/start/finish/run/status` uses [dreamer_executor.py](dreamer_executor.py)
+for an explicitly configured operator/command and observed result/checkpoint readback. The optional
+[Windows scheduler](dreamer_schedule.py) needs a separate explicit `dreamer schedule install --apply`;
+manual mode installs nothing. See [execution configuration and limits](../docs/operations/dreamer-execution.md).
+
 [documentation_refresh.py](documentation_refresh.py) prepares/checks private documentation proposals
 from exact accepted task/source revisions, with status/index candidates and authorized coverage-only
 material inventory. It never applies canonical edits or reads originals. See the [refresh contract](../docs/operations/documentation-refresh.md).

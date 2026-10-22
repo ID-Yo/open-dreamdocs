@@ -1,5 +1,11 @@
 # Tests
 
+Dreamer executor tests cover explicit operator/command identity, real process/CLI execution,
+budgets/timeout and owned descendant cleanup, shared locks, failed/partial/stale results and
+checkpoint interruption/readback. Scheduler tests simulate opt-in install/duplicates/disable/remove,
+pause/denial/timezone changes, bounded catch-up and trigger+executor+checkpoint correlation. These
+simulations do not prove actual Windows scheduled-trigger acceptance or semantic review.
+
 Documentation refresh tests cover accepted candidate/source binding, independent acceptance,
 stale/rolled-back evidence, owner target limits, private immutable sidecars, routing/status/history,
 Dreamer committed-checkpoint linkage, concurrent edits and material add/move/remove/partial/failed
