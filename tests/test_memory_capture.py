@@ -211,6 +211,18 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(self.files("memory/automation/pending"), [])
 
 
+    def test_malformed_pending_file_is_isolated_and_reported(self):
+        bad = self.root / "memory/automation/pending/bad.json"
+        bad.parent.mkdir(parents=True, exist_ok=True)
+        bad.write_text("not json", encoding="utf-8")
+        result = mc.capture(self.root, EVENT)
+        self.assertTrue(result["saved"])
+        self.assertEqual([(u["pending"], u["decision"]) for u in result["unpublished"]], [("bad.json", "invalid")])
+        reconciled = mc.reconcile(self.root)
+        self.assertEqual((reconciled["exit"], [u["pending"] for u in reconciled["unpublished"]]), (2, ["bad.json"]))
+        self.assertTrue(bad.exists())
+
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)

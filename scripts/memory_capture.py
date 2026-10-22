@@ -164,8 +164,13 @@ def session(root, own):
     items, results, unpublished = pm.records(root), {}, []
     plans = []
     for path in pending_files(root):
-        plan = pm.read_json(path)
-        pm.require(set(plan) == PLAN_FIELDS and plan.get("version") == 1, f"invalid pending capture {path.name}")
+        try:
+            plan = pm.read_json(path)
+            pm.require(set(plan) == PLAN_FIELDS and plan.get("version") == 1, "invalid fields")
+        except (ValueError, OSError):
+            unpublished.append({"event_id": None, "pending": path.name, "decision": "invalid",
+                                "findings": [f"unreadable pending capture {path.name}; left in place"]})
+            continue
         plans.append((plan, path))
     own_result = None
     if own is not None:
@@ -184,7 +189,7 @@ def session(root, own):
         results[plan["event_id"]] = (decision, findings)
         if decision in {"conflict", "invalid"}:
             if path is not None:
-                unpublished.append({"event_id": plan["event_id"], "decision": decision, "findings": findings})
+                unpublished.append({"event_id": plan["event_id"], "pending": path.name, "decision": decision, "findings": findings})
             continue
         if plan["episode"] is not None:
             items.append({"metadata": pm.metadata(plan["episode"])})
