@@ -137,8 +137,8 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         meta = r["meta"]
         sources = [source_status(root, ref, meta, by_id) for ref in meta["source"]]
         body = r["body"] if len(r["body"]) <= BODY_LIMIT else r["body"][:BODY_LIMIT] + " [truncated]"
-        cited = ", ".join(f"{json.dumps(s['ref'], ensure_ascii=False)} ({s['status']})" for s in sources)
-        quoted = "\n".join("| " + line for line in body.split("\n"))  # record text can never start a header line
+        cited = ", ".join(f"{json.dumps(s['ref'])} ({s['status']})" for s in sources)
+        quoted = "\n".join("| " + line for line in body.splitlines())  # splits on every line break, so record text never starts a line
         entry = neutral(f"\n[{label(r, disputes)}] {meta['id']} ({json.dumps(r['path'])}, created {meta['created_at']})\n"
                         f"sources: {cited}\n{quoted}\n")
         if used + len(entry) > max_chars:
