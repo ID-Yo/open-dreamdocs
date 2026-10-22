@@ -179,10 +179,11 @@ class HealthTests(unittest.TestCase):
         self.assertFalse(mc.capture(self.root, event)["saved"])
 
     def test_invalid_evidence_shapes_are_structured_and_never_written(self):
-        for value in ([], {}, {"version": 1, "clients": []}, {"version": 1, "clients": None},
+        for value in (None, [], {}, {"version": 1, "clients": []}, {"version": 1, "clients": None},
+                      {"version": 1, "clients": {"codex": {"trust": {"unexpected": 1}}}},
                       {"version": 1, "clients": {"codex": []}}, {"version": 1, "clients": {"codex": {"trust": None}}}):
             before = self.snapshot()
-            result = mh.doctor(self.root, fix=True, evidence=value)
+            result = mh.doctor(self.root, fix=True, evidence=(value, True))
             self.assertIn("invalid_evidence", self.codes(result))
             self.assertEqual(result["exit"], 2)
             self.assertFalse(result["applied"])

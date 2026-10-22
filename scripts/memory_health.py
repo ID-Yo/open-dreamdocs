@@ -84,6 +84,9 @@ def observed(root, entry, kind, record, installed_at, receipts):
 
 
 def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
+    evidence_supplied = False
+    if isinstance(evidence, tuple) and len(evidence) == 2:
+        evidence, evidence_supplied = evidence
     root = Path(root).resolve()
     findings, clients, receipts = [], {}, {}
 
@@ -225,13 +228,16 @@ def doctor(root, fix=False, smoke=False, evidence=None, checkpoints=None):
                 matched = False
         if not matched:
             finding("missing_save", task.get("task_id", "unknown"), "Reconcile the authoritative task outcome with its event/receipt; retry exact local capture only. Never repeat an uncertain external operation.", "continuity")
-    evidence_valid = (evidence is None or isinstance(evidence, dict) and set(evidence) == {"version", "clients"}
+    TRUST_KEYS = {"kind", "observed_at", "client_version", "command_sha256", "source", "sha256"}
+    RECALL_KEYS = TRUST_KEYS | {"client", "event_id", "marker", "capture_session", "recall_session"}
+    is_valid_obs = lambda k, v: isinstance(v, dict) and set(v) == (TRUST_KEYS if k == "trust" else RECALL_KEYS)
+    evidence_valid = (not evidence_supplied or (isinstance(evidence, dict) and set(evidence) == {"version", "clients"}
                       and type(evidence["version"]) is int and evidence["version"] == 1 and isinstance(evidence["clients"], dict)
                       and set(evidence["clients"]) <= set(install.CLIENTS)
-                      and all(isinstance(v, dict) and set(v) <= {"trust", "recall"} and all(isinstance(o, dict) for o in v.values()) for v in evidence["clients"].values()))
+                      and all(isinstance(v, dict) and set(v) <= {"trust", "recall"} and all(is_valid_obs(k, o) for k, o in v.items()) for v in evidence["clients"].values())))
     if not evidence_valid:
         finding("invalid_evidence", "evidence", "Supply version 1 with a clients object and per-client trust/recall observation objects. No metadata was written.", "doctor")
-    supplied = evidence["clients"] if evidence is not None and evidence_valid else {}
+    supplied = evidence["clients"] if evidence_supplied and evidence_valid else {}
     for client, record in manifest.get("clients", {}).items():
         if client not in install.CLIENTS or not isinstance(record, dict):
             finding("unknown_adapter", client, "Install a supported adapter or remove the invalid manifest entry explicitly.", "adapter")
