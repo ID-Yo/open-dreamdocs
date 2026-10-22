@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 from datetime import datetime, timezone, timedelta
 from urllib.parse import unquote, urlsplit
@@ -24,6 +25,11 @@ STATUSES = {
 }
 KINDS = {"fact", "procedure", "contradiction", "duplicate", "archive"}
 IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,99}\Z")
+# Managed template surface; everything else in an adopted project is out of scope.
+MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts", "tests")
+MANAGED_FILES = ("LICENSE", ".gitignore", "human-materials/README.md", "human-materials/.gitignore")
+PRUNE = {".git", ".hg", ".svn", "node_modules", ".venv", "venv", "__pycache__", ".pytest_cache", ".mypy_cache",
+         ".tox", "build", "dist", "target", ".next", "work"}
 
 
 class MemoryError(ValueError):
@@ -81,6 +87,53 @@ def unique_keys(pairs):
     return result
 
 
+def linked(path):
+    info = os.lstat(path)
+    return stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) == stat.IO_REPARSE_TAG_MOUNT_POINT
+
+
+def listing(root, folder):
+    try:
+        with os.scandir(folder) as entries:
+            return sorted(entries, key=lambda entry: entry.name)
+    except PermissionError as exc:
+        raise MemoryError(f"permission denied in managed path: {folder.relative_to(root).as_posix() or '.'}") from exc
+
+
+def walk(root, top):
+    """List a managed folder; prune dependency/VCS/build/runtime trees and nested repositories before listing them."""
+    folders, files, stack = [], [], [top]
+    while stack:
+        folder = stack.pop()
+        folders.append(folder)
+        for entry in listing(root, folder):
+            path = Path(entry.path)
+            if entry.name in PRUNE:
+                continue
+            require(not linked(path), f"linked path: {path.relative_to(root).as_posix()}")
+            if entry.is_dir(follow_symlinks=False):
+                if not (path / ".git").exists():
+                    stack.append(path)
+            elif entry.is_file(follow_symlinks=False):
+                files.append(path)
+    return sorted(folders), sorted(files)
+
+
+def managed_files(root):
+    """Explicit bounded manifest: root Markdown and package files, managed folders and the human-materials index."""
+    files = []
+    for entry in listing(root, root):
+        if entry.name.endswith(".md") or entry.name in MANAGED_FILES:
+            require(not linked(Path(entry.path)), f"linked path: {entry.name}")
+            if entry.is_file(follow_symlinks=False):
+                files.append(Path(entry.path))
+    for name in MANAGED_DIRS:
+        if confined(root, name).is_dir():
+            files += walk(root, root / name)[1]
+    files += [confined(root, name) for name in MANAGED_FILES if "/" in name and confined(root, name).is_file()]
+    return sorted(files)
+
+
 def atomic(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
@@ -109,9 +162,8 @@ def record_files(root, archive=True):
     for category in categories:
         folder = confined(root, f"memory/{category}")
         require(folder.is_dir(), f"missing memory/{category}")
-        for path in sorted(folder.rglob("*")):
-            confined(root, path.relative_to(root).as_posix())
-            if path.is_file() and path.suffix == ".md" and path.name != "README.md":
+        for path in walk(root, folder)[1]:
+            if path.suffix == ".md" and path.name != "README.md":
                 files.append((category, path))
     return files
 
@@ -195,10 +247,8 @@ def settings(root):
 
 def validate_links(root):
     checked = 0
-    for path in root.rglob("*.md"):
-        if any(p in {"work", "__pycache__", ".git"} for p in path.relative_to(root).parts):
-            continue
-        confined(root, path.relative_to(root).as_posix())
+    selected = {path for path in managed_files(root) if path.suffix == ".md"}
+    for path in sorted(selected):
         text = path.read_text(encoding="utf-8")
         text = re.sub(r"```.*?```", "", text, flags=re.S)
         for target in re.findall(r"\]\(([^)]+)\)", text):
@@ -207,7 +257,7 @@ def validate_links(root):
                 continue
             destination = (path.parent / unquote(url.path)).resolve() if url.path else path
             require(destination.is_relative_to(root) and destination.exists(), f"broken/outside link: {path.relative_to(root)} -> {target}")
-            if url.fragment and destination.suffix == ".md":
+            if url.fragment and destination in selected:
                 headings = re.findall(r"^#+\s+(.+)$", destination.read_text(encoding="utf-8"), re.M)
                 anchors = {re.sub(r"[^\w\- ]", "", h.lower()).replace(" ", "-") for h in headings}
                 require(unquote(url.fragment) in anchors, f"broken anchor: {target}")
@@ -219,9 +269,9 @@ def validate(root):
     cfg = settings(root)
     items = records(root)
     folders = [root / name for name in ("memory", "templates", "examples", "prompts", "scripts", "tests")]
-    folders += [folder for base in (root / "docs", root / "memory") for folder in base.rglob("*") if folder.is_dir()]
+    folders += [folder for name in ("docs", "memory") if confined(root, name).is_dir() for folder in walk(root, root / name)[0]]
     for folder in folders:
-        if folder.is_dir() and not any(p in {"work", "__pycache__", ".git"} for p in folder.relative_to(root).parts):
+        if folder.is_dir():
             require((folder / "README.md").is_file() or folder == root / "docs", f"folder needs README: {folder.relative_to(root)}")
     state = read_json(confined(root, "memory/dreamer/state.json"), {})
     if state:
