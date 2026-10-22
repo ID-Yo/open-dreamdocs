@@ -15,6 +15,12 @@ python -B scripts/dreamdocs.py memory reconcile
 
 `capture` checks the event, then under the writer lock shared with Dreamer writes the episode, reads it back, writes the receipt and reads it back; only then is `saved` true. Replaying the same bytes returns `duplicate`. If the lock is busy past the budget or a Dreamer run is active, the checked capture is queued in `memory/automation/pending/` (exit 1, not saved) and published by the next capture or by `reconcile`. Write failures return `error` (exit 2) and never report saved. Refused events (`reject`, `invalid`) write nothing; the exit code and findings report them without echoing event content. Call `capture` at `Stop`; at `SessionEnd` keep the default 1000 ms budget so the hook finishes inside a 1.5 s limit. No client adapter calls these commands yet.
 
+```text
+python -B scripts/dreamdocs.py memory recall [--project ID] [--query TEXT] [--max-chars 4000] [--episodes 5]
+```
+
+`recall` is read-only. It prints JSON with `status` (`ok`, `no_match`, `empty` or `unavailable`), the selected items with record and source hashes and source status, findings for skipped invalid records, and `context`: a block of at most `--max-chars` characters framed as untrusted data, for a `SessionStart` or `UserPromptSubmit` hook to inject. The project comes from `--project` or `memory/automation.json`. Exit 0 for ok, no match and empty; exit 4 when the store or project scope is unavailable. Adapters must treat a nonzero exit as non-blocking. Measured on Windows with Python 3.13: a CLI call takes about 0.3 s for 50 records and 0.5 s for 400 once files have been opened before; the first read of freshly written files can take over 1 s because of antivirus scanning.
+
 [task_continuity.py](task_continuity.py) audits an explicitly named private task
 snapshot: `python -B scripts/task_continuity.py --file PATH`. Exit 0 means consistent
 reported metadata; exit 1 means findings or unreadable input. It never dispatches,

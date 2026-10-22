@@ -14,6 +14,7 @@
 
 [Dreamer policy](DREAMER_POLICY.md) is the single contract for automatic changes. [config.json](config.json) contains only the daily schedule and optional episode review interval. Null means an unset setting or no deadline. There is no universal TTL.
 Automatic capture writes only episodes and receipts under the [automation contract](../docs/operations/automation-contract.md).
+`python -B scripts/dreamdocs.py memory recall` reads relevant records for a session or prompt; see [Retrieval](SCHEMA.md#retrieval).
 
 After meaningful work, record an episode only if it will help future work. Do not record the entire conversation. A new memory type requires a description, README and schema/validator changes; creating a folder does not automatically include it in Dreamer.
 

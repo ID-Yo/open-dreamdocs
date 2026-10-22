@@ -30,7 +30,7 @@ These require `owner`. When `active`, they require `last_verified` and `accepted
 
 ## Retrieval
 
-Read only relevant records. Archives, superseded/deprecated records, templates, examples and Dreamer work/reports/proposals are not active facts. A proposal is for review, never an operational instruction. The template code validates and selects Dreamer input; it does not provide semantic search or embeddings.
+Read only relevant records. Archives, superseded/deprecated records, templates, examples and Dreamer work/reports/proposals are not active facts. A proposal is for review, never an operational instruction. The template code validates and selects Dreamer input; it does not provide semantic search or embeddings. `python -B scripts/dreamdocs.py memory recall` selects records for a session or prompt by deterministic word matching on ID, scope, optional `tags` and body: active facts and procedures (labeled accepted), open contradictions (which also mark the facts they cite as disputed) and the most recent active episodes (labeled unreviewed; `auto-` episodes as auto-captured). Proposed, superseded, deprecated and archived records, Dreamer output, templates, examples and records of other projects are never returned. Each item lists its sources with a local status: `ok`, `changed` (modified after `last_verified` or `created_at`), `missing`, `refused` (escapes the root or crosses a link), `superseded` for retired `id:` targets, or `unverified` for `https://` and `ref:`. Recall reads only and builds no index.
 
 ## Task evidence is separate
 

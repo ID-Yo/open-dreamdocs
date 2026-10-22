@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dreamdocs command entry point: memory capture and reconcile. Setup (#15) extends it."""
+"""Dreamdocs command entry point: memory capture, reconcile and recall. Setup (#15) extends it."""
 from __future__ import annotations
 
 import argparse
@@ -10,6 +10,14 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import memory_capture as mc
+import memory_recall as mr
+
+
+def positive(value):
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be positive")
+    return number
 
 
 def main():
@@ -21,12 +29,19 @@ def main():
     capture.add_argument("--event", required=True)
     capture.add_argument("--budget-ms", type=int, default=1000, help="Wait at most this long for the writer lock, then queue.")
     memory.add_parser("reconcile", help="Publish queued captures once the writer lock is free.")
+    recall = memory.add_parser("recall", help="Print relevant project memory as bounded, untrusted context.")
+    recall.add_argument("--project", help="Project ID; defaults to memory/automation.json.")
+    recall.add_argument("--query", default="", help="Session or prompt text used for deterministic matching.")
+    recall.add_argument("--max-chars", type=positive, default=4000)
+    recall.add_argument("--episodes", type=positive, default=5)
     args = parser.parse_args()
     root = Path(args.root).resolve()
     try:
         if args.command == "capture":
             event = json.loads(Path(args.event).read_text(encoding="utf-8"))
             result = mc.capture(root, event, max(args.budget_ms, 0) / 1000)
+        elif args.command == "recall":
+            result = mr.recall(root, args.project, args.query, args.max_chars, args.episodes)
         else:
             result = mc.reconcile(root)
     except (OSError, ValueError) as exc:

@@ -16,7 +16,8 @@ python -B scripts/automation_contract.py --root . --event EVENT.json
 It validates one event, prints the decision and planned identifiers, and writes
 nothing. Machine-readable cases live in [tests/fixtures/automation](../../tests/fixtures/automation/).
 The writer is `python -B scripts/dreamdocs.py memory capture --event FILE` (#16),
-with a `reconcile` command for queued captures; no client adapter calls it yet.
+with a `reconcile` command for queued captures, and `memory recall` (#17) returns bounded,
+untrusted context for session start and prompts; no client adapter calls them yet.
 The event shape is also published as [outcome-event.schema.json](../../templates/outcome-event.schema.json).
 
 ## Lifecycle
