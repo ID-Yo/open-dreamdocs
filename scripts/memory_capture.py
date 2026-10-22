@@ -168,12 +168,27 @@ def pending_files(root):
 
 
 def queue(root, plan):
-    path = ensure(root, PENDING) / f"{plan['event_id']}.json"
-    if path.exists():
-        if pm.read_json(path).get("payload_sha256") != plan["payload_sha256"]:
-            raise Conflict("a different payload with this identity is already pending")
-        return
-    pm.atomic(path, plan)
+    """Create the pending file complete or not at all; a second writer for the same ID compares payloads."""
+    folder = ensure(root, PENDING)
+    path = folder / f"{plan['event_id']}.json"
+    temporary = folder / f".{path.name}.{uuid.uuid4().hex}.tmp"
+    try:
+        atomic_text(temporary, pm.canonical(plan))
+        for _ in range(3):
+            try:
+                os.link(temporary, path)  # fails if another writer queued this ID first
+                return
+            except FileExistsError:
+                try:
+                    existing = pm.read_json(path)
+                except FileNotFoundError:
+                    continue  # drained meanwhile; try again
+                if existing.get("payload_sha256") != plan["payload_sha256"]:
+                    raise Conflict("a different payload with this identity is already pending")
+                return
+        raise OSError("pending capture kept changing; not queued")
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def session(root, own):

@@ -242,6 +242,22 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(len(self.episodes()), 6)
 
 
+    def test_racing_queue_writers_with_different_payloads_yield_one_queued_and_one_conflict(self):
+        self.hold_lock()
+        for round_ in range(5):
+            variants = [event(turn_id=f"race-{round_}", outcome={"summary": f"Variant {v}."}) for v in "ab"]
+            processes = []
+            for v, value in zip("ab", variants):
+                path = self.root / f"race-{round_}-{v}.json"
+                path.write_text(json.dumps(value), encoding="utf-8")
+                processes.append(subprocess.Popen(CLI + ["--root", str(self.root), "memory", "capture", "--event", str(path), "--budget-ms", "0"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
+            results = [json.loads(p.communicate(timeout=60)[0]) for p in processes]
+            self.assertEqual(sorted(r["decision"] for r in results), ["conflict", "queued"], results)
+            winner = variants[[r["decision"] for r in results].index("queued")]
+            pending = pm.read_json(self.root / "memory/automation/pending" / f"{ac.event_id(winner)}.json")
+            self.assertEqual(pending["payload_sha256"], ac.check(winner, None)["payload_sha256"])
+
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)
