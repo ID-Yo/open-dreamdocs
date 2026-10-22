@@ -271,6 +271,8 @@ def capture(root, event, budget=1.0):
                 if free:
                     results, unpublished = session(root, own)
                     decision, findings = results[own["event_id"]]
+                    if decision == "duplicate":  # no receipt at the first check: another writer published these bytes while we waited
+                        decision, findings = own["decision"], ["published by another writer while this capture waited"]
                     return {**report, "decision": decision, "exit": outcome_exit(decision, own["outcome"]),
                             "saved": decision not in {"invalid", "conflict"}, "findings": findings,
                             "unpublished": [u for u in unpublished if u["event_id"] != own["event_id"]]}

@@ -223,6 +223,25 @@ class CaptureTests(unittest.TestCase):
         self.assertTrue(bad.exists())
 
 
+    def test_waiting_writers_report_their_real_outcome_when_another_writer_publishes_them(self):
+        lock = self.hold_lock()
+        values = [event(turn_id=f"failed-{i}", outcome={"status": "failed", "summary": f"Attempt {i} failed.", "lessons": []}) for i in range(6)]
+        processes = []
+        for i, value in enumerate(values):
+            path = self.root / f"failed-{i}.json"
+            path.write_text(json.dumps(value), encoding="utf-8")
+            processes.append(subprocess.Popen(CLI + ["--root", str(self.root), "memory", "capture", "--event", str(path), "--budget-ms", "20000"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
+        deadline = time.monotonic() + 15
+        while len(self.files("memory/automation/pending")) < len(values) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        lock.unlink()
+        for process in processes:
+            out, err = process.communicate(timeout=60)
+            result = json.loads(out)
+            self.assertEqual((process.returncode, result["decision"], result["saved"]), (1, "capture_episode", True), err)
+        self.assertEqual(len(self.episodes()), 6)
+
+
     def test_missing_binding_writes_nothing(self):
         (self.root / "memory/automation.json").unlink()
         result = mc.capture(self.root, EVENT)
