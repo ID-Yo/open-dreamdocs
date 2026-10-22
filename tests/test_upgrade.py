@@ -8,6 +8,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 sys.dont_write_bytecode = True
@@ -134,6 +135,11 @@ class UpgradeTests(unittest.TestCase):
             if path.startswith(("docs/", "memory/", "human-materials/")) or path == "PROJECT.md":
                 self.assertEqual((legacy / path).read_bytes(), data, path)
         self.assertTrue((legacy / "scripts/dreamdocs.py").exists())
+        self.assertTrue(pm.validate(legacy)["ok"])
+        checked = subprocess.run([sys.executable, "-B", str(legacy / "scripts/project_memory.py"), "--root", str(legacy), "validate"], capture_output=True, timeout=30)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        owner_readme = legacy / "memory/automation/receipts/README.md"
+        owner_readme.write_bytes(owner_readme.read_bytes() + b"\nOwner receipt retention notes must survive rollback.\n")
         new_event = copy.deepcopy(EVENT)
         new_event["project_id"] = pm.read_json(legacy / "memory/automation.json")["project_id"]
         mc.capture(legacy, new_event)
@@ -144,6 +150,72 @@ class UpgradeTests(unittest.TestCase):
         self.assertFalse((legacy / "scripts/dreamdocs.py").exists())
         for path, data in captured.items():
             self.assertEqual((legacy / path).read_bytes(), data)
+        self.assertTrue(pm.validate(legacy)["ok"])
+        checked = subprocess.run([sys.executable, "-B", str(legacy / "scripts/project_memory.py"), "--root", str(legacy), "validate"], capture_output=True, timeout=30)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+
+    def test_upgrade_preserves_existing_user_runtime_readmes_and_validates_before_claiming_version(self):
+        for name in ("memory/automation/README.md", "memory/automation/receipts/README.md"):
+            (self.root / name).write_bytes(b"# Owner notes\n\nKeep these exact user notes.\n")
+        result = self.run_upgrade(apply=True)
+        self.assertEqual(result["exit"], 0, result)
+        for name in ("memory/automation/README.md", "memory/automation/receipts/README.md"):
+            self.assertEqual((self.root / name).read_bytes(), b"# Owner notes\n\nKeep these exact user notes.\n")
+        self.assertTrue(pm.validate(self.root)["ok"])
+        self.assertEqual(upgrade.rollback(self.root, result["backup"], apply=True)["exit"], 0)
+        for name in ("memory/automation/README.md", "memory/automation/receipts/README.md"):
+            self.assertEqual((self.root / name).read_bytes(), b"# Owner notes\n\nKeep these exact user notes.\n")
+
+    def test_new_validator_failure_keeps_previous_installed_version_and_recoverable_journal(self):
+        before = (self.root / install.MANIFEST).read_bytes()
+        with patch.object(upgrade.pm, "validate", side_effect=pm.MemoryError("injected full-target validation failure")):
+            result = self.run_upgrade(apply=True)
+        self.assertEqual((result["exit"], result["applied"]), (5, False))
+        self.assertEqual((self.root / install.MANIFEST).read_bytes(), before)
+        self.assertEqual(pm.read_json(self.root / result["backup"] / "journal.json")["state"], "interrupted")
+
+    def test_new_zip_cli_upgrades_genuine_legacy_then_rolls_back_with_valid_new_memory_scaffold(self):
+        fixture = subprocess.run(["git", "-C", str(ROOT), "cat-file", "-e", LEGACY + "^{commit}"], capture_output=True, timeout=10)
+        if fixture.returncode:
+            self.skipTest("History-free package has no v1.4.0 archive fixture; full Git-source upgrade roundtrip remains required.")
+        legacy = Path(self.temp.name) / "legacy-cli"
+        legacy.mkdir()
+        raw = subprocess.run(["git", "archive", LEGACY], cwd=ROOT, capture_output=True, check=True, timeout=30).stdout
+        with tarfile.open(fileobj=io.BytesIO(raw)) as stream:
+            stream.extractall(legacy, filter="data")
+        package = Path(self.temp.name) / "new-package.zip"
+        with zipfile.ZipFile(package, "w") as archive:
+            for path in self.source.rglob("*"):
+                if path.is_file():
+                    archive.write(path, path.relative_to(self.source).as_posix())
+        extracted = Path(self.temp.name) / "new-extracted"
+        with zipfile.ZipFile(package) as archive:
+            archive.extractall(extracted)
+        (legacy / "scripts/README.md").write_bytes(b"# Owner script guidance\n\nKeep this customized guidance.\n")
+        before_config = (legacy / "memory/config.json").read_bytes()
+        def cli(*args):
+            result = subprocess.run([sys.executable, "-B", str(extracted / "scripts/dreamdocs.py"), "--root", str(legacy), *args], capture_output=True, timeout=60)
+            return result.returncode, json.loads(result.stdout)
+        code, applied = cli("upgrade", "--source", str(extracted), "--revision", "a" * 40, "--manifest-sha256", self.pin,
+                            "--from-version", "v1.4.0", "--client", "codex", "--apply")
+        self.assertEqual(code, 0, applied)
+        self.assertTrue(applied["applied"])
+        self.assertEqual((legacy / "scripts/README.md").read_bytes(), b"# Owner script guidance\n\nKeep this customized guidance.\n")
+        for phase in ("upgraded", "rolled_back"):
+            checked = subprocess.run([sys.executable, "-B", str(legacy / "scripts/project_memory.py"), "--root", str(legacy), "validate"], capture_output=True, timeout=30)
+            self.assertEqual(checked.returncode, 0, (phase, checked.stderr))
+            if phase == "upgraded":
+                event = copy.deepcopy(EVENT)
+                event["project_id"] = pm.read_json(legacy / "memory/automation.json")["project_id"]
+                self.assertTrue(mc.capture(legacy, event)["saved"])
+                notes = legacy / "memory/automation/README.md"
+                notes.write_bytes(notes.read_bytes() + b"\nOwner notes created after upgrade.\n")
+                code, reverted = cli("rollback", "--backup", applied["backup"], "--apply")
+                self.assertEqual(code, 0, reverted)
+        self.assertIn(b"Owner notes created after upgrade", (legacy / "memory/automation/README.md").read_bytes())
+        self.assertTrue(list((legacy / "memory/automation/receipts").glob("*.json")))
+        self.assertTrue(list((legacy / "memory/episodes").glob("auto-*.md")))
+        self.assertEqual((legacy / "memory/config.json").read_bytes(), before_config)
 
     def test_no_space_or_write_failure_leaves_recoverable_journal_without_claiming_version(self):
         before_manifest = (self.root / install.MANIFEST).read_bytes()

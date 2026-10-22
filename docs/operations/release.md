@@ -38,10 +38,10 @@ hashes. Hash agreement is integrity, not publisher authentication; get the expec
 revision and manifest pin independently from the trusted release/owner record.
 
 Run the full suite in both the exact Git source and a fresh extraction of the generated ZIP.
-The ZIP intentionally contains no Git history, so the single legacy-upgrade test requiring
+The ZIP intentionally contains no Git history, so legacy-upgrade tests requiring
 `git archive 26c7aff57be6ffb4ccd6287c979e3782a0a19b2a` explicitly skips when that external
-historical fixture is unavailable. This skip is not upgrade acceptance: the full Git-source run
-must exercise it before release. All other tests, setup assets, clean memory/config and link/schema
+historical fixture is unavailable. These skips are not upgrade acceptance: the full Git-source run
+must exercise them before release. All other tests, setup assets, clean memory/config and link/schema
 checks must pass from the extracted artifact. Record pass/skip counts separately.
 
 Audit scope is bounded to 20,000 reachable objects, 4 MiB per history blob and 100 MB overall;

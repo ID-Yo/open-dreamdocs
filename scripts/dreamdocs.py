@@ -51,6 +51,9 @@ def main():
     update.add_argument("--client", action="append", choices=sorted(install.CLIENTS))
     bundle = groups.add_parser("bundle-manifest", help="Print a publisher-side package inventory; self-declared hashes are not source authentication.")
     bundle.add_argument("--revision", required=True)
+    rollback = groups.add_parser("rollback", help="Plan or restore one private upgrade transaction while preserving later memory.")
+    rollback.add_argument("--backup", required=True, help="Exact project-relative .dreamdocs/backups/<transaction> directory.")
+    rollback.add_argument("--apply", action="store_true")
     doctor = groups.add_parser("doctor", aliases=["status"], help="Report memory health; read-only unless --fix is explicit.")
     doctor.add_argument("--fix", action="store_true", help="Update install evidence metadata only; never remove locks or queued data.")
     doctor.add_argument("--smoke", action="store_true", help="Write/read/recall synthetic data in an isolated temporary project.")
@@ -94,6 +97,8 @@ def main():
             if args.apply and args.dry_run:
                 raise ValueError("choose --apply or --dry-run")
             result = upgrade.update(root, args.source, args.manifest_sha256, args.revision, args.apply, args.from_version, args.client)
+        elif args.group == "rollback":
+            result = upgrade.rollback(root, args.backup, args.apply)
         elif args.group == "bundle-manifest":
             print(json.dumps(upgrade.bundle_manifest(root, args.revision), sort_keys=True, indent=2))
             return 0

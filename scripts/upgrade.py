@@ -15,6 +15,8 @@ UPSTREAM = "https://github.com/ID-Yo/open-dreamdocs"
 RELEASE = "dreamdocs-release.json"
 BACKUPS = ".dreamdocs/backups"
 BASELINE = Path(__file__).parent / "releases/v1.4.0.json"
+COMPATIBILITY_SCAFFOLD = {"memory/automation/README.md", "memory/automation/receipts/README.md"}
+USER_GUIDANCE = {"scripts/README.md"}
 
 
 def bundle_manifest(source, revision):
@@ -33,7 +35,8 @@ def package_asset(relative):
     path = PurePosixPath(relative)
     if path.is_absolute() or any(p in {"..", "."} for p in path.parts) or path.as_posix() != relative:
         return False
-    return (len(path.parts) > 1 and path.parts[0] == "scripts" and path.suffix in {".py", ".json", ".md"}
+    return (relative in COMPATIBILITY_SCAFFOLD
+            or len(path.parts) > 1 and path.parts[0] == "scripts" and path.suffix in {".py", ".json", ".md"}
             or len(path.parts) > 1 and path.parts[0] == "adapters" and path.suffix in {".py", ".md"}
             or len(path.parts) == 2 and path.parts[0] == "templates" and path.name.endswith(".schema.json"))
 
@@ -62,6 +65,11 @@ def hash_bytes(value):
     return pm.digest(value) if value is not None else None
 
 
+def payload_path(backup, label, path, journal):
+    suffix = ".bin" if journal.get("payload_encoding") == "binary-v1" else ""
+    return f"{backup}/{label}/{path}{suffix}"
+
+
 def selected_source(source, expected_manifest, revision):
     source = Path(source).resolve()
     raw = pm.confined(source, RELEASE).read_bytes()
@@ -74,7 +82,7 @@ def selected_source(source, expected_manifest, revision):
                "selected source identity differs from the reviewed upstream/revision")
     pm.require(isinstance(data["package_version"], str) and bool(data["package_version"]), "missing package version")
     pm.require(isinstance(data["files"], dict) and all(package_asset(p) and isinstance(h, str) and re.fullmatch(r"[a-f0-9]{64}", h) for p, h in data["files"].items()), "invalid package-owned file map")
-    pm.require({"scripts/dreamdocs.py", "scripts/install.py", "scripts/project_memory.py", install.BLOCK_FILE} <= data["files"].keys(), "selected package is incomplete")
+    pm.require({"scripts/dreamdocs.py", "scripts/install.py", "scripts/project_memory.py", install.BLOCK_FILE, *COMPATIBILITY_SCAFFOLD} <= data["files"].keys(), "selected package is incomplete (required automation scaffolding missing)")
     files = {p: pm.confined(source, p).read_bytes() for p in data["files"]}
     pm.require(all(pm.digest(raw) == data["files"][p] for p, raw in files.items()), "selected package file checksum mismatch")
     tree = ast.parse(files["scripts/install.py"].decode("utf-8"))
@@ -138,8 +146,15 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
             if mode == "conflict":
                 report["conflicts"].append(f"Locally edited or unknown-base package asset: {path}. Preserve/merge it explicitly, then retry.")
 
+        package_files = {p: sha for p, sha in release["files"].items() if p not in COMPATIBILITY_SCAFFOLD | USER_GUIDANCE}
         for path in sorted(set(old_files) | set(incoming)):
-            action(path, incoming.get(path))
+            if path in COMPATIBILITY_SCAFFOLD | USER_GUIDANCE and read_bytes(root, path) is not None:
+                # Existing runtime notes and script guidance are user-owned. Do not install links
+                # to new canonical pages that a legacy project deliberately has not adopted.
+                before[path] = read_bytes(root, path)
+                report["actions"].append({"path": path, "action": "retained_user_data"})
+            else:
+                action(path, incoming.get(path), owned=path not in COMPATIBILITY_SCAFFOLD)
         for client, record in installed.get("clients", {}).items():
             pm.require(client in install.CLIENTS, "unknown installed client")
             path = install.CLIENTS[client]["hook_file"]
@@ -151,7 +166,7 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
         chosen = tuple(clients or installed.get("clients", {}) or ("codex",))
         pm.require(set(chosen) <= set(install.CLIENTS), "unknown client")
         setup_report, setup_writes, conflicts = install.plan(root, clients=chosen,
-            block_text=incoming[install.BLOCK_FILE].decode("utf-8"), package_files=release["files"])
+            block_text=incoming[install.BLOCK_FILE].decode("utf-8"), package_files=package_files)
         report["conflicts"] += [message for _, message in conflicts]
         manifest = json.loads(setup_writes[install.MANIFEST])
         manifest["package"] = {"version": release["package_version"], "revision": revision, "upstream": UPSTREAM, "manifest_sha256": expected_manifest}
@@ -163,7 +178,7 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
                        or path in {s[k] for s in install.CLIENTS.values() for k in ("hook_file", "ignore")}
                        or path in {f"{install.BACKUP}/{s['hook_file']}" for s in install.CLIENTS.values()}, "unexpected setup write path")
             action(path, text.encode("utf-8"), owned=False)
-        if installed.get("package", {}).get("manifest_sha256") == expected_manifest and not any(a["action"] not in {"unchanged"} for a in report["actions"] if a["path"] != install.MANIFEST):
+        if installed.get("package", {}).get("manifest_sha256") == expected_manifest and not any(a["action"] not in {"unchanged", "retained_user_data"} for a in report["actions"] if a["path"] != install.MANIFEST):
             report.update(exit=0, state="unchanged", actions=[a for a in report["actions"] if a["path"] != install.MANIFEST])
             return report
         report.update(source={"upstream": UPSTREAM, "revision": revision, "manifest_sha256": expected_manifest}, from_version=old_version,
@@ -184,7 +199,7 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
             ignore = read_bytes(root, ".dreamdocs/.gitignore") or b""
             if b"*" not in ignore.splitlines() and b"/backups/" not in ignore.splitlines():
                 atomic_bytes(pm.confined(root, ".dreamdocs/.gitignore"), ignore + (b"\n" if ignore and not ignore.endswith(b"\n") else b"") + b"/backups/\n")
-            journal = {"version": 1, "state": "staging", "source": report["source"], "from_version": old_version,
+            journal = {"version": 1, "payload_encoding": "binary-v1", "state": "staging", "source": report["source"], "from_version": old_version,
                        "to_version": release["package_version"], "created_at": pm.now(), "files": []}
             journal_path = pm.confined(root, backup + "/journal.json")
             report["backup"] = backup
@@ -194,16 +209,15 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
                     journal["files"].append(item)
                     for label, value in (("before", before[path]), ("after", data)):
                         if value is not None:
-                            atomic_bytes(pm.confined(root, f"{backup}/{label}/{path}"), value)
+                            atomic_bytes(pm.confined(root, payload_path(backup, label, path, journal)), value)
                 journal["state"] = "prepared"
                 pm.atomic(journal_path, journal)
                 # Claim the new installed version only after every other write and validation succeeded.
                 ordered = sorted(p for p in writes if p != install.MANIFEST) + [install.MANIFEST]
                 for path in ordered:
                     if path == install.MANIFEST:
-                        pm.settings(root)
-                        pm.records(root)
-                        pm.require(all(hash_bytes(read_bytes(root, p)) == sha for p, sha in release["files"].items()), "staged package readback mismatch")
+                        pm.validate(root)
+                        pm.require(all(hash_bytes(read_bytes(root, p)) == sha for p, sha in package_files.items()), "staged package readback mismatch")
                     pm.require(read_bytes(root, path) == before[path], f"target edited during update: {path}")
                     target = pm.confined(root, path)
                     data = writes[path]
@@ -260,12 +274,16 @@ def rollback(root, backup, apply=False):
             for label in ("before", "after"):
                 expected = record[label + "_sha256"]
                 pm.require(expected is None or isinstance(expected, str) and re.fullmatch(r"[a-f0-9]{64}", expected), "invalid rollback checksum")
-                value = read_bytes(root, f"{backup}/{label}/{path}")
+                value = read_bytes(root, payload_path(backup, label, path, journal))
                 pm.require(hash_bytes(value) == expected, "backup checksum mismatch: " + path)
                 if label == "before":
                     desired = value
             sha = hash_bytes(current)
-            if sha == record["before_sha256"]:
+            if path in COMPATIBILITY_SCAFFOLD and record["before_sha256"] is None and current is not None:
+                # Retained post-upgrade memory needs its parents' READMEs even under the old validator.
+                # Any owner edits become retained user data, never silently overwritten/deleted.
+                mode = "retained_compatibility_scaffold"
+            elif sha == record["before_sha256"]:
                 mode = "unchanged"
             elif sha == record["after_sha256"]:
                 mode = "delete" if desired is None else "restore"
@@ -301,8 +319,7 @@ def rollback(root, backup, apply=False):
                     else:
                         atomic_bytes(target, data)
                     pm.require(read_bytes(root, path) == data, "rollback readback mismatch: " + path)
-                pm.settings(root)
-                pm.records(root)
+                pm.validate(root)
                 journal["state"] = "rolled_back"
                 journal["rolled_back_at"] = pm.now()
                 pm.atomic(journal_path, journal)

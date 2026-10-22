@@ -26,6 +26,25 @@ hook paths and renewed trust. Reinstall uses normal setup; uninstall retains use
 
 ## Source identity and release preparation
 
+Upgrades add the exact pinned `memory/automation/README.md` and `receipts/README.md` scaffolds only
+when missing, preserving existing user READMEs/notes. Existing scripts/README.md stays user-owned
+so a legacy project does not gain broken links into new canonical pages it has not adopted.
+The new validator checks the entire upgraded target before the new install manifest/version is
+committed; validation failure leaves an interrupted journal, not applied success.
+
+```text
+python -B <new-package>/scripts/dreamdocs.py --root <project> rollback --backup .dreamdocs/backups/<transaction>
+python -B <new-package>/scripts/dreamdocs.py --root <project> rollback --backup .dreamdocs/backups/<transaction> --apply
+```
+
+Rollback retains newly created compatibility READMEs as user data, including later edits, because
+preserved post-upgrade receipts need those parent folders to remain valid under a legacy validator.
+New transactions store backup payloads with `.bin` suffixes to avoid legacy validators interpreting
+copied Markdown in private backups as active project documentation; older journal paths remain
+readable. Memory and owner guidance are preserved. Full target validation also precedes rollback
+success. Legacy v1.4.0 still loses automation capability on rollback; preserved data is not proof of
+automatic lifecycle support that legacy never had.
+
 A selected bundle contains `dreamdocs-release.json`: version 1, the exact upstream
 `https://github.com/ID-Yo/open-dreamdocs`, full revision, package version, memory schema version
 and a relative package-file SHA-256 map. A publisher can print this inventory with
