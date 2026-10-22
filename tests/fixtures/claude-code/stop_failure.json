@@ -1,0 +1,10 @@
+{
+  "hook_event_name": "StopFailure",
+  "session_id": "00000000-0000-4000-8000-0000000000c1",
+  "transcript_path": "C:/unused/transcript.jsonl",
+  "cwd": "PROJECT",
+  "prompt_id": "prompt-0002",
+  "error": "authentication_failed",
+  "error_details": "OAuth session expired",
+  "last_assistant_message": "API Error: authentication failed"
+}

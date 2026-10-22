@@ -18,6 +18,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Automation lifecycle contract](operations/automation-contract.md)
 - [First run: automatic memory](operations/first-run.md)
 - [Codex adapter](operations/agents/codex.md)
+- [Claude Code adapter (unverified)](operations/agents/claude-code.md)
 
 ## Categories and pages
 
