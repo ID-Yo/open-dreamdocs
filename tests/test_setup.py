@@ -287,6 +287,16 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(len(list((self.root / "memory/automation/receipts").glob("*.json"))), 1)
 
 
+    def test_setup_dry_run_in_fresh_repository_reads_block_from_package(self):
+        with tempfile.TemporaryDirectory(prefix="fresh-repo-") as folder:
+            target = Path(folder) / "fresh-project"
+            target.mkdir()
+            (target / ".git").mkdir()
+            plan = install.setup(target, apply=False)
+            self.assertEqual((plan["exit"], plan["applied"]), (0, False))
+            self.assertEqual({a["path"]: a["action"] for a in plan["actions"]},
+                             {"memory/automation.json": "create", ".codex/hooks.json": "create", ".codex/.gitignore": "create", "AGENTS.md": "create", "memory/automation/install.json": "create"})
+
 if __name__ == "__main__":
     unittest.main()
 

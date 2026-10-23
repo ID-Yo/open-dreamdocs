@@ -294,7 +294,8 @@ def plan(root, project_id=None, clients=("codex",), *, block_text=None, package_
     identity = project_identity(root, project_id, binding)
     adapters = sorted(set(binding["adapters"] if binding else []) | set(clients))
     writes[BINDING] = json.dumps({"version": 1, "project_id": identity, "adapters": adapters}, indent=2) + "\n"
-    block = block_text if block_text is not None else read(root, BLOCK_FILE)
+    package_root = Path(__file__).resolve().parents[1]
+    block = block_text if block_text is not None else (read(root, BLOCK_FILE) or (package_root / BLOCK_FILE).read_text(encoding='utf-8'))
     clients_record, merged, report_clients, steps = dict(previous.get("clients", {})), dict(previous.get("merged", {})), {}, []
     created = set(previous.get("created", []))
     for client in clients:
