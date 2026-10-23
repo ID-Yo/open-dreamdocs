@@ -1,0 +1,44 @@
+{
+  "description": "A receipt that is not a JSON object is invalid, never retryable.",
+  "binding": {
+    "version": 1,
+    "project_id": "example-project",
+    "adapters": [
+      "codex",
+      "claude-code"
+    ]
+  },
+  "event": {
+    "version": 1,
+    "kind": "task_outcome",
+    "adapter": "codex",
+    "session_id": "session-1",
+    "turn_id": "turn-1",
+    "project_id": "example-project",
+    "worktree": "main",
+    "agent": "developer",
+    "occurred_at": "2026-01-02T10:00:00Z",
+    "privacy": "project",
+    "task": {
+      "id": "task-1",
+      "status": "in-progress"
+    },
+    "outcome": {
+      "status": "success",
+      "summary": "Added the requested check and ran the suite.",
+      "evidence": [
+        "ref:commit-abc123"
+      ],
+      "lessons": [
+        "Run the focused test before the full suite."
+      ]
+    }
+  },
+  "receipt": [
+    1
+  ],
+  "expect": {
+    "exit": 2,
+    "decision": "invalid"
+  }
+}

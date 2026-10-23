@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 from datetime import datetime, timezone, timedelta
 from urllib.parse import unquote, urlsplit
@@ -24,6 +25,13 @@ STATUSES = {
 }
 KINDS = {"fact", "procedure", "contradiction", "duplicate", "archive"}
 IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9._-]{0,99}\Z")
+SOURCE_HASH_LIMIT = 1_048_576  # larger cited files are not hashed by capture or recall
+# Managed template surface; everything else in an adopted project is out of scope.
+MANAGED_DIRS = ("docs", "memory", "templates", "examples", "prompts", "scripts", "tests", "adapters")
+MANAGED_FILES = ("LICENSE", ".gitignore", "human-materials/README.md", "human-materials/.gitignore")
+# Tool folders are skipped anywhere; generic names (build, dist, work) only at their known runtime path.
+PRUNE = {".git", ".hg", ".svn", "node_modules", ".venv", "__pycache__", ".pytest_cache", ".mypy_cache", ".tox", ".next"}
+RUNTIME = {"memory/dreamer/work", "memory/automation/events", "memory/automation/pending"}
 
 
 class MemoryError(ValueError):
@@ -54,6 +62,11 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def bounded_digest(path):
+    """SHA-256 of a cited file, or None when it is larger than SOURCE_HASH_LIMIT."""
+    return None if path.stat().st_size > SOURCE_HASH_LIMIT else digest(path.read_bytes())
+
+
 def confined(root, relative):
     path = root / relative
     require(not Path(relative).is_absolute() and ".." not in Path(relative).parts, f"unsafe path: {relative}")
@@ -79,6 +92,57 @@ def unique_keys(pairs):
         require(key not in result, f"duplicate JSON key: {key}")
         result[key] = value
     return result
+
+
+def linked(path):
+    info = os.lstat(path)
+    return stat.S_ISLNK(info.st_mode) or getattr(info, "st_reparse_tag", 0) == stat.IO_REPARSE_TAG_MOUNT_POINT
+
+
+def listing(root, folder):
+    try:
+        with os.scandir(folder) as entries:
+            return sorted(entries, key=lambda entry: entry.name)
+    except PermissionError as exc:
+        raise MemoryError(f"permission denied in managed path: {folder.relative_to(root).as_posix() or '.'}") from exc
+
+
+def walk(root, top, strict=False):
+    """List a managed folder; skip tool/runtime trees and nested repositories before listing them (strict: fail instead)."""
+    folders, files, stack = [], [], [top]
+    while stack:
+        folder = stack.pop()
+        folders.append(folder)
+        for entry in listing(root, folder):
+            path = Path(entry.path)
+            relative = path.relative_to(root).as_posix()
+            skipped = entry.name in PRUNE or relative in RUNTIME
+            if not skipped:
+                require(not linked(path), f"linked path: {relative}")
+                skipped = entry.is_dir(follow_symlinks=False) and ((path / ".git").exists() or (path / "pyvenv.cfg").exists())
+            if skipped:
+                require(not strict, f"unexpected dependency, runtime or repository folder in memory records: {relative}")
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                stack.append(path)
+            elif entry.is_file(follow_symlinks=False):
+                files.append(path)
+    return sorted(folders), sorted(files)
+
+
+def managed_files(root):
+    """Explicit bounded manifest: root Markdown and package files, managed folders and the human-materials index."""
+    files = []
+    for entry in listing(root, root):
+        if entry.name.endswith(".md") or entry.name in MANAGED_FILES:
+            require(not linked(Path(entry.path)), f"linked path: {entry.name}")
+            if entry.is_file(follow_symlinks=False):
+                files.append(Path(entry.path))
+    for name in MANAGED_DIRS:
+        if confined(root, name).is_dir():
+            files += walk(root, root / name)[1]
+    files += [confined(root, name) for name in MANAGED_FILES if "/" in name and confined(root, name).is_file()]
+    return sorted(files)
 
 
 def atomic(path, value):
@@ -109,9 +173,8 @@ def record_files(root, archive=True):
     for category in categories:
         folder = confined(root, f"memory/{category}")
         require(folder.is_dir(), f"missing memory/{category}")
-        for path in sorted(folder.rglob("*")):
-            confined(root, path.relative_to(root).as_posix())
-            if path.is_file() and path.suffix == ".md" and path.name != "README.md":
+        for path in walk(root, folder, strict=True)[1]:
+            if path.suffix == ".md" and path.name != "README.md":
                 files.append((category, path))
     return files
 
@@ -195,10 +258,8 @@ def settings(root):
 
 def validate_links(root):
     checked = 0
-    for path in root.rglob("*.md"):
-        if any(p in {"work", "__pycache__", ".git"} for p in path.relative_to(root).parts):
-            continue
-        confined(root, path.relative_to(root).as_posix())
+    selected = {path for path in managed_files(root) if path.suffix == ".md"}
+    for path in sorted(selected):
         text = path.read_text(encoding="utf-8")
         text = re.sub(r"```.*?```", "", text, flags=re.S)
         for target in re.findall(r"\]\(([^)]+)\)", text):
@@ -207,7 +268,7 @@ def validate_links(root):
                 continue
             destination = (path.parent / unquote(url.path)).resolve() if url.path else path
             require(destination.is_relative_to(root) and destination.exists(), f"broken/outside link: {path.relative_to(root)} -> {target}")
-            if url.fragment and destination.suffix == ".md":
+            if url.fragment and destination in selected:
                 headings = re.findall(r"^#+\s+(.+)$", destination.read_text(encoding="utf-8"), re.M)
                 anchors = {re.sub(r"[^\w\- ]", "", h.lower()).replace(" ", "-") for h in headings}
                 require(unquote(url.fragment) in anchors, f"broken anchor: {target}")
@@ -219,9 +280,9 @@ def validate(root):
     cfg = settings(root)
     items = records(root)
     folders = [root / name for name in ("memory", "templates", "examples", "prompts", "scripts", "tests")]
-    folders += [folder for base in (root / "docs", root / "memory") for folder in base.rglob("*") if folder.is_dir()]
+    folders += [folder for name in ("docs", "memory") if confined(root, name).is_dir() for folder in walk(root, root / name)[0]]
     for folder in folders:
-        if folder.is_dir() and not any(p in {"work", "__pycache__", ".git"} for p in folder.relative_to(root).parts):
+        if folder.is_dir():
             require((folder / "README.md").is_file() or folder == root / "docs", f"folder needs README: {folder.relative_to(root)}")
     state = read_json(confined(root, "memory/dreamer/state.json"), {})
     if state:
@@ -246,6 +307,12 @@ def operation(root):
         fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
         raise MemoryError("another runner command is active; investigate command.lock before manual recovery") from exc
+    try:
+        os.write(fd, canonical({"owner_pid": os.getpid(), "acquired_at": now()}).encode())
+    except BaseException:
+        os.close(fd)
+        path.unlink(missing_ok=True)
+        raise
     os.close(fd)
     try:
         yield
@@ -320,11 +387,19 @@ def validate_result(snapshot, result):
             require(not set(refs) & pinned, "cannot propose automatic archival of pinned records")
 
 
-def finish(root, run_id):
+def finish(root, run_id, *, expected_result_sha256=None, evidence_hashes=None):
     with operation(root):
         snapshot, work = run_files(root, run_id)
-        result = read_json(work / "result.json")
+        result_bytes = (work / "result.json").read_bytes()
+        if expected_result_sha256 is not None:
+            require(digest(result_bytes) == expected_result_sha256, "executor result changed before finish")
+        result = json.loads(result_bytes, object_pairs_hook=unique_keys)
+        require(isinstance(result, dict), "expected result object")
         validate_result(snapshot, result)
+        def evidence_unchanged():
+            for path, sha in (evidence_hashes or {}).items():
+                require(digest(confined(root, path).read_bytes()) == sha, "executor evidence changed: " + path)
+        evidence_unchanged()
         require(input_manifest(root, records(root)) == snapshot["manifest"], "input changed during run; abort and retry without advancing checkpoint")
         proposal_ids = []
         if result["status"] == "success":
@@ -337,9 +412,13 @@ def finish(root, run_id):
                     atomic(path, {"id": proposal_id, "status": "proposed", "created_at": now(), "run_id": run_id, **normalized})
         report = {**result, "started_at": snapshot["started_at"], "finished_at": now(), "proposal_ids": proposal_ids}
         atomic(runtime(root, "reports/" + run_id + ".json"), report)
+        require(read_json(runtime(root, "reports/" + run_id + ".json")) == report, "report readback mismatch")
         if result["status"] == "success":
             require(input_manifest(root, records(root)) == snapshot["manifest"], "input changed before checkpoint; retry")
-            atomic(runtime(root, "state.json"), {"version": 1, "last_successful_at": snapshot["started_at"], "completed_at": report["finished_at"], "last_run_id": run_id, "source_hashes": snapshot["manifest"]})
+            evidence_unchanged()
+            state = {"version": 1, "last_successful_at": snapshot["started_at"], "completed_at": report["finished_at"], "last_run_id": run_id, "source_hashes": snapshot["manifest"]}
+            atomic(runtime(root, "state.json"), state)
+            require(read_json(runtime(root, "state.json")) == state, "checkpoint readback mismatch")
         runtime(root, "lock.json").unlink()
         return {"run_id": run_id, "status": result["status"], "checkpoint_advanced": result["status"] == "success", "proposals": len(proposal_ids)}
 

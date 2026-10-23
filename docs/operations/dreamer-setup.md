@@ -4,6 +4,10 @@
 
 # Daily Dreamer Setup
 
+For an explicitly selected operator/command executor and separately opted-in Windows scheduler,
+use [Dreamer execution](dreamer-execution.md). This page retains the low-level runner/result
+contract. Configuration, actual execution and observed scheduler health remain distinct.
+
 This page describes the contract between a project's scheduler, runner and agent. The full policy is in [`memory/DREAMER_POLICY.md`](../../memory/DREAMER_POLICY.md). The file-based template does not create an active scheduler task or claim that the model's semantic judgments are correct.
 
 ## One owner and a daily schedule
@@ -23,7 +27,9 @@ Each project selects one scheduler owner, local timezone, local time and executo
 }
 ```
 
-`null` means the project has not configured the value yet. The file-based runner is included; the scheduler and its connection to the selected agent are configured externally. The package does not schedule work itself.
+`null` means the project has not configured the value yet. The file-based runner is included;
+explicit executor/scheduler settings live separately under .dreamdocs/. This config stays v1;
+no task is installed or enabled automatically.
 
 ## First run
 

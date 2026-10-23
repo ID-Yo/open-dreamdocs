@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dreamdocs install manifest v1",
+  "description": "Written by setup to memory/automation/install.json. Integrity metadata is not proof of client trust or fresh-session recall; doctor reports their provenance separately.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "package",
+    "project_id",
+    "installed_at",
+    "python",
+    "clients",
+    "package_files",
+    "merged",
+    "created",
+    "user_owned",
+    "local_only",
+    "binding"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "package": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "upstream": {
+          "const": "https://github.com/ID-Yo/open-dreamdocs"
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "project_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "installed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "python": {
+      "type": "string"
+    },
+    "clients": {
+      "type": "object",
+      "properties": {
+        "codex": {
+          "type": "object",
+          "required": [
+            "version",
+            "hook_file",
+            "events",
+            "trust",
+            "probe",
+            "written_sha256"
+          ],
+          "properties": {
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hook_file": {
+              "const": ".codex/hooks.json"
+            },
+            "events": {
+              "const": [
+                "SessionStart",
+                "UserPromptSubmit",
+                "Stop",
+                "SessionEnd"
+              ]
+            },
+            "hook_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Name used before command_sha256; still read."
+            },
+            "trust": {
+              "enum": [
+                "pending",
+                "trusted",
+                "changed"
+              ]
+            },
+            "probe": {
+              "enum": [
+                "pending",
+                "verified",
+                "failed"
+              ]
+            },
+            "command_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 of the generated Stop handler definition (JSON, sorted keys)."
+            },
+            "written_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "health": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observations",
+                "capture_readback",
+                "checked_at"
+              ],
+              "properties": {
+                "observations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "trust": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "client-trust"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    "recall": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256",
+                        "client",
+                        "event_id",
+                        "marker",
+                        "capture_session",
+                        "recall_session"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "fresh-session-recall"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "client": {
+                          "enum": [
+                            "codex",
+                            "claude-code"
+                          ]
+                        },
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "marker": {
+                          "type": "string"
+                        },
+                        "capture_session": {
+                          "type": "string"
+                        },
+                        "recall_session": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "capture_readback": {
+                  "enum": [
+                    "verified",
+                    "unknown",
+                    "mismatch"
+                  ]
+                },
+                "checked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "command_sha256"
+              ]
+            },
+            {
+              "required": [
+                "hook_sha256"
+              ]
+            }
+          ]
+        },
+        "claude-code": {
+          "type": "object",
+          "required": [
+            "version",
+            "hook_file",
+            "events",
+            "trust",
+            "probe",
+            "written_sha256"
+          ],
+          "properties": {
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hook_file": {
+              "const": ".claude/settings.local.json"
+            },
+            "events": {
+              "const": [
+                "SessionStart",
+                "UserPromptSubmit",
+                "Stop",
+                "StopFailure",
+                "SessionEnd"
+              ]
+            },
+            "hook_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "Name used before command_sha256; still read."
+            },
+            "trust": {
+              "enum": [
+                "pending",
+                "trusted",
+                "changed"
+              ]
+            },
+            "probe": {
+              "enum": [
+                "pending",
+                "verified",
+                "failed"
+              ]
+            },
+            "command_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$",
+              "description": "SHA-256 of the generated Stop handler definition (JSON, sorted keys)."
+            },
+            "written_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "health": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "observations",
+                "capture_readback",
+                "checked_at"
+              ],
+              "properties": {
+                "observations": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "trust": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "client-trust"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    "recall": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "observed_at",
+                        "client_version",
+                        "command_sha256",
+                        "source",
+                        "sha256",
+                        "client",
+                        "event_id",
+                        "marker",
+                        "capture_session",
+                        "recall_session"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "fresh-session-recall"
+                        },
+                        "observed_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "client_version": {
+                          "type": "string"
+                        },
+                        "command_sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "client": {
+                          "enum": [
+                            "codex",
+                            "claude-code"
+                          ]
+                        },
+                        "event_id": {
+                          "type": "string"
+                        },
+                        "marker": {
+                          "type": "string"
+                        },
+                        "capture_session": {
+                          "type": "string"
+                        },
+                        "recall_session": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "capture_readback": {
+                  "enum": [
+                    "verified",
+                    "unknown",
+                    "mismatch"
+                  ]
+                },
+                "checked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": [
+                "command_sha256"
+              ]
+            },
+            {
+              "required": [
+                "hook_sha256"
+              ]
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "package_files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{64}$"
+      }
+    },
+    "merged": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "block",
+          "sha256",
+          "prefix"
+        ],
+        "properties": {
+          "block": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "prefix": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "created": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "user_owned": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "local_only": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created",
+        "added_adapters"
+      ],
+      "properties": {
+        "created": {
+          "type": "boolean"
+        },
+        "added_adapters": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "codex",
+              "claude-code"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  }
+}

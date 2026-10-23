@@ -1,0 +1,7 @@
+{
+  "hook_event_name": "SessionEnd",
+  "session_id": "00000000-0000-4000-8000-0000000000c1",
+  "transcript_path": "C:/unused/transcript.jsonl",
+  "cwd": "PROJECT",
+  "reason": "other"
+}

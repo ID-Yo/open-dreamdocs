@@ -1,0 +1,12 @@
+{
+  "hook_event_name": "Stop",
+  "session_id": "00000000-0000-4000-8000-0000000000c1",
+  "transcript_path": "C:/unused/transcript.jsonl",
+  "cwd": "PROJECT",
+  "permission_mode": "default",
+  "prompt_id": "prompt-0001",
+  "stop_hook_active": false,
+  "last_assistant_message": "Done.",
+  "background_tasks": [],
+  "session_crons": []
+}

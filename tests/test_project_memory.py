@@ -1,6 +1,7 @@
 import copy
 from datetime import datetime, timezone, timedelta
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -122,6 +123,23 @@ class MemoryLifecycleTests(unittest.TestCase):
         self.assertTrue((self.root / "memory/dreamer/lock.json").exists())
         pm.abort(self.root, run["run_id"])
 
+    def test_command_lock_records_owner_and_time(self):
+        with pm.operation(self.root):
+            lock = pm.read_json(self.root / "memory/dreamer/command.lock")
+            self.assertEqual(lock["owner_pid"], os.getpid())
+            pm.timestamp(lock["acquired_at"])
+            with self.assertRaisesRegex(pm.MemoryError, "another runner command"):
+                with pm.operation(self.root):
+                    pass
+        self.assertFalse((self.root / "memory/dreamer/command.lock").exists())
+
+    def test_failed_owner_record_releases_lock_and_fails(self):
+        with patch.object(pm.os, "write", side_effect=OSError(28, "No space left on device")):
+            with self.assertRaises(OSError):
+                with pm.operation(self.root):
+                    self.fail("must not run without an owner record")
+        self.assertFalse((self.root / "memory/dreamer/command.lock").exists())
+
     def test_snapshot_tamper_fails(self):
         run = pm.begin(self.root)
         snapshot = self.root / run["snapshot"]
@@ -240,11 +258,162 @@ class MemoryLifecycleTests(unittest.TestCase):
         pm.abort(self.root, next_run["run_id"])
 
 
+class BoundedScanTests(unittest.TestCase):
+    PRUNED = {"node_modules", ".venv", ".git", "build", "dist", "work", "vendor"}
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="bounded-scan-")
+        self.base = Path(self.temp.name).resolve()
+        self.root = self.base / "project"
+        for name in (*pm.TYPES, "archive", "dreamer"):
+            (self.root / "memory" / name).mkdir(parents=True)
+            (self.root / "memory" / name / "README.md").write_text("# Folder\n", encoding="utf-8")
+        (self.root / "memory/README.md").write_text("# Memory\n", encoding="utf-8")
+        (self.root / "memory/config.json").write_text(pm.canonical({"version": 1, "schedule": {"frequency": "daily", "timezone": None, "local_time": None, "owner": None}, "review": {"episode_days": None}}), encoding="utf-8")
+        (self.root / "docs").mkdir()
+        (self.root / "README.md").write_text("# Home\n", encoding="utf-8")
+        (self.root / ".git").write_text("gitdir: ../elsewhere\n", encoding="utf-8")
+        self.write_guide("[Home](../README.md#home)\n[Dependency](../node_modules/pkg/broken.md#not-checked)\n")
+        for folder in ("node_modules/pkg", ".venv/lib", ".git-objects/.git", "build/out", "dist", "docs/node_modules/pkg", "docs/vendor/.git", "memory/dreamer/work/run"):
+            (self.root / folder).mkdir(parents=True, exist_ok=True)
+            (self.root / folder / "broken.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        (self.root / "docs/vendor/broken.md").write_text("[x](missing.md)\n", encoding="utf-8")
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def write_guide(self, body):
+        (self.root / "docs/guide.md").write_text("# Guide\n\n" + body, encoding="utf-8")
+
+    def spy(self):
+        visited, reads = [], []
+        real_scandir, real_read = os.scandir, Path.read_text
+        def scandir(path="."):
+            visited.append(Path(path).resolve())
+            return real_scandir(path)
+        def read_text(path, *args, **kwargs):
+            reads.append(path.resolve())
+            return real_read(path, *args, **kwargs)
+        return visited, reads, patch.object(pm.os, "scandir", scandir), patch.object(Path, "read_text", read_text)
+
+    def assert_inside_scope(self, paths):
+        for path in paths:
+            if path.is_relative_to(self.root):
+                self.assertFalse(self.PRUNED & set(path.relative_to(self.root).parts), path)
+            else:
+                self.assertNotEqual(path, self.base / "outside")
+
+    def test_dependency_trees_are_neither_listed_read_nor_copied(self):
+        visited, reads, scan, read = self.spy()
+        with scan, read:
+            result = pm.validate(self.root)
+            files = pm.managed_files(self.root)
+        self.assertTrue(result["ok"])
+        self.assert_inside_scope(visited + reads + files)
+        self.assertIn(self.root / "docs/guide.md", files)
+        self.assertNotIn(self.root / ".git", files)
+
+    def test_selected_broken_link_still_fails(self):
+        self.write_guide("[Missing](missing.md)\n")
+        with self.assertRaisesRegex(pm.MemoryError, "broken"):
+            pm.validate(self.root)
+
+    def test_private_automation_runtime_is_neither_validated_nor_copied(self):
+        (self.root / "memory/automation").mkdir()
+        (self.root / "memory/automation/README.md").write_text("# Automation\n", encoding="utf-8")
+        for folder in ("events", "pending"):
+            (self.root / "memory/automation" / folder).mkdir()
+            (self.root / "memory/automation" / folder / "evt.json").write_text("{}", encoding="utf-8")
+            (self.root / "memory/automation" / folder / "note.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        self.assertTrue(pm.validate(self.root)["ok"])
+        files = pm.managed_files(self.root)
+        self.assertFalse([f for f in files if {"events", "pending"} & set(f.relative_to(self.root).parts)])
+
+    def test_generic_folder_names_inside_managed_trees_are_still_validated(self):
+        (self.root / "docs/build").mkdir()
+        (self.root / "docs/build/README.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        with self.assertRaisesRegex(pm.MemoryError, "broken"):
+            pm.validate(self.root)
+        shutil.rmtree(self.root / "docs/build")
+        record = self.root / "memory/episodes/work/ep.md"
+        record.parent.mkdir()
+        record.write_text("---\n{\"id\": \"ep-1\"}\n---\n", encoding="utf-8")
+        with self.assertRaisesRegex(pm.MemoryError, "missing fields"):
+            pm.validate(self.root)
+
+    def test_python_environments_are_skipped_by_marker_not_by_name(self):
+        env = self.root / "docs/tools/env-any-name"
+        (env / "lib").mkdir(parents=True)
+        (env / "pyvenv.cfg").write_text("home = x\n", encoding="utf-8")
+        (env / "lib/broken.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        (self.root / "docs/tools/README.md").write_text("# Tools\n", encoding="utf-8")
+        visited, reads, scan, read = self.spy()
+        with scan, read:
+            self.assertTrue(pm.validate(self.root)["ok"])
+        self.assertNotIn(env, visited)
+        (self.root / "docs/venv").mkdir()
+        (self.root / "docs/venv/README.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        with self.assertRaisesRegex(pm.MemoryError, "broken"):
+            pm.validate(self.root)
+
+    def test_skipped_folders_inside_memory_records_fail_visibly(self):
+        for folder in ("node_modules", "nested-repo/.git"):
+            with self.subTest(folder=folder):
+                path = self.root / "memory/episodes" / folder
+                path.mkdir(parents=True)
+                with self.assertRaisesRegex(pm.MemoryError, "unexpected"):
+                    pm.validate(self.root)
+                shutil.rmtree(self.root / "memory/episodes" / folder.split("/")[0])
+
+    def test_permission_denied_is_not_an_empty_scan(self):
+        real = os.scandir
+        def deny(path="."):
+            if Path(path).resolve() == self.root / "docs":
+                raise PermissionError("denied")
+            return real(path)
+        with patch.object(pm.os, "scandir", deny), self.assertRaisesRegex(pm.MemoryError, "permission denied"):
+            pm.validate(self.root)
+
+    def test_linked_directory_is_refused_without_reading_target(self):
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "secret.md").write_text("[x](missing.md)\n", encoding="utf-8")
+        link = self.root / "docs" / "linked"
+        try:
+            if os.name == "nt":
+                import _winapi
+                _winapi.CreateJunction(str(outside), str(link))
+            else:
+                os.symlink(outside, link, target_is_directory=True)
+        except OSError as exc:
+            self.skipTest(f"cannot create a directory link: {exc}")
+        try:
+            visited, reads, scan, read = self.spy()
+            with scan, read:
+                for call in (pm.validate, pm.managed_files):
+                    with self.assertRaisesRegex(pm.MemoryError, "linked path"):
+                        call(self.root)
+            self.assertNotIn(outside, visited)
+            self.assertNotIn(outside / "secret.md", reads)
+        finally:
+            os.rmdir(link) if os.name == "nt" else link.unlink()
+
+
+@unittest.skipUnless("<Project name>" in (ROOT / "PROJECT.md").read_text(encoding="utf-8"), "template distribution only; adopted projects are covered by BoundedScanTests")
 class PortableCopyTests(unittest.TestCase):
-    def test_entire_package_copies_and_validates_without_raw_sources(self):
+    def test_managed_manifest_copies_and_validates_within_bounds(self):
+        files = pm.managed_files(ROOT)
+        self.assertLessEqual(len(files), 400)
+        self.assertLessEqual(sum(path.stat().st_size for path in files), 4_000_000)
+        relative = [path.relative_to(ROOT) for path in files]
+        for path in relative:
+            self.assertFalse(BoundedScanTests.PRUNED & set(path.parts), path)
+            self.assertTrue(path.parts[0] != "human-materials" or path.name in {"README.md", ".gitignore"}, path)
         with tempfile.TemporaryDirectory(prefix="template-copy-") as folder:
             destination = Path(folder) / "new-project"
-            shutil.copytree(ROOT, destination, ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "work", "lock.json", "state.json", "command.lock", "raw", "TEMPLATE_COMPARISON.md", "V1_2_VERIFICATION.md", ".git"))
+            for path in relative:
+                (destination / path).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / path, destination / path)
             result = pm.validate(destination.resolve())
             self.assertTrue(result["ok"])
             self.assertEqual(result["records"], 0)

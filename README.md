@@ -5,7 +5,8 @@ project: community initiatives, research, operations, creative work or software.
 Keep agreed project knowledge in `docs/`, and evidence, outcomes and proposed
 lessons in `memory/`. Use the folders manually or with an AI assistant.
 
-Version 1.4.0. Licensed under [MIT](LICENSE). All guides, templates, examples and prompts are in English.
+Version **1.5.0-rc.1** — release candidate, pending the [dual-client release gates](docs/operations/release.md).
+Licensed under [MIT](LICENSE). Guides, templates, examples and prompts are in English.
 
 ## Start with the documents
 
@@ -18,10 +19,13 @@ Version 1.4.0. Licensed under [MIT](LICENSE). All guides, templates, examples an
 5. If you use an AI assistant, adapt [AGENTS.md](AGENTS.md) to its working boundaries.
 6. When recording outcomes or lessons, read [the memory guide](memory/README.md),
    [record schema](memory/SCHEMA.md) and [Dreamer policy](memory/DREAMER_POLICY.md).
+7. Optional: connect Codex CLI or the experimental Claude Code adapter using
+   [First run: automatic memory](docs/operations/first-run.md). Claude automatic capture remains
+   unverified pending authenticated Stop identity/save/recall evidence; setup alone is not support.
 
 No programming or running service is needed to use the documents. Unfilled pages
 are templates, not project facts. Copy the root template files and `docs/`,
-`memory/`, `prompts/`, `scripts/`, `templates/`, `examples/`, `tests/` and the clean
+`memory/`, `prompts/`, `scripts/`, `templates/`, `examples/`, `tests/`, `adapters/` and the clean
 `human-materials/` scaffolding when
 starting a project; retain the MIT license notice.
 
@@ -29,6 +33,42 @@ During adoption, optionally consider [Codex Bot Mode](https://github.com/ID-Yo/c
 for persistent approved roles and coordination. Choose **Yes / No / Skip** using
 the [companion offer](docs/operations/adopting-dreamdocs.md); Dreamdocs works
 independently and never installs a companion silently.
+
+## Automatic-memory quickstart
+
+Requires Python 3.11+, an authenticated supported client, and reviewed project hooks. The Python
+tools use only the standard library; setup does not call a model, install a schedule or publish data.
+From the extracted clean candidate, preview before applying:
+
+```text
+python -B scripts/dreamdocs.py setup --client codex
+python -B scripts/dreamdocs.py setup --client codex --apply --project-id my-project
+```
+
+Open Codex in that project, review/trust its directory and the four hooks with `/hooks`, and start
+a real task using the [synthetic two-session demo](prompts/memory-demo.md). Stop should save an
+episode/receipt; a new session must recall the marker without reading files or running tools.
+Never bypass hook trust. A no-lesson turn writes a receipt only. These observations are separate
+from setup success. See the [support matrix](docs/operations/support-matrix.md) for exact tested
+versions and the remaining Claude prerequisites.
+
+For an explicitly chosen experimental Claude setup, preview `setup --client claude-code`, then
+add `--apply` only after reviewing the plan. Its hooks use `.claude/settings.local.json`; shared
+settings stay intact. Without a stable prompt identity on Stop, it warns and saves nothing.
+Both clients share project binding and ordinary memory files, but cross-client runtime acceptance
+is still a release gate. Do not treat fixture success as an authenticated-client result.
+
+```text
+python -B scripts/dreamdocs.py doctor --smoke
+python -B scripts/dreamdocs.py uninstall
+```
+
+Doctor's synthetic save/recall is isolated and never becomes a lesson. Unknown trust/recall or
+scheduler states return nonzero with next actions; receipts alone do not prove integration.
+Uninstall previews by default; add `--apply` to remove package hooks while retaining memory/docs.
+For existing projects, use the [pinned upgrade/rollback guide](docs/operations/upgrading.md).
+For source-backed curation use the [explicit executor](docs/operations/dreamer-execution.md);
+operator mode installs nothing and Windows scheduling requires separate opt-in.
 
 ## What is included
 
@@ -83,13 +123,13 @@ confirmation that execution has stopped and a positive minimum lock age.
 See [runner commands](scripts/README.md) and [test scope](tests/README.md).
 
 The template does not activate a scheduler, call an LLM or provide semantic
-search. A project may configure its own daily schedule in
-[memory/config.json](memory/config.json). Validation checks structure and integrity;
+search. Configure an [explicit executor](docs/operations/dreamer-execution.md) before curation;
+v1 schedule values alone are not an installed trigger. Validation checks structure and integrity;
 people still verify the truth of claims and the quality of proposals.
 
 ## License and provenance
 
-This release packages the project's reusable documentation template and
+This candidate packages the project's reusable documentation template and
 standard-library Python runner under the [MIT license](LICENSE). It starts with
 a reviewed source snapshot and fresh public Git history. Archival source
 collections, third-party reference documents, private project records, local

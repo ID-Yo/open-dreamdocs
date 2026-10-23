@@ -26,3 +26,7 @@ Do not load all docs or memory by default. Verify remembered claims against curr
 ## After work
 
 Use [`task-closeout.md`](task-closeout.md). Create one concise episode for meaningful work, propose durable facts or skills with evidence and identify a `docs/` change or ADR if canonical truth has changed.
+
+For accepted results, follow the configured [documentation refresh policy](../docs/operations/documentation-refresh.md)
+and exact candidate/source/target hashes. Prepare a private proposal with preserved history and
+owner review. Material inventories prove coverage only; original-reading consent stays separate.

@@ -12,9 +12,20 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Daily Dreamer policy](../memory/DREAMER_POLICY.md)
 - [Settings](../memory/config.json)
 - [Dreamer setup](operations/dreamer-setup.md)
+- [Explicit Dreamer executor and optional Windows schedule](operations/dreamer-execution.md)
 - [Original human materials and recursive index](../human-materials/README.md)
 - [Adopting Dreamdocs and optional companion](operations/adopting-dreamdocs.md)
 - [Reusable GitHub labels and import procedure](operations/github-labels.md)
+- [Automation lifecycle contract](operations/automation-contract.md)
+- [First run: automatic memory](operations/first-run.md)
+- [Codex adapter](operations/agents/codex.md)
+- [Claude Code adapter (unverified)](operations/agents/claude-code.md)
+- [Memory health and isolated smoke test](operations/memory-health.md)
+- [Selected package upgrades](operations/upgrading.md)
+- [Sourced documentation refresh proposals](operations/documentation-refresh.md)
+- [Candidate support matrix](operations/support-matrix.md)
+- [Reproducible package and release gates](operations/release.md)
+- [Synthetic two-session acceptance prompt](../prompts/memory-demo.md)
 
 ## Categories and pages
 
@@ -29,7 +40,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 | Security (optional) | [README](security/README.md) | — |
 | Privacy (optional) | [README](privacy/README.md) | — |
 | QA (optional) | [README](qa/README.md) | — |
-| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md), [task-continuity.md](operations/task-continuity.md) |
+| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md), [task-continuity.md](operations/task-continuity.md), [automation-contract.md](operations/automation-contract.md) |
 | Procedures (optional) | [README](procedures/README.md) | — |
 | Decisions (optional) | [README](decisions/README.md) | — |
 | Governance (core) | [README](governance/README.md) | [authority-model.md](governance/authority-model.md), [memory-lifecycle.md](governance/memory-lifecycle.md), [promotion-rules.md](governance/promotion-rules.md) |

@@ -7,4 +7,6 @@ __pycache__/
 /memory/dreamer/command.lock
 /memory/dreamer/state.json
 /memory/dreamer/work/
+/memory/automation/events/
+/memory/automation/pending/
 *.tmp

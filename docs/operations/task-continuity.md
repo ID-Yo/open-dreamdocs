@@ -49,6 +49,11 @@ are references, not secrets, raw logs, personal information or hidden reasoning.
 The checker does not fetch references. The producer must verify their actual
 identity and contents; a nonempty string is not a truth attestation.
 
+For [documentation refresh](documentation-refresh.md), the producer additionally records
+`candidate.source_hashes`: selected project-relative source paths and SHA-256 revisions reviewed
+and accepted with that exact candidate. This optional extension leaves v1 continuity checks
+unchanged and grants no promotion. Refresh requires it and rejects absent or stale bindings.
+
 - A handoff records unique `id`, `worker`, `stage` (implementation/review/qa/
   integration), `requested_at`, `acknowledged_at`, `started_at`, `finished_at`
   and evidence. Nullable timestamps mean not yet observed. Request, acknowledgment,
