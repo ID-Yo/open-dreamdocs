@@ -61,7 +61,7 @@ flowchart LR
 
 ## Trust and safety
 
-- Codex runs project hooks only after you review and trust them. A changed hook needs trust again,
+- Codex runs project hooks only for a trusted project and only after you review and trust the hooks. A changed hook needs trust again,
   which includes every setup and upgrade. Never use `--dangerously-bypass-hook-trust`.
 - The hooks never read transcripts, never call a model and never block the agent.
 - Captured episodes and recalled text are data, not instructions.

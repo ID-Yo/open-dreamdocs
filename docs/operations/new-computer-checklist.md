@@ -59,9 +59,13 @@ python -B <new-package>/scripts/dreamdocs.py --root <project> upgrade --from-ver
 Hooks do nothing until Codex trusts them.
 
 1. Open a terminal in the project folder and start Codex CLI: `codex`.
-2. Run `/hooks`, review the four Dreamdocs hooks (`SessionStart`, `UserPromptSubmit`, `Stop`,
-   `SessionEnd`) and trust them. Accept trust for the project's `.codex` folder if asked.
-3. Quit. Trust is stored per project in your user-level Codex configuration, so Codex Desktop and the
+2. Codex loads a project's `.codex` folder only for a trusted project. Answer the trust prompt for
+   the project folder with *trust*; this writes a `trust_level = "trusted"` entry for the project to
+   your user-level Codex configuration. Hooks in an untrusted project are skipped silently, even when
+   each hook is approved.
+3. Run `/hooks`, review the four Dreamdocs hooks (`SessionStart`, `UserPromptSubmit`, `Stop`,
+   `SessionEnd`) and trust them.
+4. Quit. Trust is stored per project in your user-level Codex configuration, so Codex Desktop and the
    CLI see the same approval on that computer. One Windows Desktop session has been observed
    capturing episodes after trust was granted, but Desktop is not a tested release target
    ([support matrix](support-matrix.md)). The `/hooks` command is a CLI command; Desktop may not offer it.
@@ -83,7 +87,7 @@ saved, the hooks are not trusted yet.
 
 | Symptom | Likely cause | What to do |
 |---|---|---|
-| Outcome block appears, no episode saved | Hooks not trusted, or setup not applied | Trust via `/hooks` in the CLI; run `doctor` |
+| Outcome block appears, no episode saved | The project is not trusted, the hooks are not trusted, or setup was not applied | Trust the project folder and the hooks in the CLI (`/hooks`); run `doctor` |
 | `/hooks` does nothing in the desktop app | It is a CLI command | Run it from a terminal with `codex` |
 | Hooks stopped working after moving or copying the folder | Absolute paths in `.codex/hooks.json` | Run `setup --apply` again, then trust again |
 | Codex refuses to run: not inside a trusted directory | Folder is not a Git repository | `git init`, or trust the directory in Codex |
