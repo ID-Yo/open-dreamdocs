@@ -22,7 +22,7 @@ import automation_contract as ac
 import memory_capture as mc
 import project_memory as pm
 
-PACKAGE_VERSION = "1.5.0-rc.1"
+PACKAGE_VERSION = "1.5.0-rc.2"
 BINDING, MANIFEST, HOOKS, AGENTS = "memory/automation.json", "memory/automation/install.json", ".codex/hooks.json", "AGENTS.md"
 HOOKS_IGNORE = ".codex/.gitignore"
 HOOK_SCRIPT, BLOCK_FILE = "adapters/codex/hook.py", "adapters/outcome-block.md"
@@ -295,7 +295,12 @@ def plan(root, project_id=None, clients=("codex",), *, block_text=None, package_
     adapters = sorted(set(binding["adapters"] if binding else []) | set(clients))
     writes[BINDING] = json.dumps({"version": 1, "project_id": identity, "adapters": adapters}, indent=2) + "\n"
     package_root = Path(__file__).resolve().parents[1]
-    block = block_text if block_text is not None else (read(root, BLOCK_FILE) or (package_root / BLOCK_FILE).read_text(encoding='utf-8'))
+    block = block_text if block_text is not None else read(root, BLOCK_FILE)
+    if block is None:
+        block = read(package_root, BLOCK_FILE)
+    if block is None or block_span(block) is None:
+        conflicts.append((BLOCK_FILE, f"{BLOCK_FILE} must contain a complete Dreamdocs automation block; preserve and review the existing file before retrying."))
+        block = "" if block is None else block
     clients_record, merged, report_clients, steps = dict(previous.get("clients", {})), dict(previous.get("merged", {})), {}, []
     created = set(previous.get("created", []))
     for client in clients:
@@ -373,6 +378,18 @@ def plan(root, project_id=None, clients=("codex",), *, block_text=None, package_
 def setup(root, apply=False, project_id=None, clients=("codex",)):
     root = Path(root).resolve()
     report, writes, conflicts = plan(root, project_id, tuple(clients))
+    package_root = Path(__file__).resolve().parents[1]
+    required = {"scripts/" + p.name for p in (package_root / "scripts").glob("*.py")}
+    required |= {BLOCK_FILE, "memory/config.json", "templates/outcome-event.schema.json", "templates/install-manifest.schema.json"}
+    required |= {CLIENTS[c]["script"] for c in clients}
+    missing = sorted(p for p in required if not pm.confined(root, p).is_file())
+    if missing:
+        message = ("Missing Dreamdocs package assets in target: " + ", ".join(missing) +
+                   ". Setup configures existing package files; it does not copy them. "
+                   "Selectively adopt the reviewed package under docs/operations/adopting-dreamdocs.md, preserving owner files, then retry.")
+        conflicts.append(("package", message))
+        report["conflicts"].append(message)
+        report["next_steps"] = [c for _, c in conflicts]
     exit_code = 5 if any(kind != "client" for kind, _ in conflicts) else 4 if conflicts else 0
     report.update(exit=exit_code, applied=False, state="needs action" if conflicts else "planned; nothing written (use --apply)")
     if not apply or conflicts:

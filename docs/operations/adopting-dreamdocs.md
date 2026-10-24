@@ -5,7 +5,8 @@
 # Adopting Dreamdocs
 
 Dreamdocs is a file-based documentation and evidenced-memory template. Adopt it
-by selective copying and editing; it has no installer or background service.
+by selective copying and editing. Its project-scoped automation setup configures
+files already adopted into the target; it does not copy runtime assets or enable a background service.
 You can use it manually or with an assistant, independently of Codex Bot Mode.
 
 ## Inspect before copying
