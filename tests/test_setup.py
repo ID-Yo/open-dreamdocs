@@ -287,6 +287,59 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(len(list((self.root / "memory/automation/receipts").glob("*.json"))), 1)
 
 
+    def test_setup_dry_run_in_fresh_repository_reads_block_from_package(self):
+        with tempfile.TemporaryDirectory(prefix="fresh-repo-") as folder:
+            target = Path(folder) / "fresh-project"
+            target.mkdir()
+            (target / ".git").mkdir()
+            plan = install.setup(target, apply=False)
+            self.assertEqual((plan["exit"], plan["applied"]), (5, False))
+            self.assertTrue(any("missing" in c.lower() for c in plan["conflicts"]))
+            self.assertEqual({a["path"]: a["action"] for a in plan["actions"]},
+                             {"memory/automation.json": "create", ".codex/hooks.json": "create", ".codex/.gitignore": "create", "AGENTS.md": "create", "memory/automation/install.json": "create"})
+
+    def test_setup_apply_refuses_missing_runtime_assets_without_writes(self):
+        with tempfile.TemporaryDirectory(prefix="missing-assets-") as folder:
+            target = Path(folder).resolve()
+            owner = target / "AGENTS.md"
+            owner.write_bytes(b"# Owner rules\r\nKeep these bytes.")
+            before = {p.relative_to(target): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+            result = install.setup(target, apply=True)
+            self.assertEqual((result["exit"], result["applied"]), (5, False))
+            self.assertTrue(any("adapters/codex/hook.py" in c for c in result["conflicts"]))
+            self.assertEqual(before, {p.relative_to(target): p.read_bytes() for p in target.rglob("*") if p.is_file()})
+
+    def test_setup_refuses_each_missing_selected_runtime_prerequisite(self):
+        for relative in ("scripts/dreamdocs.py", "scripts/memory_capture.py", "adapters/codex/hook.py", "memory/config.json", "templates/outcome-event.schema.json"):
+            with self.subTest(path=relative):
+                path = self.root / relative
+                original = path.read_bytes()
+                path.unlink()
+                try:
+                    before = self.snapshot()
+                    result = self.setup(apply=True)
+                    self.assertEqual((result["exit"], result["applied"]), (5, False))
+                    self.assertEqual(before, self.snapshot())
+                finally:
+                    path.write_bytes(original)
+
+    def test_setup_refuses_empty_or_incomplete_target_outcome_block(self):
+        path = self.root / install.BLOCK_FILE
+        for block in ("", install.BLOCK_START + "\nIncomplete owner block\n"):
+            with self.subTest(block=block):
+                path.write_text(block, encoding="utf-8")
+                before = self.snapshot()
+                result = self.setup(apply=True)
+                self.assertEqual((result["exit"], result["applied"]), (5, False))
+                self.assertEqual(before, self.snapshot())
+
+    def test_setup_preserves_valid_target_outcome_block(self):
+        custom = install.BLOCK_START + "\nReviewed owner outcome instructions.\n" + install.BLOCK_END + "\n"
+        (self.root / install.BLOCK_FILE).write_text(custom, encoding="utf-8")
+        result = self.setup(apply=True)
+        self.assertEqual((result["exit"], result["applied"]), (0, True))
+        self.assertIn(custom, (self.root / "AGENTS.md").read_text(encoding="utf-8"))
+
 if __name__ == "__main__":
     unittest.main()
 

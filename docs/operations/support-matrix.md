@@ -4,7 +4,7 @@
 
 # Candidate support and evidence
 
-Package: **1.5.0-rc.1**. This is a candidate, not a released dual-client support claim.
+Package: **1.5.0-rc.2**. This is a candidate, not a released dual-client support claim.
 An installed file, fixture pass, capture receipt, trusted hook and fresh-session recall prove
 different things. The [release checklist](release.md) requires exact-candidate independent evidence.
 
@@ -42,3 +42,8 @@ compatibility table stays conservative until those runtime observations are acce
 Recheck these references and actual installed-client versions at release. Model/account selection
 and client authentication stay user choices. The package does not purchase credits, log in,
 change models, bypass trust, install companion agents or enable a scheduler automatically.
+
+The `doctor` compatibility label is the conservative package support-table state, not a dynamic
+version rejection. Codex CLI 0.147.0 is the recorded observed Windows client; `unsupported`
+does not mean the executable version was rejected. Real hooks/trust/save/recall acceptance
+and supported release status are separate. RC2 does not widen the support table.
