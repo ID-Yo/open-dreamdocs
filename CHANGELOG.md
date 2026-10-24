@@ -6,7 +6,7 @@
 - Setup preview/apply now refuse missing target runtime assets without writes, listing prerequisites instead of claiming installation with broken hooks. Documented fresh ZIP extraction and selective adoption before setup.
 - Claude authentication, daily scheduling and broader client support gates remain unchanged.
 
-## v1.5.0-rc.1 вЂ” 2026-10-22 (candidate; release gates pending)
+## v1.5.0-rc.1 — 2026-10-22 (candidate; release gates pending)
 
 - Added project-scoped Codex and experimental Claude Code setup/uninstall, versioned install manifests, exact instruction-block merging and machine-local hook settings. No global client configuration is changed.
 - Added validated lifecycle events, durable capture/readback, exact replay and queued/redelivered outcomes with shared Dreamer locks. Private events/pending data stay local; receipt retention is owner-controlled.
