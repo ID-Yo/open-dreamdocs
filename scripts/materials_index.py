@@ -568,6 +568,9 @@ def index(root, apply=True, trigger="manual", runner=None, cfg=None):
             if not may_read(root, relative)[0]:  # consent withdrawn during the model call: publish nothing
                 report["stopped"] = "owner consent changed during summarization; result discarded"
                 break
+            if file_sha(path) != load_state(root)["files"].get(relative, {}).get("sha256"):
+                report["failed"].append({"path": relative, "reason": "file changed while it was summarized; retried next run"})
+                continue
             description = ((note + " ") if note and status == "partial" else "") + result["summary"] + " Read the original when: " + result["read_original_when"]
             if item["status"] in HUMAN:
                 proposal(root, relative, description, result["tags"])

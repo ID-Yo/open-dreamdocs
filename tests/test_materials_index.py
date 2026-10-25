@@ -306,6 +306,17 @@ class MaterialsIndexTest(unittest.TestCase):
         os.utime(lock, (1, 1))
         self.assertIsNotNone(mi.acquire(self.root))
 
+    def test_file_changed_during_summary_is_not_published(self):
+        self.mode("summarize")
+        path = self.put("a.txt", "launch plan")
+        class Edit(Runner):
+            def __call__(self, prompt, image, timeout):
+                path.write_text("rewritten", encoding="utf-8")
+                return super().__call__(prompt, image, timeout)
+        result = mi.index(self.root, True, runner=Edit())
+        self.assertEqual(self.rows()["a.txt"]["status"], "unread")
+        self.assertEqual(result["state"], "partial")
+
 
 WINDOWS_XML = """<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">

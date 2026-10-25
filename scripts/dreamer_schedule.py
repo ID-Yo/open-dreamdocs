@@ -235,6 +235,10 @@ def manage(root, action="status", apply=False, backend=None):
                 return report
             # A matching task registered by an earlier install whose readback failed: adopt it, never overwrite.
             with pm.operation(root):
+                pm.require(not pm.runtime(root, "lock.json").exists(), "Dreamer active; scheduler adoption deferred")
+                current = relevant(backend.query(), selection)
+                pm.require(current == tasks and len(current) == 1 and same_task(current[0], selection), "scheduler changed during preflight; nothing adopted")
+                pm.require(plan(root)["config_sha256"] == selection["config_sha256"], "config changed during preflight")
                 de.private_runtime(root, [INSTALL])
                 pm.atomic(record_path, {"version": 1, "schedule_id": selection["schedule_id"], "config_sha256": selection["config_sha256"], "installed_at": pm.now(),
                                        "name": selection["name"], "root": str(root), "project_id": selection["project_id"], "signature": selection["signature"], "plan": selection})
