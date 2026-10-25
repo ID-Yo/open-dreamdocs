@@ -385,15 +385,26 @@ def pdf_text(path):
 
 
 def codex_command():
-    override = os.environ.get("DREAMDOCS_CODEX")
-    if override:
-        return [override]
-    found = shutil.which("codex")
+    found = os.environ.get("DREAMDOCS_CODEX") or shutil.which("codex") or packaged_codex()
     if not found:
         return None
     if found.casefold().endswith(".ps1"):
-        return ["powershell.exe", "-NoProfile", "-NonInteractive", "-File", found]
+        # Windows PowerShell 5.1 mangles some Codex arguments; prefer PowerShell 7 when present.
+        return [shutil.which("pwsh") or "powershell.exe", "-NoProfile", "-NonInteractive", "-File", found]
     return [found]
+
+
+def packaged_codex():
+    """Codex CLI installed from the Codex desktop app (MSIX) lives in the package's virtualized
+    AppData, which Task Scheduler and other outside processes do not see on PATH."""
+    local = os.environ.get("LOCALAPPDATA")
+    if os.name != "nt" or not local:
+        return None
+    for name in ("codex.cmd", "codex.ps1"):
+        found = sorted(Path(local, "Packages").glob("OpenAI.Codex_*/LocalCache/Roaming/npm/" + name))
+        if found:
+            return str(found[0])
+    return None
 
 
 def codex_runner(prompt, image, timeout):

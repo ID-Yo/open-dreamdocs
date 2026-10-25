@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.5.0-rc.6 — 2026-10-25 (candidate; release gates pending)
+
+- Scheduled Dreamer runs on Windows can now summarize Human Materials: when Codex was installed from the Codex desktop app, its CLI lives in the app's virtualized AppData and is not on PATH for Task Scheduler. The summarizer now also looks in the desktop app package folder.
+
 ## v1.5.0-rc.5 — 2026-10-25 (candidate; release gates pending)
 
 - Upgrades and rollbacks of real projects no longer stop at "interrupted" because project folders under `docs/` lack a README. The commit gate now checks only what Dreamdocs needs to run (config, memory records, Dreamer checkpoint); `project_memory.py validate` still reports documentation style findings.

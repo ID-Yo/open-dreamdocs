@@ -32,7 +32,7 @@ A lock in `.dreamdocs/` prevents two runs at once. Files left over from the per-
 
 Text, Markdown, CSV, JSON and similar files, DOCX, PPTX, XLSX and OpenDocument are read with the Python standard library. PDF needs the optional `pypdf` package or `pdftotext` on PATH. Images are attached to the Codex call. Other formats (audio, video, archives) are marked `unparseable` with the reason.
 
-The summarizer is `codex exec` started in an empty temporary folder with a read-only sandbox, `--ephemeral`, hooks, memories, apps, plugins and tools disabled, and a fixed JSON output schema. The document is passed as untrusted data. It uses the Codex login of this computer, so file content goes to that account and nowhere else. Set `DREAMDOCS_CODEX` to a Codex executable when it is not on PATH.
+The summarizer is `codex exec` started in an empty temporary folder with a read-only sandbox, `--ephemeral`, hooks, memories, apps, plugins and tools disabled, and a fixed JSON output schema. The document is passed as untrusted data. It uses the Codex login of this computer, so file content goes to that account and nowhere else. The Codex CLI is looked up in `DREAMDOCS_CODEX`, then on PATH, then (on Windows) in the Codex desktop app package folder, which scheduled tasks cannot see on PATH.
 
 ## Privacy and review rules
 

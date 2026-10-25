@@ -343,6 +343,22 @@ class MaterialsIndexTest(unittest.TestCase):
         self.assertEqual(foreign.get("materials", 0), 0)
         self.assertNotIn("plan.md", foreign["context"])
 
+    def test_codex_found_in_desktop_app_package_when_not_on_path(self):
+        import os
+        from unittest import mock
+        package = self.root / "Packages" / "OpenAI.Codex_test" / "LocalCache" / "Roaming" / "npm"
+        package.mkdir(parents=True)
+        (package / "codex.ps1").write_text("", encoding="utf-8")
+        with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(self.root)}, clear=False), \
+             mock.patch.object(mi.shutil, "which", return_value=None), mock.patch.object(mi.os, "name", "nt"):
+            os.environ.pop("DREAMDOCS_CODEX", None)
+            command = mi.codex_command()
+        self.assertEqual(command[-1], str(package / "codex.ps1"))
+        (package / "codex.cmd").write_text("", encoding="utf-8")
+        with mock.patch.dict(os.environ, {"LOCALAPPDATA": str(self.root)}, clear=False), \
+             mock.patch.object(mi.shutil, "which", return_value=None), mock.patch.object(mi.os, "name", "nt"):
+            self.assertEqual(mi.codex_command(), [str(package / "codex.cmd")])
+
     def test_failed_git_check_fails_closed(self):
         (self.root / ".git").mkdir()
         real = mi.subprocess.run
