@@ -25,6 +25,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Memory health and isolated smoke test](operations/memory-health.md)
 - [Selected package upgrades](operations/upgrading.md)
 - [Sourced documentation refresh proposals](operations/documentation-refresh.md)
+- [Human Materials indexing (automatic summaries and tags)](operations/human-materials-indexing.md)
 - [Candidate support matrix](operations/support-matrix.md)
 - [Reproducible package and release gates](operations/release.md)
 - [Synthetic two-session acceptance prompt](../prompts/memory-demo.md)

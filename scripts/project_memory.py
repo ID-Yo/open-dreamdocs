@@ -244,7 +244,8 @@ def records(root):
 
 def settings(root):
     cfg = read_json(confined(root, "memory/config.json"))
-    require(set(cfg) == {"version", "schedule", "review"} and cfg["version"] == 1, "unsupported config fields/version")
+    require(set(cfg) - {"human_materials"} == {"version", "schedule", "review"} and cfg["version"] == 1, "unsupported config fields/version")
+    require(isinstance(cfg.get("human_materials", {}), dict), "human_materials must be an object")
     schedule = cfg["schedule"]
     require(set(schedule) == {"frequency", "timezone", "local_time", "owner"} and schedule["frequency"] == "daily", "schedule must be daily with timezone/local_time/owner")
     for key in ("timezone", "owner"):

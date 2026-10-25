@@ -312,9 +312,19 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
             dreamer["scheduler"] = scheduling["state"]
     if dreamer["scheduler"] != "observed_success":
         finding("scheduler_unverified", "dreamer", "Scheduling requires separate explicit opt-in and live trigger/executor/checkpoint evidence; configured fields are not runtime proof.", "dreamer")
+    import materials_index as mi
+    materials = mi.status(root)
+    if materials["exit"]:
+        finding("materials_unavailable", "human-materials", "Fix human_materials settings or the material index, then rerun doctor.", "materials")
+    elif materials["state"] == "off" and materials["unindexed"]:
+        finding("materials_indexing_off", "human-materials", "Files have no index row. With owner consent run 'dreamdocs.py materials mode summarize' (or inventory).", "materials")
+    elif materials["state"] != "off" and (materials["unindexed"] or materials["rows_by_status"].get("unread")):
+        finding("materials_pending", "human-materials", "Unindexed or unsummarized files wait for the next session start or Dreamer run; run 'dreamdocs.py materials index --apply' to process now.", "materials")
+    if materials.get("proposals_for_reviewed_rows"):
+        finding("materials_review_proposals", "human-materials", "A reviewed file changed; compare the stored AI proposal in .dreamdocs/human-materials-state.json and update the row.", "materials")
     result = {"exit": 2 if not evidence_valid or manifest_raw is not None and not manifest_valid else 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
               "clients": clients, "capture": {"readback": readback, "last_persisted_at": last, "receipts": len(receipts), "trigger_delivery": "unknown"},
-              "dreamer": dreamer, "findings": findings, "notification": "local report only; no external reporting or background monitor",
+              "dreamer": dreamer, "human_materials": materials, "findings": findings, "notification": "local report only; no external reporting or background monitor",
               "applied": False, "limits": "Configuration, receipts, smoke and source-backed reported observations prove different things; no process, product or schedule is started."}
     if smoke:
         result["smoke"] = smoke_test(root)

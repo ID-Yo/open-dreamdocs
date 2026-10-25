@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.5.0-rc.3 — 2026-10-25 (candidate; release gates pending)
+
+- Added automatic Human Materials indexing (epic #29). With owner consent (`dreamdocs.py materials mode inventory|summarize`, default `off`), every session start (background, at most every 6 hours) and every Dreamer run hashes `human-materials/`, keeps index rows in sync for new, moved and removed files, and in `summarize` mode asks an isolated read-only Codex run for a summary, tags, category and sensitivity written as `ai-draft` rows. Human-reviewed rows are never overwritten; changes to them become proposals. Privacy patterns, owner excludes, size limits and credential checks keep files away from the model.
+- Text, DOCX, PPTX, XLSX and OpenDocument extraction uses the standard library; PDF uses optional `pypdf` or `pdftotext`; images are attached; other formats are marked `unparseable`.
+- Recall now offers matching material summaries (and a count at session start) so agents open originals only when needed. `doctor` reports indexing mode, pending files and review proposals.
+- Fixed Windows Task Scheduler readback (#21): principals are compared by SID, durations are normalized, and defaults omitted by Windows are filled in. A matching task left by an earlier failed readback is adopted instead of refused.
+
 ## v1.5.0-rc.2 — 2026-10-24 (candidate; release gates pending)
 
 - Fixed external setup preview reading a missing target outcome block; the reviewed package supplies the preview template. Empty or incomplete existing owner blocks are conflicts, and valid custom blocks are retained.

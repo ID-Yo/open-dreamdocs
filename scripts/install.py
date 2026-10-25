@@ -22,7 +22,7 @@ import automation_contract as ac
 import memory_capture as mc
 import project_memory as pm
 
-PACKAGE_VERSION = "1.5.0-rc.2"
+PACKAGE_VERSION = "1.5.0-rc.3"
 BINDING, MANIFEST, HOOKS, AGENTS = "memory/automation.json", "memory/automation/install.json", ".codex/hooks.json", "AGENTS.md"
 HOOKS_IGNORE = ".codex/.gitignore"
 HOOK_SCRIPT, BLOCK_FILE = "adapters/codex/hook.py", "adapters/outcome-block.md"

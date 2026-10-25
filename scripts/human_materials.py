@@ -8,7 +8,9 @@ import re
 from urllib.parse import unquote, urlsplit
 
 # Exact shipped empty index, normalized to LF/BOM-free UTF-8. Update when that template changes.
-EMPTY_INDEX_SHA256 = 'a01d0464982851d7e8cabd01e88f849bc2c34fb7b99c299a22e818d725e18aa0'
+EMPTY_INDEX_SHA256 = '9dfd76eb4d217297f74099fce256b26ad03024896654e25861e3998309d022e3'
+# Every shipped empty template; installed projects keep the version they adopted.
+KNOWN_EMPTY_INDEX_SHA256 = {EMPTY_INDEX_SHA256, 'a01d0464982851d7e8cabd01e88f849bc2c34fb7b99c299a22e818d725e18aa0'}
 MAX_ENTRIES = 10000
 
 
@@ -59,7 +61,7 @@ def inventory(root):
             token = marker[1]
             if fence is None:
                 fence = token
-            elif token[0] == fence[0] and len(token) >= len(fence):
+            elif token[0] == fence[0] and len(token) >= len(fence) and not line[marker.end():].strip():
                 fence = None
             continue
         if fence:
@@ -91,13 +93,13 @@ def inventory(root):
             errors.append(f'Duplicate row: {relative}')
         indexed.add(relative)
         rows.append({'path': relative, 'status': cells[4], 'line': number, 'text': line})
-        if cells[4] not in {'unread', 'reviewed', 'partial', 'unparseable'}:
+        if cells[4] not in {'unread', 'ai-draft', 'reviewed', 'partial', 'unparseable'}:
             errors.append(f'Invalid review status: {relative}')
         try:
             if cells[5] != '—' and not re.fullmatch(r'\d{4}-\d{2}-\d{2}', cells[5]):
                 raise ValueError()
             reviewed = date.fromisoformat(cells[5]) if cells[5] != '—' else None
-            if cells[4] in {'reviewed', 'partial'} and reviewed is None:
+            if cells[4] in {'reviewed', 'partial', 'ai-draft'} and reviewed is None:
                 raise ValueError()
         except ValueError:
             errors.append(f'Invalid or missing review date: {relative}')
@@ -115,7 +117,7 @@ def public_export(root):
     """Fail closed for a used material tree, including a populated index with missing originals."""
     result = inventory(root)
     populated = bool(result['actual'] or result['rows'])
-    exact_empty = result.get('index_sha256') == EMPTY_INDEX_SHA256
+    exact_empty = result.get('index_sha256') in KNOWN_EMPTY_INDEX_SHA256
     return {'ok': not populated and exact_empty and not result['errors'], 'populated': populated, 'empty_index_verified': exact_empty,
             'errors': result['errors'] + (['Public export requires the shipped empty index and no originals; exact-file owner approval is a separate publication step.'] if populated or not exact_empty else []),
             'limits': 'Selected human-materials tree only; inventory never proves extraction or absence of originals elsewhere.'}
