@@ -103,6 +103,7 @@ def materials(root, wanted, limit=3):
     except (OSError, ValueError, UnicodeError):
         return []
     rows = [r for r in rows if not mi.blocked_by_policy(r["path"], policy)]
+    rows = [r for r in rows if "private-no-ai" not in r["text"].casefold()]
     if not rows:
         return []
     split = [(r, [c.strip() for c in r["text"].strip().strip("|").split("|")]) for r in rows]

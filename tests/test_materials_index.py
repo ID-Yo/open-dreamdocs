@@ -317,6 +317,24 @@ class MaterialsIndexTest(unittest.TestCase):
         self.assertEqual(self.rows()["a.txt"]["status"], "unread")
         self.assertEqual(result["state"], "partial")
 
+    def test_private_no_ai_tag_hides_existing_summary_from_recall(self):
+        self.mode("summarize")
+        self.put("plan.md", "Spring launch plan.")
+        mi.index(self.root, True, runner=Runner())
+        readme = self.root / "human-materials" / "README.md"
+        readme.write_text(readme.read_text(encoding="utf-8").replace("launch, budget", "launch, budget, private-no-ai"), encoding="utf-8")
+        self.assertEqual(mr.materials(self.root, mr.terms("launch budget")), [])
+
+    def test_failed_git_check_fails_closed(self):
+        (self.root / ".git").mkdir()
+        real = mi.subprocess.run
+        mi.subprocess.run = lambda *a, **k: real(["python", "-c", "raise SystemExit(128)"], capture_output=True)
+        try:
+            with self.assertRaises(ValueError):
+                mi.private(self.root)
+        finally:
+            mi.subprocess.run = real
+
 
 WINDOWS_XML = """<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">

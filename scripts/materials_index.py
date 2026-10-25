@@ -125,7 +125,9 @@ def private(root):
     def git(*args):
         return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=5)
     if git("rev-parse", "--is-inside-work-tree").returncode:
-        return  # not a Git project
+        # only a project with no repository anywhere above it counts as non-Git; failed checks fail closed
+        pm.require(not any((p / ".git").exists() for p in (root, *root.parents)), "Git privacy of human-materials state could not be verified")
+        return
     tracked = git("ls-files", "-z", "--", STATE, LOCK)
     pm.require(tracked.returncode == 0 and not tracked.stdout, "human-materials state is tracked by Git; untrack it before indexing")
     for relative in (STATE, LOCK):
