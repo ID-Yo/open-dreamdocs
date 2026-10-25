@@ -23,6 +23,7 @@ import subprocess
 import sys
 import tempfile
 from urllib.parse import quote
+import uuid
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -65,7 +66,7 @@ SCHEMA = {
 
 def settings(root):
     """Return the validated indexing settings; a missing key means off."""
-    cfg = pm.read_json(pm.confined(Path(root), "memory/config.json"))
+    cfg = pm.read_json(pm.confined(Path(root).resolve(), "memory/config.json"))
     value = cfg.get("human_materials", {}) if isinstance(cfg, dict) else {}
     pm.require(isinstance(value, dict) and set(value) <= set(DEFAULTS), "human_materials settings have unknown fields")
     merged = {**DEFAULTS, **value}
@@ -110,11 +111,13 @@ def load_state(root):
 
 
 def save_state(root, state):
-    ignore = pm.confined(root, ".dreamdocs/.gitignore")
-    if not ignore.exists():
-        ignore.parent.mkdir(parents=True, exist_ok=True)
-        ignore.write_text("*\n", encoding="utf-8")
     pm.atomic(pm.confined(root, STATE), state)
+
+
+def private(root):
+    """State and proposals stay local: same Git-ignore guard as Dreamer receipts."""
+    import dreamer_executor as de
+    de.private_runtime(root, [STATE, LOCK])
 
 
 def cell(text, limit):
@@ -148,12 +151,21 @@ def read_index(root):
     return path, raw, text.replace("\r\n", "\n").split("\n"), newline, raw.startswith(b"\xef\xbb\xbf")
 
 
-def write_index(path, raw, lines, newline, bom):
+def write_index(path, raw, lines, newline, bom, parsed_sha=None):
     pm.require(path.read_bytes() == raw, "material index changed during indexing; retry later")
+    if parsed_sha is not None:
+        normalized = raw.decode("utf-8-sig").replace("\r\n", "\n")
+        pm.require(hashlib.sha256(normalized.encode("utf-8")).hexdigest() == parsed_sha, "material index changed during indexing; retry later")
     data = newline.join(lines).encode("utf-8")
-    temporary = path.with_name(f".{path.name}.dreamdocs.tmp")
-    temporary.write_bytes((b"\xef\xbb\xbf" if bom else b"") + data)
-    os.replace(temporary, path)
+    root = path.parents[1]
+    temporary = pm.confined(root, f".dreamdocs/index-{uuid.uuid4().hex}.tmp")  # never inside human-materials
+    temporary.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with temporary.open("xb") as stream:
+            stream.write((b"\xef\xbb\xbf" if bom else b"") + data)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def table_end(lines):
@@ -162,7 +174,11 @@ def table_end(lines):
     for number, line in enumerate(lines):
         marker = re.match(r"^\s*(\x60{3,}|~{3,})", line)
         if marker:
-            fence = None if fence and marker[1][0] == fence[0] else (fence or marker[1])
+            token = marker[1]
+            if fence is None:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence) and not line[marker.end():].strip():
+                fence = None
             continue
         if fence:
             continue
@@ -185,6 +201,10 @@ def inventory(root, cfg, state):
         path = folder / relative
         info = path.stat()
         previous = state["files"].get(relative, {})
+        if blocked_by_policy(relative, cfg) or info.st_size > cfg["max_file_bytes"]:
+            # never opened: identity from size and time only
+            files[relative] = {**previous, "size": info.st_size, "mtime_ns": info.st_mtime_ns, "sha256": f"unread:{info.st_size}:{info.st_mtime_ns}"}
+            continue
         same = previous.get("size") == info.st_size and previous.get("mtime_ns") == info.st_mtime_ns and previous.get("sha256")
         files[relative] = {**previous, "size": info.st_size, "mtime_ns": info.st_mtime_ns,
                            "sha256": previous["sha256"] if same else file_sha(path)}
@@ -199,6 +219,8 @@ def scan(root, apply=False, cfg=None):
         return {"exit": 0, "state": "off", "applied": False, "queue": [], "notes": ["Indexing is off; run 'dreamdocs.py materials mode summarize' after owner consent."]}
     state = load_state(root)
     result, structural, files = inventory(root, cfg, state)
+    if apply:
+        pm.require(not structural, "material inventory is incomplete or the index has invalid rows; nothing changed: " + "; ".join(structural[:3]))
     rows = {r["path"]: r for r in result["rows"]}
     actual = set(files)
     new = sorted(actual - set(rows))
@@ -206,6 +228,8 @@ def scan(root, apply=False, cfg=None):
     moves = {}
     for old in removed:
         known = state["files"].get(old, {}).get("sha256")
+        if not known or known.startswith("unread:"):
+            continue  # metadata-only identity never proves a move
         target = [p for p in new if known and files[p]["sha256"] == known and p not in moves.values()]
         if len(target) == 1:
             moves[old] = target[0]
@@ -243,7 +267,7 @@ def scan(root, apply=False, cfg=None):
             output.append(line)
         end = table_end(output)
         output[end:end] = [row(p, NOT_SUMMARIZED, "unknown", "unread", "—") for p in added]
-        write_index(path, raw, output, newline, bom)
+        write_index(path, raw, output, newline, bom, result["index_sha256"])
         report["applied"] = True
     if apply:
         state["files"] = files
@@ -419,6 +443,7 @@ def index(root, apply=True, trigger="manual", runner=None, cfg=None):
     if lock is None:
         return {"exit": 0, "state": "busy", "applied": False, "queue": [], "notes": ["Another indexing run is active."]}
     try:
+        private(root)
         report = scan(root, True, cfg)
         report.update(trigger=trigger, summarized=[], proposals=[], skipped=[], failed=[])
         if cfg["indexing"] != "summarize":
@@ -432,9 +457,17 @@ def index(root, apply=True, trigger="manual", runner=None, cfg=None):
                 report["skipped"].append({"path": item["path"], "reason": "excluded by privacy policy"})
                 remember(root, item["path"], skipped=True)
         for item in work[: cfg["max_files_per_run"]]:
+            current = settings(root)
+            if current["indexing"] != "summarize":
+                report["stopped"] = "owner changed the mode during the run; remaining files were not read"
+                break
             relative = item["path"]
             path = folder / relative
-            if path.stat().st_size > cfg["max_file_bytes"]:
+            if blocked_by_policy(relative, current):
+                report["skipped"].append({"path": relative, "reason": "excluded by privacy policy"})
+                remember(root, relative, skipped=True)
+                continue
+            if path.stat().st_size > current["max_file_bytes"]:
                 report["skipped"].append({"path": relative, "reason": "larger than max_file_bytes"})
                 remember(root, relative, skipped=True)
                 continue
@@ -464,6 +497,21 @@ def index(root, apply=True, trigger="manual", runner=None, cfg=None):
         report["state"] = "indexed" if not report["failed"] else "partial"
         report["exit"] = 0 if not report["failed"] else 1
         return finish(root, report)
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def scan_locked(root, apply=False):
+    """CLI scan: plans freely, but an applied scan takes the same lock as index."""
+    root = Path(root).resolve()
+    if not apply:
+        return scan(root, False)
+    lock = acquire(root)
+    if lock is None:
+        return {"exit": 0, "state": "busy", "applied": False, "queue": [], "notes": ["Another indexing run is active."]}
+    try:
+        private(root)
+        return scan(root, True)
     finally:
         lock.unlink(missing_ok=True)
 
@@ -498,14 +546,15 @@ def proposal(root, relative, description, tags):
 
 def update_row(root, relative, description, tags, status, extraction):
     path, raw, lines, newline, bom = read_index(root)
-    rows = {r["path"]: r for r in hm.inventory(root)["rows"]}
+    parsed = hm.inventory(root)
+    rows = {r["path"]: r for r in parsed["rows"]}
     pm.require(relative in rows, f"index row missing for {relative}")
     number = rows[relative]["line"] - 1
     parts = cells(lines[number])
     pm.require(parts[4] not in HUMAN, "human-reviewed row is never overwritten")
     when = date.today().isoformat()
     lines[number] = row(relative, cell(description, 1200), tags or parts[3] or "unknown", status, when, parts[2] or None)
-    write_index(path, raw, lines, newline, bom)
+    write_index(path, raw, lines, newline, bom, parsed["index_sha256"])
     remember(root, relative, indexed=True)
 
 

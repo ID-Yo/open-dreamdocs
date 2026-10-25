@@ -171,6 +171,14 @@ def task_signature(xml):
     signature["settings"] = {child.tag.rsplit("}", 1)[-1]: child.text for child in settings if child.tag.rsplit("}", 1)[-1] in managed} if settings is not None else {}
     signature["settings"] = {**SETTING_DEFAULTS, **signature["settings"]}
     signature["settings"]["ExecutionTimeLimit"] = seconds(signature["settings"]["ExecutionTimeLimit"])
+    # Anything else Windows reports must be a default; behavior-changing extras (RunOnlyIfIdle, ...) never match.
+    extras = sorted(child.tag.rsplit("}", 1)[-1] for child in settings if child.tag.rsplit("}", 1)[-1] not in managed | {"IdleSettings"}) if settings is not None else []
+    idle = settings.find("t:IdleSettings", NS) if settings is not None else None
+    idle_values = {c.tag.rsplit("}", 1)[-1]: c.text for c in idle} if idle is not None else {}
+    idle_defaults = {"StopOnIdleEnd": "true", "RestartOnIdle": "false", "Duration": "PT10M", "WaitTimeout": "PT1H"}
+    if any(idle_values.get(k, v) != v for k, v in idle_defaults.items()) or set(idle_values) - set(idle_defaults):
+        extras.append("IdleSettings")
+    signature["unexpected_settings"] = extras
     pm.require(root.find("t:Settings/t:RestartOnFailure", NS) is None, "automatic task retries are not configured")
     pm.require(len(root.findall("t:Actions/t:Exec", NS)) == 1 and len(root.findall("t:Triggers/*", NS)) == 1
                and len(root.findall("t:Actions/*", NS)) == 1 and len(root.findall("t:Principals/*", NS)) == 1, "unexpected additional task actions/triggers/principals")
@@ -193,6 +201,7 @@ def same_task(task, selection, enabled=True):
     if not enabled:
         actual["settings"]["Enabled"] = "true"
     expected = {**expected, "settings": {**SETTING_DEFAULTS, **expected["settings"]}}
+    expected.setdefault("unexpected_settings", [])  # records saved before this field existed
     expected["settings"]["ExecutionTimeLimit"] = seconds(expected["settings"]["ExecutionTimeLimit"])
     user = "Principals/Principal/UserId"
     if account(actual.get(user)) == account(expected.get(user)):

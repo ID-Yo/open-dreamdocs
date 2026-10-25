@@ -169,6 +169,94 @@ class MaterialsIndexTest(unittest.TestCase):
         self.assertEqual(mr.materials(self.root, mr.terms("unrelated database migration")), [])
         self.assertIn("1 indexed file", mr.materials(self.root, set())[0])
 
+    def test_invalid_index_fails_closed_without_deleting_rows(self):
+        self.put("a.txt", "x")
+        mi.scan(self.root, True)
+        readme = self.root / "human-materials" / "README.md"
+        broken = readme.read_text(encoding="utf-8").replace("| unread | — |", "| unread | — |\n| [ghost](ghost.txt) | bad |")
+        readme.write_text(broken, encoding="utf-8")
+        with self.assertRaises(ValueError):
+            mi.scan(self.root, True)
+        self.assertEqual(readme.read_text(encoding="utf-8"), broken)
+
+    def test_index_edit_during_scan_aborts(self):
+        self.put("a.txt", "x")
+        readme = self.root / "human-materials" / "README.md"
+        real = mi.inventory
+        def edited(root, cfg, state):
+            out = real(root, cfg, state)
+            readme.write_text(readme.read_text(encoding="utf-8") + "\nowner edit\n", encoding="utf-8")
+            return out
+        mi.inventory = edited
+        try:
+            with self.assertRaises(ValueError):
+                mi.scan(self.root, True)
+        finally:
+            mi.inventory = real
+        self.assertTrue(readme.read_text(encoding="utf-8").endswith("owner edit\n"))
+        self.assertFalse(any(p.name.endswith(".tmp") for p in (self.root / "human-materials").iterdir()))
+
+    def test_mode_off_during_run_stops_reading(self):
+        self.mode("summarize")
+        self.put("a.txt", "first document")
+        self.put("b.txt", "second document")
+        test = self
+        class OptOut(Runner):
+            def __call__(self, prompt, image, timeout):
+                test.mode("off")
+                return super().__call__(prompt, image, timeout)
+        runner = OptOut()
+        result = mi.index(self.root, True, runner=runner)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertIn("stopped", result)
+
+    def test_rows_are_inserted_outside_long_fences(self):
+        readme = self.root / "human-materials" / "README.md"
+        readme.write_text(readme.read_text(encoding="utf-8") + "\n\x60\x60\x60\x60text\n\x60\x60\x60\n| Material | x | x | x | x | x |\n\x60\x60\x60\x60\n", encoding="utf-8")
+        self.put("a.txt", "x")
+        mi.scan(self.root, True)
+        self.assertEqual(hm.check(self.root), [])
+
+    def test_policy_files_are_not_opened_for_hashing(self):
+        self.put("db-password.txt", "x")
+        opened = []
+        real = mi.file_sha
+        mi.file_sha = lambda path: opened.append(path.name) or real(path)
+        try:
+            mi.scan(self.root, True)
+        finally:
+            mi.file_sha = real
+        self.assertEqual(opened, [])
+
+    def test_exclusions_apply_mid_run_and_in_recall(self):
+        self.mode("summarize")
+        self.put("a.txt", "launch plan one")
+        self.put("b.txt", "launch plan two")
+        test = self
+        class Exclude(Runner):
+            def __call__(self, prompt, image, timeout):
+                test.mode("summarize", exclude=["b.txt", "a.txt"])
+                return super().__call__(prompt, image, timeout)
+        runner = Exclude()
+        mi.index(self.root, True, runner=runner)
+        self.assertEqual(len(runner.calls), 1)
+        self.assertEqual(mr.materials(self.root, mr.terms("launch plan")), [])
+
+    def test_metadata_only_identity_never_moves_a_row(self):
+        old = self.put("old-password.txt", "x")
+        mi.scan(self.root, True)
+        stamp = old.stat().st_mtime_ns
+        old.unlink()
+        other = self.put("new-password.txt", "y")
+        import os
+        os.utime(other, ns=(stamp, stamp))
+        self.assertEqual(mi.scan(self.root, True)["moved"], {})
+
+    def test_fence_closer_with_text_does_not_close(self):
+        readme = self.root / "human-materials" / "README.md"
+        readme.write_text(readme.read_text(encoding="utf-8") + "\n\x60\x60\x60\n\x60\x60\x60 not a closer\n| [x](x.txt) | a | b | c | unread | — |\n\x60\x60\x60\n", encoding="utf-8")
+        self.assertEqual(hm.check(self.root), [])
+
 
 WINDOWS_XML = """<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
@@ -196,6 +284,9 @@ class ScheduleNormalizationTest(unittest.TestCase):
         self.assertTrue(ds.same_task(task, selection))
         ds._SIDS["host\\w"] = "S-1-5-21-2"
         self.assertFalse(ds.same_task(task, selection))
+        ds._SIDS["host\\w"] = "S-1-5-21-1"
+        idle = dict(task, xml=task["xml"].replace("<StartWhenAvailable>", "<RunOnlyIfIdle>true</RunOnlyIfIdle><StartWhenAvailable>"))
+        self.assertFalse(ds.same_task(idle, selection))
         self.assertEqual(ds.seconds("PT20M"), "PT1200S")
         self.assertEqual(ds.seconds("P1DT1H"), "PT90000S")
 

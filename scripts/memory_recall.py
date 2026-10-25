@@ -97,9 +97,12 @@ def materials(root, wanted, limit=3):
     """Summaries of indexed Human Materials matching the query, plus a short count for session start."""
     try:
         import human_materials as hm
+        import materials_index as mi
         rows = hm.inventory(root)["rows"]
+        policy = mi.settings(root)
     except (OSError, ValueError, UnicodeError):
         return []
+    rows = [r for r in rows if not mi.blocked_by_policy(r["path"], policy)]
     if not rows:
         return []
     split = [(r, [c.strip() for c in r["text"].strip().strip("|").split("|")]) for r in rows]

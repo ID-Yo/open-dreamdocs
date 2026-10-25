@@ -93,7 +93,7 @@ def main():
             if args.command == "mode":
                 result = mi.set_mode(root, args.value)
             elif args.command == "scan":
-                result = mi.scan(root, args.apply)
+                result = mi.scan_locked(root, args.apply)
             elif args.command == "index":
                 result = mi.index(root, args.apply, args.trigger)
             else:
