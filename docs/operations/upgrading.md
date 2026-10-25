@@ -29,8 +29,11 @@ hook paths and renewed trust. Reinstall uses normal setup; uninstall retains use
 Upgrades add the exact pinned `memory/automation/README.md` and `receipts/README.md` scaffolds only
 when missing, preserving existing user READMEs/notes. Existing scripts/README.md stays user-owned
 so a legacy project does not gain broken links into new canonical pages it has not adopted.
-The new validator checks the entire upgraded target before the new install manifest/version is
-committed; validation failure leaves an interrupted journal, not applied success.
+Before the new install manifest/version is committed, the new code validates what Dreamdocs needs
+to run: `memory/config.json`, every memory record and the Dreamer checkpoint. Documentation style
+rules (a README in every docs folder, link checks) are reported by `project_memory.py validate`
+but never block an upgrade or rollback. Validation failure leaves an interrupted journal, not
+applied success.
 
 ```text
 python -B <new-package>/scripts/dreamdocs.py --root <project> rollback --backup .dreamdocs/backups/<transaction>

@@ -181,11 +181,23 @@ class UpgradeTests(unittest.TestCase):
 
     def test_new_validator_failure_keeps_previous_installed_version_and_recoverable_journal(self):
         before = (self.root / install.MANIFEST).read_bytes()
-        with patch.object(upgrade.pm, "validate", side_effect=pm.MemoryError("injected full-target validation failure")):
+        with patch.object(upgrade.pm, "validate_runtime", side_effect=pm.MemoryError("injected runtime validation failure")):
             result = self.run_upgrade(apply=True)
         self.assertEqual((result["exit"], result["applied"]), (5, False))
         self.assertEqual((self.root / install.MANIFEST).read_bytes(), before)
         self.assertEqual(pm.read_json(self.root / result["backup"] / "journal.json")["state"], "interrupted")
+
+    def test_project_documentation_style_never_blocks_upgrade_or_rollback(self):
+        folder = self.root / "docs/engineering/proposals/rpt-usage-v1"
+        folder.mkdir(parents=True)
+        (folder / "design.md").write_text("Project-owned proposal without folder READMEs.\n", encoding="utf-8")
+        with self.assertRaises(pm.MemoryError):
+            pm.validate(self.root)
+        result = self.run_upgrade(apply=True)
+        self.assertEqual((result["exit"], result["applied"]), (0, True), result.get("conflicts"))
+        reverted = upgrade.rollback(self.root, result["backup"], apply=True)
+        self.assertEqual(reverted["exit"], 0, reverted)
+        self.assertEqual((folder / "design.md").read_text(encoding="utf-8"), "Project-owned proposal without folder READMEs.\n")
 
     def test_backup_negations_refuse_before_payload_publication_and_preserve_owner_rules(self):
         subprocess.run(["git", "init", "-q", str(self.root)], check=True, capture_output=True, timeout=10)

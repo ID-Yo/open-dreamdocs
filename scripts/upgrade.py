@@ -263,7 +263,7 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
                 ordered = sorted(p for p in writes if p != install.MANIFEST) + [install.MANIFEST]
                 for path in ordered:
                     if path == install.MANIFEST:
-                        pm.validate(root)
+                        pm.validate_runtime(root)  # documentation style rules never block a working upgrade
                         pm.require(all(hash_bytes(read_bytes(root, p)) == sha for p, sha in package_files.items()), "staged package readback mismatch")
                     pm.require(read_bytes(root, path) == before[path], f"target edited during update: {path}")
                     target = pm.confined(root, path)
@@ -371,7 +371,7 @@ def rollback(root, backup, apply=False):
                     else:
                         atomic_bytes(target, data)
                     pm.require(read_bytes(root, path) == data, "rollback readback mismatch: " + path)
-                pm.validate(root)
+                pm.validate_runtime(root)
                 journal["state"] = "rolled_back"
                 journal["rolled_back_at"] = pm.now()
                 pm.atomic(journal_path, journal)
