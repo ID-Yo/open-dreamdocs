@@ -359,6 +359,25 @@ class MaterialsIndexTest(unittest.TestCase):
              mock.patch.object(mi.shutil, "which", return_value=None), mock.patch.object(mi.os, "name", "nt"):
             self.assertEqual(mi.codex_command(), [str(package / "codex.cmd")])
 
+    def test_untrusted_image_name_never_reaches_a_batch_command_line(self):
+        from unittest import mock
+        image = self.put("photo&ver&.png", b"\x89PNG")
+        seen = []
+        def fake_run(argv, **kwargs):
+            seen.append(argv)
+            raise OSError("stop")
+        with mock.patch.object(mi, "codex_command", return_value=[str(self.root / "codex.cmd")]), \
+             mock.patch.object(mi.subprocess, "run", side_effect=fake_run):
+            with self.assertRaises(OSError):
+                mi.codex_runner("prompt", image, 5)
+        self.assertTrue(seen)
+        self.assertFalse(any("&" in a for a in seen[0]))
+        self.assertTrue(seen[0][seen[0].index("--image") + 1].endswith("attachment.png"))
+        with mock.patch.object(mi, "codex_command", return_value=[str(self.root / "codex.cmd")]), \
+             mock.patch.object(mi, "mcp_servers", return_value=["bad&name"]):
+            with self.assertRaises(ValueError):
+                mi.codex_runner("prompt", None, 5)
+
     def test_failed_git_check_fails_closed(self):
         (self.root / ".git").mkdir()
         real = mi.subprocess.run
