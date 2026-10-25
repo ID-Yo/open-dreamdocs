@@ -9,3 +9,5 @@ Describe environments, releases, monitoring, incidents and recovery here. The da
 For durable task handoffs and observed execution/health metadata, use [Task continuity](task-continuity.md). This read-only audit does not install a scheduler or resume work.
 
 For automatic capture and recall in Codex and Claude Code, the shared event, receipt, privacy and exit-code rules are in the [automation contract](automation-contract.md). Nothing in the package is automatic until setup and a tested client adapter exist.
+
+For automatic summaries, tags and sync of the private original-material index, use [Human Materials indexing](human-materials-indexing.md). It is off until the owner chooses `inventory` or `summarize`.

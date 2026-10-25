@@ -108,7 +108,7 @@ def prepare(root, revision, output=None):
                 index_versions.add(oid.decode())
         for oid in sorted(index_versions):
             old_index = blobs[oid].decode("utf-8-sig").replace("\r\n", "\n")
-            if pm.digest(old_index.encode()) != hm.EMPTY_INDEX_SHA256:
+            if pm.digest(old_index.encode()) not in hm.KNOWN_EMPTY_INDEX_SHA256:
                 issue("history", "nonempty_or_modified_material_index", oid)
         report["history_audited"] = True
         report["historical_material_index_versions"] = len(index_versions)

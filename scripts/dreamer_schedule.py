@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -14,6 +15,41 @@ import project_memory as pm
 INSTALL = ".dreamdocs/dreamer-schedule.json"
 NAMESPACE = "http://schemas.microsoft.com/windows/2004/02/mit/task"
 NS = {"t": NAMESPACE}
+# Task Scheduler omits elements that equal its defaults when it returns the registered XML.
+DEFAULTS = {"Triggers/CalendarTrigger/Enabled": "true", "Principals/Principal/RunLevel": "LeastPrivilege"}
+SETTING_DEFAULTS = {"MultipleInstancesPolicy": "IgnoreNew", "DisallowStartIfOnBatteries": "true", "StopIfGoingOnBatteries": "true",
+                    "StartWhenAvailable": "false", "AllowStartOnDemand": "true", "Enabled": "true", "WakeToRun": "false",
+                    "ExecutionTimeLimit": "PT72H"}
+DURATION = re.compile(r"P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?")
+_SIDS = {}
+
+
+def seconds(value):
+    match = DURATION.fullmatch(value or "")
+    if not match or not any(match.groups()):
+        return value
+    days, hours, minutes, secs = (int(g or 0) for g in match.groups())
+    return "PT" + str(((days * 24 + hours) * 60 + minutes) * 60 + secs) + "S"
+
+
+def account(user):
+    """Compare principals by SID: Task Scheduler stores the SID even when a name was registered."""
+    if not isinstance(user, str) or user.upper().startswith("S-1-"):
+        return user.upper() if isinstance(user, str) else user
+    if user not in _SIDS:
+        sid = None
+        if os.name == "nt":
+            try:
+                done = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                                       "([System.Security.Principal.NTAccount]$env:DREAMDOCS_ACCOUNT).Translate([System.Security.Principal.SecurityIdentifier]).Value"],
+                                      capture_output=True, timeout=20, env={**os.environ, "DREAMDOCS_ACCOUNT": user},
+                                      creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                text = done.stdout.decode("utf-8", "replace").strip()
+                sid = text.upper() if done.returncode == 0 and text.upper().startswith("S-1-") else None
+            except (OSError, subprocess.SubprocessError):
+                sid = None
+        _SIDS[user] = sid or user.casefold()
+    return _SIDS[user]
 
 
 class WindowsBackend:
@@ -128,9 +164,13 @@ def task_signature(xml):
               "Triggers/CalendarTrigger/ScheduleByDay/DaysInterval", "Principals/Principal/UserId", "Principals/Principal/LogonType",
               "Principals/Principal/RunLevel", "Actions/Exec/Command", "Actions/Exec/Arguments", "Actions/Exec/WorkingDirectory")
     signature = {p: root.findtext("/".join("t:" + part for part in p.split("/")), namespaces=NS) for p in fields}
+    for key, value in DEFAULTS.items():
+        signature[key] = signature[key] or value
     settings = root.find("t:Settings", NS)
     managed = {"MultipleInstancesPolicy", "DisallowStartIfOnBatteries", "StopIfGoingOnBatteries", "StartWhenAvailable", "AllowStartOnDemand", "Enabled", "WakeToRun", "ExecutionTimeLimit"}
     signature["settings"] = {child.tag.rsplit("}", 1)[-1]: child.text for child in settings if child.tag.rsplit("}", 1)[-1] in managed} if settings is not None else {}
+    signature["settings"] = {**SETTING_DEFAULTS, **signature["settings"]}
+    signature["settings"]["ExecutionTimeLimit"] = seconds(signature["settings"]["ExecutionTimeLimit"])
     pm.require(root.find("t:Settings/t:RestartOnFailure", NS) is None, "automatic task retries are not configured")
     pm.require(len(root.findall("t:Actions/t:Exec", NS)) == 1 and len(root.findall("t:Triggers/*", NS)) == 1
                and len(root.findall("t:Actions/*", NS)) == 1 and len(root.findall("t:Principals/*", NS)) == 1, "unexpected additional task actions/triggers/principals")
@@ -152,6 +192,11 @@ def same_task(task, selection, enabled=True):
     actual["Triggers/CalendarTrigger/StartBoundary"] = wanted
     if not enabled:
         actual["settings"]["Enabled"] = "true"
+    expected = {**expected, "settings": {**SETTING_DEFAULTS, **expected["settings"]}}
+    expected["settings"]["ExecutionTimeLimit"] = seconds(expected["settings"]["ExecutionTimeLimit"])
+    user = "Principals/Principal/UserId"
+    if account(actual.get(user)) == account(expected.get(user)):
+        actual[user] = expected[user]
     return task["name"] == selection["name"] and actual == expected
 
 
@@ -175,6 +220,17 @@ def manage(root, action="status", apply=False, backend=None):
     else:
         task = tasks[0]
         pm.require(same_task(task, selection, enabled=task["state"] != 1), "installed task differs from selected owner/action/schedule; never overwrite it")
+        if action == "install" and not installed and task["state"] != 1:
+            if not apply:
+                report["state"] = "adoptable_existing"
+                return report
+            # A matching task registered by an earlier install whose readback failed: adopt it, never overwrite.
+            with pm.operation(root):
+                de.private_runtime(root, [INSTALL])
+                pm.atomic(record_path, {"version": 1, "schedule_id": selection["schedule_id"], "config_sha256": selection["config_sha256"], "installed_at": pm.now(),
+                                       "name": selection["name"], "root": str(root), "project_id": selection["project_id"], "signature": selection["signature"], "plan": selection})
+            report.update(state="adopted_existing", applied=True)
+            return report
         pm.require(installed.get("schedule_id") == selection["schedule_id"] and installed.get("config_sha256") == selection["config_sha256"], "existing task lacks matching local installation identity")
         if action == "install":
             report["state"] = "already_installed" if task["state"] != 1 else "disabled"

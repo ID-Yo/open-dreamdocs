@@ -37,12 +37,43 @@ On processing an upload or starting a task that depends on human materials:
    Use `unread` before inspection and `unparseable` when opening/extraction fails;
    state the failure and next step in the description. Never infer extracted claims
    from a filename. Use a YYYY-MM-DD review date for reviewed/partial content;
-   use `—` when unread (or no dated attempt is available). Recheck changed content
+   use `—` when unread (or no dated attempt is available). `ai-draft` marks an
+   automatic summary (see below) and also carries a date. Recheck changed content
    and reset stale review claims; the checker does not detect content changes.
 6. Run `python -B scripts/human_materials.py --root .` from the project root.
    Resolve missing, stale, duplicate or invalid rows. The read-only helper checks
    coverage/row shape, not the truth of descriptions, successful extraction or
-   review freshness. No watcher or service maintains this index automatically.
+   review freshness.
+
+## Automatic indexing
+
+The owner can let Dreamdocs keep this index up to date. The choice is stored in
+`memory/config.json` under `human_materials.indexing` and is `off` until set:
+
+- `python -B scripts/dreamdocs.py materials mode inventory` hashes files and keeps
+  rows in sync (adds new files as `unread`, follows moves, removes rows of deleted
+  files) without reading content.
+- `python -B scripts/dreamdocs.py materials mode summarize` also reads queued files
+  and asks an isolated, read-only Codex run for a short summary, tags, a
+  `category:` tag, a `sensitivity:` tag and a "Read the original when" hint. The
+  row gets status `ai-draft` and today's date. File content goes to the Codex
+  account configured on this computer and nowhere else.
+
+Indexing runs at the start of an agent session (in the background, at most every
+`min_hours_between_runs`, default 6) and at every Dreamer run. Run it now with
+`python -B scripts/dreamdocs.py materials index --apply`; check it with
+`materials status` or `doctor`. Rows a person marked `reviewed` or `partial` are
+never overwritten: when such a file changes, the new AI summary is kept as a
+proposal in `.dreamdocs/human-materials-state.json` and `doctor` reports it.
+Treat `ai-draft` rows as unverified until a person changes them to `reviewed`.
+
+Files are never read when they match `.env*`, key/certificate/keystore
+extensions, `id_rsa*`, or names containing `password`, `secret`, `credential` or
+`private-no-ai`, or the owner's `human_materials.exclude` glob list. Files with
+credential-like content or above `max_file_bytes` are skipped. Text formats,
+DOCX, PPTX, XLSX and OpenDocument are read directly; PDF needs the optional
+`pypdf` package or `pdftotext`; images go to Codex as attachments; other formats
+are marked `unparseable`.
 
 Example row shape (illustrative only; do not add nonexistent files to the table):
 

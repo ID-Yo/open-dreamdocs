@@ -15,6 +15,7 @@ import memory_recall as mr
 import memory_health as mh
 import upgrade
 import dreamer_executor as de
+import materials_index as mi
 
 
 def positive(value):
@@ -67,6 +68,15 @@ def main():
             command.add_argument("--client", action="append", choices=sorted(install.CLIENTS),
                                  help="Client to set up (repeatable); default codex.")
     memory = groups.add_parser("memory").add_subparsers(dest="command", required=True)
+    materials = groups.add_parser("materials", help="Human Materials indexing: mode (owner consent), scan, index, status.").add_subparsers(dest="command", required=True)
+    mode = materials.add_parser("mode", help="Record the owner's choice: off, inventory or summarize.")
+    mode.add_argument("value", choices=list(mi.MODES))
+    for name in ("scan", "index"):
+        command = materials.add_parser(name)
+        command.add_argument("--apply", action="store_true", help="Write index rows and state (default is a read-only plan).")
+        if name == "index":
+            command.add_argument("--trigger", choices=["manual", "session", "dreamer"], default="manual")
+    materials.add_parser("status")
     capture = memory.add_parser("capture", help="Persist one outcome event file (exact bytes written by the adapter).")
     capture.add_argument("--event", required=True)
     capture.add_argument("--budget-ms", type=int, default=1000, help="Wait at most this long for the writer lock, then queue.")
@@ -79,7 +89,16 @@ def main():
     args = parser.parse_args()
     root = Path(args.root).resolve()
     try:
-        if args.group == "dreamer":
+        if args.group == "materials":
+            if args.command == "mode":
+                result = mi.set_mode(root, args.value)
+            elif args.command == "scan":
+                result = mi.scan(root, args.apply)
+            elif args.command == "index":
+                result = mi.index(root, args.apply, args.trigger)
+            else:
+                result = mi.status(root)
+        elif args.group == "dreamer":
             if args.command == "schedule":
                 import dreamer_schedule
                 result = dreamer_schedule.manage(root, args.action, args.apply)

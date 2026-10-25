@@ -93,6 +93,36 @@ def unavailable(reason):
             "excluded_other_project": 0, "findings": [reason], "context": ""}
 
 
+def materials(root, wanted, limit=3):
+    """Summaries of indexed Human Materials matching the query, plus a short count for session start."""
+    try:
+        import human_materials as hm
+        rows = hm.inventory(root)["rows"]
+    except (OSError, ValueError, UnicodeError):
+        return []
+    if not rows:
+        return []
+    split = [(r, [c.strip() for c in r["text"].strip().strip("|").split("|")]) for r in rows]
+    if not wanted:
+        pending = sum(1 for r, _ in split if r["status"] == "unread")
+        return [f"\n[human materials] {len(rows)} indexed file(s), {pending} not yet summarized; summaries and tags are in "
+                "human-materials/README.md. Read a summary first and open the original only when the task needs it.\n"]
+    scored = []
+    for r, c in split:
+        if r["status"] == "unread":
+            continue
+        score = len(wanted & terms(" ".join((r["path"], c[1], c[3]))))
+        if score:
+            scored.append((score, r["path"], r["status"], c))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    entries = []
+    for _, path, status, c in scored[:limit]:
+        note = " (AI draft, unverified)" if status == "ai-draft" else ""
+        description = c[1] if len(c[1]) <= 500 else c[1][:500] + " [truncated]"
+        entries.append(f"\n[human material, {status}{note}] human-materials/{path}\n| {description}\n| tags: {c[3]}\n")
+    return entries
+
+
 def recall(root, project=None, query="", max_chars=4000, episodes=5):
     root = Path(root).resolve()
     try:
@@ -149,8 +179,18 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         parts.append(entry)
         items.append({"id": meta["id"], "label": label(r, disputes), "type": meta["type"], "path": r["path"],
                       "created_at": meta["created_at"], "sha256": r["sha256"], "sources": sources})
+    extra = 0
+    for entry in materials(root, wanted):
+        entry = neutral(entry)
+        if used + len(entry) > max_chars:
+            break
+        used += len(entry)
+        parts.append(entry)
+        extra += 1
     status = ("ok" if items else "over_budget") if chosen else ("no_match" if live else "empty")
+    if extra and not items:
+        status = "ok"
     return {"status": status, "exit": 0, "project": project, "items": items, "omitted": omitted,
             "truncated": cut or omitted > 0, "excluded_other_project": len(records) - len(own), "findings": findings,
-            "context": header + "".join(parts) + footer if items else ""}
+            "materials": extra, "context": header + "".join(parts) + footer if items or extra else ""}
 

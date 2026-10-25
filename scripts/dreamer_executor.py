@@ -282,6 +282,22 @@ def run(root, executor, trigger="manual", schedule_id=None):
         decision = dreamer_schedule.scheduled_gate(root, schedule_id)
         if decision["state"] != "due":
             return decision
+    materials = index_materials(root)
+    outcome = curate(root, executor, trigger, cfg)
+    return {**outcome, "materials": materials}
+
+
+def index_materials(root):
+    """Human Materials step of every Dreamer run; its failure never blocks memory curation."""
+    try:
+        import materials_index
+        result = materials_index.index(root, True, "dreamer")
+        return {k: (len(v) if isinstance(v, (list, dict)) else v) for k, v in result.items() if k != "notes"}
+    except Exception as error:  # report, never block curation
+        return {"state": "error", "cause": type(error).__name__, "detail": str(error)[:200]}
+
+
+def curate(root, executor, trigger, cfg):
     prepared = begin(root, executor, trigger)
     if prepared["exit"]:
         return prepared
