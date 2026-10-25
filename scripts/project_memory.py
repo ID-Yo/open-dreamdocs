@@ -278,13 +278,20 @@ def validate_links(root):
 
 
 def validate(root):
-    cfg = settings(root)
-    items = records(root)
+    result = validate_runtime(root)
     folders = [root / name for name in ("memory", "templates", "examples", "prompts", "scripts", "tests")]
     folders += [folder for name in ("docs", "memory") if confined(root, name).is_dir() for folder in walk(root, root / name)[0]]
     for folder in folders:
         if folder.is_dir():
             require((folder / "README.md").is_file() or folder == root / "docs", f"folder needs README: {folder.relative_to(root)}")
+    return {"ok": True, "records": result["records"], "links": validate_links(root), "scheduler_configured": result["scheduler_configured"]}
+
+
+def validate_runtime(root):
+    """What Dreamdocs needs to run: config, memory records and the Dreamer checkpoint.
+    Documentation style rules (folder READMEs, links) are left to validate()."""
+    cfg = settings(root)
+    items = records(root)
     state = read_json(confined(root, "memory/dreamer/state.json"), {})
     if state:
         timestamp(state.get("last_successful_at"))
@@ -292,7 +299,7 @@ def validate(root):
         for key, value in state["source_hashes"].items():
             confined(root, key)
             require(isinstance(value, str) and re.fullmatch(r"[a-f0-9]{64}", value), "invalid checkpoint digest")
-    return {"ok": True, "records": len(items), "links": validate_links(root), "scheduler_configured": all(cfg["schedule"][k] for k in ("timezone", "local_time", "owner"))}
+    return {"ok": True, "records": len(items), "scheduler_configured": all(cfg["schedule"][k] for k in ("timezone", "local_time", "owner"))}
 
 
 def runtime(root, name):

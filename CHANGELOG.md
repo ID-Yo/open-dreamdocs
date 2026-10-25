@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.5.0-rc.5 — 2026-10-25 (candidate; release gates pending)
+
+- Upgrades and rollbacks of real projects no longer stop at "interrupted" because project folders under `docs/` lack a README. The commit gate now checks only what Dreamdocs needs to run (config, memory records, Dreamer checkpoint); `project_memory.py validate` still reports documentation style findings.
+
 ## v1.5.0-rc.4 — 2026-10-25 (candidate; release gates pending)
 
 - Fixed upgrades of projects set up with 1.5.0-rc.1/rc.2: setup had recorded project-owned files under `scripts/` and `adapters/` (for example `scripts/build-release.ps1`) as package files, and upgrade then refused the whole manifest. Upgrade now ignores such entries, never deletes a file the new package does not ship (`retained_not_in_package`), and setup records only package-type files that the package actually ships.

@@ -4,7 +4,7 @@
 
 # Candidate support and evidence
 
-Package: **1.5.0-rc.4**. This is a candidate, not a released dual-client support claim.
+Package: **1.5.0-rc.5**. This is a candidate, not a released dual-client support claim.
 An installed file, fixture pass, capture receipt, trusted hook and fresh-session recall prove
 different things. The [release checklist](release.md) requires exact-candidate independent evidence.
 
