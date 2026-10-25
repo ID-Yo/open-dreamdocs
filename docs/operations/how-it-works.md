@@ -35,7 +35,12 @@ flowchart LR
    documentation updates. It runs only when you configure an executor, and on a schedule only when you
    opt in ([Dreamer setup](dreamer-setup.md), [execution](dreamer-execution.md)). It never accepts
    anything itself.
-5. **Review.** The owner accepts, edits or rejects proposals. Only then does project truth change.
+5. **Original materials (optional).** When the owner turns on [Human Materials indexing](human-materials-indexing.md),
+   every session start (in the background, at most every 6 hours) and every Dreamer run keeps
+   `human-materials/README.md` in sync and, in `summarize` mode, writes an AI summary, tags, category and
+   sensitivity for new or changed files as unverified `ai-draft` rows. Recall offers matching summaries,
+   so agents open an original only when the task needs it.
+6. **Review.** The owner accepts, edits or rejects proposals. Only then does project truth change.
 
 ## What is automatic and what is not
 
@@ -44,6 +49,7 @@ flowchart LR
 | Saving an outcome as an episode | Yes | Hooks are trusted in the client and the agent emitted the block |
 | Recalling memory in a new session | Yes | Same, and the memory contains something related |
 | Dreamer curation | No | You configure an executor and, separately, a schedule |
+| Indexing and summarizing original materials | Yes, after opt-in | `dreamdocs.py materials mode summarize` (or `inventory`) |
 | Accepting facts, procedures and docs changes | No | Always an owner decision |
 | Updating Dreamdocs itself | No | Explicit pinned [upgrade](upgrading.md); hooks must be trusted again afterwards |
 

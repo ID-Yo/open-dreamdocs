@@ -29,6 +29,9 @@ Use this checklist for a new machine or a new project. It adds the practical ste
 
 3. Trust the hooks (next section).
 4. Fill in `PROJECT.md` and `docs/overview/platform.md`.
+   Optionally let Dreamdocs index your own files in `human-materials/`:
+   `python -B scripts/dreamdocs.py materials mode summarize` (see [Human Materials indexing](human-materials-indexing.md);
+   PDF needs `pip install pypdf`).
 5. Run `python -B scripts/dreamdocs.py doctor` and the [two-session demo](../../prompts/memory-demo.md).
 
 ## Existing project
