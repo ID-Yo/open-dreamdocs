@@ -19,7 +19,8 @@ Licensed under [MIT](LICENSE). Guides, templates, examples and prompts are in En
 5. If you use an AI assistant, adapt [AGENTS.md](AGENTS.md) to its working boundaries.
 6. When recording outcomes or lessons, read [the memory guide](memory/README.md),
    [record schema](memory/SCHEMA.md) and [Dreamer policy](memory/DREAMER_POLICY.md).
-7. Optional: connect Codex CLI or the experimental Claude Code adapter using
+7. For the full picture, read [How Dreamdocs works](docs/operations/how-it-works.md); for a new computer, use the [setup checklist](docs/operations/new-computer-checklist.md).
+8. Optional: connect Codex CLI or the experimental Claude Code adapter using
    [First run: automatic memory](docs/operations/first-run.md). Claude automatic capture remains
    unverified pending authenticated Stop identity/save/recall evidence; setup alone is not support.
 

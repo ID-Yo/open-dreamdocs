@@ -1,5 +1,7 @@
 # Operations — optional
 
+For an end-to-end explanation of the memory loop, use [How Dreamdocs works](how-it-works.md); for a new machine or project, use the [new computer checklist](new-computer-checklist.md).
+
 For label definitions, combination rules and dry-run-first import, use [GitHub labels](github-labels.md). Select the target and existing status authority explicitly; no mass rollout is implied.
 
 For selective template adoption and the optional companion offer, use [Adopting Dreamdocs](adopting-dreamdocs.md). It covers existing-file collisions and an explicit Yes / No / Skip handoff; it is not an installer.

@@ -17,6 +17,8 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Adopting Dreamdocs and optional companion](operations/adopting-dreamdocs.md)
 - [Reusable GitHub labels and import procedure](operations/github-labels.md)
 - [Automation lifecycle contract](operations/automation-contract.md)
+- [How Dreamdocs works, end to end](operations/how-it-works.md)
+- [Setting up on a new computer](operations/new-computer-checklist.md)
 - [First run: automatic memory](operations/first-run.md)
 - [Codex adapter](operations/agents/codex.md)
 - [Claude Code adapter (unverified)](operations/agents/claude-code.md)
@@ -41,7 +43,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 | Security (optional) | [README](security/README.md) | — |
 | Privacy (optional) | [README](privacy/README.md) | — |
 | QA (optional) | [README](qa/README.md) | — |
-| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md), [task-continuity.md](operations/task-continuity.md), [automation-contract.md](operations/automation-contract.md) |
+| Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [how-it-works.md](operations/how-it-works.md), [new-computer-checklist.md](operations/new-computer-checklist.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md), [task-continuity.md](operations/task-continuity.md), [automation-contract.md](operations/automation-contract.md) |
 | Procedures (optional) | [README](procedures/README.md) | — |
 | Decisions (optional) | [README](decisions/README.md) | — |
 | Governance (core) | [README](governance/README.md) | [authority-model.md](governance/authority-model.md), [memory-lifecycle.md](governance/memory-lifecycle.md), [promotion-rules.md](governance/promotion-rules.md) |
