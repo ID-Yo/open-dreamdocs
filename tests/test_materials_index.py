@@ -377,6 +377,12 @@ class MaterialsIndexTest(unittest.TestCase):
              mock.patch.object(mi, "mcp_servers", return_value=["bad&name"]):
             with self.assertRaises(ValueError):
                 mi.codex_runner("prompt", None, 5)
+        with mock.patch.object(mi, "codex_command", return_value=[str(self.root / "OpenAI.Codex_&ver&" / "codex.cmd")]), \
+             mock.patch.object(mi.subprocess, "run", side_effect=fake_run):
+            seen.clear()
+            with self.assertRaises(ValueError):
+                mi.codex_runner("prompt", None, 5)
+            self.assertEqual(seen, [])
 
     def test_failed_git_check_fails_closed(self):
         (self.root / ".git").mkdir()

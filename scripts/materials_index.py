@@ -432,7 +432,7 @@ def codex_runner(prompt, image, timeout):
         argv.append("-")
         if argv[0].casefold().endswith((".cmd", ".bat")):
             # Batch files re-parse arguments with cmd syntax; refuse anything cmd could interpret.
-            unsafe = [a for a in argv[1:] if not re.fullmatch(r"[A-Za-z0-9_:\\/.=+ -]+", a)]  # spaces are quoted
+            unsafe = [a for a in argv if not re.fullmatch(r"[A-Za-z0-9_:\\/.=+ -]+", a)]  # spaces are quoted
             pm.require(not unsafe, "Codex .cmd shim cannot receive these arguments safely; set DREAMDOCS_CODEX to codex.exe or a .ps1 shim")
         done = subprocess.run(argv, input=prompt.encode("utf-8"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                               timeout=timeout, cwd=folder, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
