@@ -148,6 +148,12 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         records, findings = load(root)
     except (OSError, ValueError) as exc:
         return unavailable(f"memory store unavailable: {exc}")
+    try:  # material summaries belong to the root's bound project only
+        bound = pm.read_json(pm.confined(root, "memory/automation.json"))
+        ac.validate_binding(bound)
+        own_materials = bound["project_id"] == project
+    except (OSError, ValueError, TypeError, KeyError):
+        own_materials = False
     by_id = {r["meta"]["id"]: r for r in records}
     own = [r for r in records if r["meta"]["project"] == project]
     live = [r for r in own if not r["path"].startswith("memory/archive/") and recallable(r["meta"])]
@@ -192,7 +198,7 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         items.append({"id": meta["id"], "label": label(r, disputes), "type": meta["type"], "path": r["path"],
                       "created_at": meta["created_at"], "sha256": r["sha256"], "sources": sources})
     extra = 0
-    for entry in materials(root, wanted):
+    for entry in (materials(root, wanted) if own_materials else []):
         entry = neutral(entry)
         if used + len(entry) > max_chars:
             break

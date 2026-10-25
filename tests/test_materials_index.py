@@ -329,6 +329,20 @@ class MaterialsIndexTest(unittest.TestCase):
         readme.write_text(readme.read_text(encoding="utf-8").replace("launch, budget", "launch, budget, private-no-ai"), encoding="utf-8")
         self.assertEqual(mr.materials(self.root, mr.terms("launch budget")), [])
 
+    def test_material_recall_stays_in_the_bound_project(self):
+        self.mode("summarize")
+        self.put("plan.md", "Spring launch plan.")
+        mi.index(self.root, True, runner=Runner())
+        (self.root / "memory" / "automation.json").write_text(json.dumps({"version": 1, "project_id": "example-project", "adapters": ["codex"]}), encoding="utf-8")
+        import project_memory as pm
+        for name in (*pm.TYPES, "archive"):
+            (self.root / "memory" / name).mkdir(exist_ok=True)
+        own = mr.recall(self.root, query="spring launch budget")
+        foreign = mr.recall(self.root, project="foreign-project", query="spring launch budget")
+        self.assertEqual(own.get("materials"), 1)
+        self.assertEqual(foreign.get("materials", 0), 0)
+        self.assertNotIn("plan.md", foreign["context"])
+
     def test_failed_git_check_fails_closed(self):
         (self.root / ".git").mkdir()
         real = mi.subprocess.run
