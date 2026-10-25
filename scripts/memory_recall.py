@@ -93,6 +93,11 @@ def unavailable(reason):
             "excluded_other_project": 0, "findings": [reason], "context": ""}
 
 
+MATERIAL_STOP = {"use", "only", "supplied", "project", "memory", "tools", "tool", "read", "files", "file", "original", "originals",
+                 "document", "documents", "summary", "notes", "data", "useful", "when", "need", "needed", "answer", "none",
+                 "category", "sensitivity", "internal", "private", "public", "other", "draft", "about", "into", "using"}
+
+
 def materials(root, wanted, limit=3):
     """Summaries of indexed Human Materials matching the query, plus a short count for session start."""
     try:
@@ -111,12 +116,15 @@ def materials(root, wanted, limit=3):
         pending = sum(1 for r, _ in split if r["status"] == "unread")
         return [f"\n[human materials] {len(rows)} indexed file(s), {pending} not yet summarized; summaries and tags are in "
                 "human-materials/README.md. Read a summary first and open the original only when the task needs it.\n"]
+    wanted = {w for w in wanted if w not in MATERIAL_STOP}
     scored = []
     for r, c in split:
         if r["status"] == "unread":
             continue
-        score = len(wanted & terms(" ".join((r["path"], c[1], c[3]))))
-        if score:
+        topical = c[1].split(" Read the original when:")[0]
+        tags = ", ".join(t for t in c[3].split(",") if ":" not in t)
+        score = len(wanted & (terms(" ".join((r["path"], topical, tags))) - MATERIAL_STOP))
+        if score >= (2 if len(wanted) > 3 else 1):
             scored.append((score, r["path"], r["status"], c))
     scored.sort(key=lambda x: (-x[0], x[1]))
     entries = []

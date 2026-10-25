@@ -167,6 +167,10 @@ class MaterialsIndexTest(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         self.assertIn("human-materials/plan.md", entries[0])
         self.assertEqual(mr.materials(self.root, mr.terms("unrelated database migration")), [])
+        boilerplate = ("Use only supplied project memory. Do not use tools or read files. "
+                       "Summarize quasar neutrino magnetosphere research notes, or answer NONE.")
+        self.assertEqual(mr.materials(self.root, mr.terms(boilerplate)), [])
+        self.assertEqual(len(mr.materials(self.root, mr.terms("Use project memory: what is the spring launch budget?"))), 1)
         self.assertIn("1 indexed file", mr.materials(self.root, set())[0])
 
     def test_invalid_index_fails_closed_without_deleting_rows(self):
