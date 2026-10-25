@@ -385,15 +385,26 @@ def pdf_text(path):
 
 
 def codex_command():
-    override = os.environ.get("DREAMDOCS_CODEX")
-    if override:
-        return [override]
-    found = shutil.which("codex")
+    found = os.environ.get("DREAMDOCS_CODEX") or shutil.which("codex") or packaged_codex()
     if not found:
         return None
     if found.casefold().endswith(".ps1"):
-        return ["powershell.exe", "-NoProfile", "-NonInteractive", "-File", found]
+        # Windows PowerShell 5.1 mangles some Codex arguments; prefer PowerShell 7 when present.
+        return [shutil.which("pwsh") or "powershell.exe", "-NoProfile", "-NonInteractive", "-File", found]
     return [found]
+
+
+def packaged_codex():
+    """Codex CLI installed from the Codex desktop app (MSIX) lives in the package's virtualized
+    AppData, which Task Scheduler and other outside processes do not see on PATH."""
+    local = os.environ.get("LOCALAPPDATA")
+    if os.name != "nt" or not local:
+        return None
+    for name in ("codex.cmd", "codex.ps1"):
+        found = sorted(Path(local, "Packages").glob("OpenAI.Codex_*/LocalCache/Roaming/npm/" + name))
+        if found:
+            return str(found[0])
+    return None
 
 
 def codex_runner(prompt, image, timeout):
@@ -413,8 +424,16 @@ def codex_runner(prompt, image, timeout):
         argv += ["exec", "--cd", folder, "--skip-git-repo-check", "--sandbox", "read-only", "--ephemeral", "--color", "never",
                  "--output-schema", str(schema), "--output-last-message", str(output)]
         if image:
-            argv += ["--image", str(image)]
+            # Never pass an untrusted filename on the command line: copy under a fixed safe name.
+            attachment = Path(folder) / ("attachment" + Path(image).suffix.casefold())
+            pm.require(Path(image).suffix.casefold() in IMAGES, "unsupported image type")
+            shutil.copyfile(image, attachment)
+            argv += ["--image", str(attachment)]
         argv.append("-")
+        if argv[0].casefold().endswith((".cmd", ".bat")):
+            # Batch files re-parse arguments with cmd syntax; refuse anything cmd could interpret.
+            unsafe = [a for a in argv if not re.fullmatch(r"[A-Za-z0-9_:\\/.=+ -]+", a)]  # spaces are quoted
+            pm.require(not unsafe, "Codex .cmd shim cannot receive these arguments safely; set DREAMDOCS_CODEX to codex.exe or a .ps1 shim")
         done = subprocess.run(argv, input=prompt.encode("utf-8"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                               timeout=timeout, cwd=folder, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         pm.require(done.returncode == 0 and output.is_file(), "Codex summarizer failed")
