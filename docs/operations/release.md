@@ -4,7 +4,7 @@
 
 # Reproducible candidate and release gates
 
-Version 1.5.0-rc.2 is prepared for review. It is **not approved for publication as a working
+Version 1.5.0-rc.3 is prepared for review. It is **not approved for publication as a working
 dual-client release**. Actual Claude save/new-session recall, client switching and final exact-
 candidate clean-room acceptance remain release gates. See the [support matrix](support-matrix.md).
 Tests or setup success cannot substitute for those observations; do not close the epic from them.

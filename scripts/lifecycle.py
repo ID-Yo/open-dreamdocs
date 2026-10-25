@@ -74,6 +74,12 @@ def redeliver(root, skip=None):
 
 def session_start(root):
     notes = redeliver(root)
+    try:
+        import materials_index
+        if materials_index.spawn_background(root):
+            notes.append("human-materials indexing started in the background")
+    except Exception as exc:  # indexing must never break session start
+        notes.append(f"human-materials indexing not started ({type(exc).__name__})")
     context("SessionStart", mr.recall(root, max_chars=SESSION_CHARS), notes)
 
 

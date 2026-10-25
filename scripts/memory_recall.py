@@ -93,6 +93,48 @@ def unavailable(reason):
             "excluded_other_project": 0, "findings": [reason], "context": ""}
 
 
+MATERIAL_STOP = {"use", "only", "supplied", "project", "memory", "tools", "tool", "read", "files", "file", "original", "originals",
+                 "document", "documents", "summary", "notes", "data", "useful", "when", "need", "needed", "answer", "none",
+                 "category", "sensitivity", "internal", "private", "public", "other", "draft", "about", "into", "using"}
+
+
+def materials(root, wanted, limit=3):
+    """Summaries of indexed Human Materials matching the query, plus a short count for session start."""
+    try:
+        import human_materials as hm
+        import materials_index as mi
+        rows = hm.inventory(root)["rows"]
+        policy = mi.settings(root)
+    except (OSError, ValueError, UnicodeError):
+        return []
+    rows = [r for r in rows if not mi.blocked_by_policy(r["path"], policy)]
+    rows = [r for r in rows if "private-no-ai" not in r["text"].casefold()]
+    if not rows:
+        return []
+    split = [(r, [c.strip() for c in r["text"].strip().strip("|").split("|")]) for r in rows]
+    if not wanted:
+        pending = sum(1 for r, _ in split if r["status"] == "unread")
+        return [f"\n[human materials] {len(rows)} indexed file(s), {pending} not yet summarized; summaries and tags are in "
+                "human-materials/README.md. Read a summary first and open the original only when the task needs it.\n"]
+    wanted = {w for w in wanted if w not in MATERIAL_STOP}
+    scored = []
+    for r, c in split:
+        if r["status"] == "unread":
+            continue
+        topical = c[1].split(" Read the original when:")[0]
+        tags = ", ".join(t for t in c[3].split(",") if ":" not in t)
+        score = len(wanted & (terms(" ".join((r["path"], topical, tags))) - MATERIAL_STOP))
+        if score >= (2 if len(wanted) > 3 else 1):
+            scored.append((score, r["path"], r["status"], c))
+    scored.sort(key=lambda x: (-x[0], x[1]))
+    entries = []
+    for _, path, status, c in scored[:limit]:
+        note = " (AI draft, unverified)" if status == "ai-draft" else ""
+        description = c[1] if len(c[1]) <= 500 else c[1][:500] + " [truncated]"
+        entries.append(f"\n[human material, {status}{note}] human-materials/{path}\n| {description}\n| tags: {c[3]}\n")
+    return entries
+
+
 def recall(root, project=None, query="", max_chars=4000, episodes=5):
     root = Path(root).resolve()
     try:
@@ -106,6 +148,12 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         records, findings = load(root)
     except (OSError, ValueError) as exc:
         return unavailable(f"memory store unavailable: {exc}")
+    try:  # material summaries belong to the root's bound project only
+        bound = pm.read_json(pm.confined(root, "memory/automation.json"))
+        ac.validate_binding(bound)
+        own_materials = bound["project_id"] == project
+    except (OSError, ValueError, TypeError, KeyError):
+        own_materials = False
     by_id = {r["meta"]["id"]: r for r in records}
     own = [r for r in records if r["meta"]["project"] == project]
     live = [r for r in own if not r["path"].startswith("memory/archive/") and recallable(r["meta"])]
@@ -149,8 +197,18 @@ def recall(root, project=None, query="", max_chars=4000, episodes=5):
         parts.append(entry)
         items.append({"id": meta["id"], "label": label(r, disputes), "type": meta["type"], "path": r["path"],
                       "created_at": meta["created_at"], "sha256": r["sha256"], "sources": sources})
+    extra = 0
+    for entry in (materials(root, wanted) if own_materials else []):
+        entry = neutral(entry)
+        if used + len(entry) > max_chars:
+            break
+        used += len(entry)
+        parts.append(entry)
+        extra += 1
     status = ("ok" if items else "over_budget") if chosen else ("no_match" if live else "empty")
+    if extra and not items:
+        status = "ok"
     return {"status": status, "exit": 0, "project": project, "items": items, "omitted": omitted,
             "truncated": cut or omitted > 0, "excluded_other_project": len(records) - len(own), "findings": findings,
-            "context": header + "".join(parts) + footer if items else ""}
+            "materials": extra, "context": header + "".join(parts) + footer if items or extra else ""}
 

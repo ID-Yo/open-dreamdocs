@@ -150,7 +150,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(out.read_bytes(), b"preserve owner file")
 
     def test_version_stamps_agree_and_candidate_does_not_claim_both_agents_are_released(self):
-        self.assertEqual(install.PACKAGE_VERSION, "1.5.0-rc.2")
+        self.assertEqual(install.PACKAGE_VERSION, "1.5.0-rc.3")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn(install.PACKAGE_VERSION, readme)
         self.assertIn("Claude", readme)

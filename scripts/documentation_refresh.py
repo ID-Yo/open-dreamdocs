@@ -232,7 +232,7 @@ def build(root, request, created_at=None):
                            "missing_rows": missing, "stale_rows": stale, "reported_statuses": {p: r["status"] for p, r in rows.items()},
                            "extraction": "Not performed. Index statuses are reported assertions, not verified content coverage.",
                            "moves": "Not inferred. A missing and a stale name do not prove a move.",
-                           "public_export_allowed": not actual and not rows and inventory.get("index_sha256") == hm.EMPTY_INDEX_SHA256}
+                           "public_export_allowed": not actual and not rows and inventory.get("index_sha256") in hm.KNOWN_EMPTY_INDEX_SHA256}
         if missing or stale:
             lines = material_text.splitlines(keepends=True)
             retained = "".join(line for n, line in enumerate(lines, 1) if n not in {rows[p]["line"] for p in stale})
