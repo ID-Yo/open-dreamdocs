@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.5.0-rc.4 — 2026-10-25 (candidate; release gates pending)
+
+- Fixed upgrades of projects set up with 1.5.0-rc.1/rc.2: setup had recorded project-owned files under `scripts/` and `adapters/` (for example `scripts/build-release.ps1`) as package files, and upgrade then refused the whole manifest. Upgrade now ignores such entries, never deletes a file the new package does not ship (`retained_not_in_package`), and setup records only package-type files that the package actually ships.
+
 ## v1.5.0-rc.3 — 2026-10-25 (candidate; release gates pending)
 
 - Added automatic Human Materials indexing (epic #29). With owner consent (`dreamdocs.py materials mode inventory|summarize`, default `off`), every session start (background, at most every 6 hours) and every Dreamer run hashes `human-materials/`, keeps index rows in sync for new, moved and removed files, and in `summarize` mode asks an isolated read-only Codex run for a summary, tags, category and sensitivity written as `ai-draft` rows. Human-reviewed rows are never overwritten; changes to them become proposals. Privacy patterns, owner excludes, size limits and credential checks keep files away from the model.

@@ -76,6 +76,19 @@ class UpgradeTests(unittest.TestCase):
         self.assertEqual(pm.read_json(self.root / install.MANIFEST)["clients"]["codex"]["trust"], "pending")
         self.assertEqual(self.run_upgrade(apply=True)["state"], "unchanged")
 
+    def test_project_files_recorded_by_older_setup_are_kept_and_not_blockers(self):
+        manifest = pm.read_json(self.root / install.MANIFEST)
+        own = {"scripts/deploy.ps1": b"Write-Host deploy\n", "scripts/project_tool.py": b"print('project')\n"}
+        for path, data in own.items():
+            (self.root / path).write_bytes(data)
+            manifest["package_files"][path] = pm.digest(data)  # what rc.1/rc.2 setup recorded
+        pm.atomic(self.root / install.MANIFEST, manifest)
+        result = self.run_upgrade(apply=True)
+        self.assertEqual((result["exit"], result["applied"]), (0, True), result.get("conflicts"))
+        for path, data in own.items():
+            self.assertEqual((self.root / path).read_bytes(), data)
+        self.assertNotIn("scripts/deploy.ps1", pm.read_json(self.root / install.MANIFEST)["package_files"])
+
     def test_modified_package_unknown_collisions_and_changed_instruction_block_refuse_all_writes(self):
         asset = self.root / "scripts/human_materials.py"
         asset.write_bytes(asset.read_bytes() + b"\n# owner edit\n")

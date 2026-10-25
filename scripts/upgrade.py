@@ -148,7 +148,10 @@ def baseline(root, installed, from_version):
     if installed:
         pm.require(installed.get("version") == 1 and isinstance(installed.get("package_files"), dict), "unsupported install manifest")
         files = installed["package_files"]
-        pm.require(all(package_asset(p) and isinstance(h, str) and re.fullmatch(r"[a-f0-9]{64}", h) for p, h in files.items()), "invalid installed package baseline")
+        # Setup in 1.5.0-rc.1/rc.2 also recorded project-owned files under scripts/ and adapters/
+        # (for example scripts/build.ps1). They are user data, never package assets.
+        files = {p: h for p, h in files.items() if package_asset(p)}
+        pm.require(all(isinstance(h, str) and re.fullmatch(r"[a-f0-9]{64}", h) for h in files.values()), "invalid installed package baseline")
         return files, installed["package"].get("version", "unknown")
     pm.require(from_version == "v1.4.0", "unknown installed base: select --from-version v1.4.0 only for a known v1.4.0 adoption")
     data = pm.read_json(BASELINE)
@@ -192,6 +195,10 @@ def update(root, source, expected_manifest, revision, apply=False, from_version=
                 # to new canonical pages that a legacy project deliberately has not adopted.
                 before[path] = read_bytes(root, path)
                 report["actions"].append({"path": path, "action": "retained_user_data"})
+            elif path not in incoming and read_bytes(root, path) is not None:
+                # The recorded baseline can include project-owned files; an upgrade never deletes them.
+                before[path] = read_bytes(root, path)
+                report["actions"].append({"path": path, "action": "retained_not_in_package"})
             else:
                 action(path, incoming.get(path), owned=path not in COMPATIBILITY_SCAFFOLD)
         for client, record in installed.get("clients", {}).items():

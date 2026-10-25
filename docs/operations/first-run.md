@@ -4,7 +4,7 @@
 
 # First run: automatic memory
 
-Candidate 1.5.0-rc.3: consult the [support matrix](support-matrix.md). Codex has prior trusted-hook
+Candidate 1.5.0-rc.4: consult the [support matrix](support-matrix.md). Codex has prior trusted-hook
 runtime proof; final-candidate verification still applies. Claude Code remains experimental until
 authentication and stable Stop identity/save/new-session recall are observed. These are release
 gates, not optional substitutes for fixture tests. Use the [two-session demo](../../prompts/memory-demo.md).
