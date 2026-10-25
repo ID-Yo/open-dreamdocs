@@ -257,6 +257,55 @@ class MaterialsIndexTest(unittest.TestCase):
         readme.write_text(readme.read_text(encoding="utf-8") + "\n\x60\x60\x60\n\x60\x60\x60 not a closer\n| [x](x.txt) | a | b | c | unread | — |\n\x60\x60\x60\n", encoding="utf-8")
         self.assertEqual(hm.check(self.root), [])
 
+    def test_opt_out_during_extraction_sends_nothing(self):
+        self.mode("summarize")
+        self.put("a.txt", "launch plan")
+        real = mi.extract
+        def extract(path, limit):
+            self.mode("off")
+            return real(path, limit)
+        mi.extract = extract
+        runner = Runner()
+        try:
+            mi.index(self.root, True, runner=runner)
+        finally:
+            mi.extract = real
+        self.assertEqual(runner.calls, [])
+        self.assertEqual(self.rows()["a.txt"]["status"], "unread")
+
+    def test_opt_out_during_model_call_publishes_nothing(self):
+        self.mode("summarize")
+        self.put("a.txt", "launch plan")
+        test = self
+        class Off(Runner):
+            def __call__(self, prompt, image, timeout):
+                test.mode("off")
+                return super().__call__(prompt, image, timeout)
+        mi.index(self.root, True, runner=Off())
+        self.assertEqual(self.rows()["a.txt"]["status"], "unread")
+
+    def test_private_no_ai_row_tag_is_respected(self):
+        self.put("notes.txt", "launch plan")
+        mi.scan(self.root, True)
+        readme = self.root / "human-materials" / "README.md"
+        readme.write_text(readme.read_text(encoding="utf-8").replace("| unknown | unread |", "| private-no-ai | unread |"), encoding="utf-8")
+        self.mode("summarize")
+        runner = Runner()
+        mi.index(self.root, True, runner=runner)
+        self.assertEqual(runner.calls, [])
+        self.assertIn("private-no-ai", self.rows()["notes.txt"]["text"])
+
+    def test_old_lock_of_live_process_is_not_taken(self):
+        import os
+        lock = self.root / mi.LOCK
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text(json.dumps({"pid": os.getpid()}), encoding="utf-8")
+        os.utime(lock, (1, 1))
+        self.assertIsNone(mi.acquire(self.root))
+        lock.write_text(json.dumps({"pid": 2 ** 30}), encoding="utf-8")
+        os.utime(lock, (1, 1))
+        self.assertIsNotNone(mi.acquire(self.root))
+
 
 WINDOWS_XML = """<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">

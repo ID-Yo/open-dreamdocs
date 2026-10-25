@@ -115,9 +115,35 @@ def save_state(root, state):
 
 
 def private(root):
-    """State and proposals stay local: same Git-ignore guard as Dreamer receipts."""
-    import dreamer_executor as de
-    de.private_runtime(root, [STATE, LOCK])
+    """State and proposals stay local: our runtime files must be untracked and Git-ignored."""
+    ignore = pm.confined(root, ".dreamdocs/.gitignore")
+    ignore.parent.mkdir(parents=True, exist_ok=True)
+    lines = ignore.read_text(encoding="utf-8").splitlines() if ignore.is_file() else []
+    wanted = [p for p in ("/human-materials-state.json", "/human-materials.lock", "/index-*.tmp") if p not in lines and "*" not in lines]
+    if wanted:  # setup-owned private folder; add only our own runtime files
+        ignore.write_text("\n".join(lines + wanted) + "\n", encoding="utf-8")
+    def git(*args):
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, timeout=5)
+    if git("rev-parse", "--is-inside-work-tree").returncode:
+        return  # not a Git project
+    tracked = git("ls-files", "-z", "--", STATE, LOCK)
+    pm.require(tracked.returncode == 0 and not tracked.stdout, "human-materials state is tracked by Git; untrack it before indexing")
+    for relative in (STATE, LOCK):
+        pm.require(git("check-ignore", "-q", "--", relative).returncode == 0, "human-materials state is not Git-ignored; review .dreamdocs/.gitignore")
+
+
+def row_tags(root, relative):
+    for entry in hm.inventory(root)["rows"]:
+        if entry["path"] == relative:
+            return cells(entry["text"])[3].casefold()
+    return ""
+
+
+def may_read(root, relative):
+    """Current owner consent for one file: mode, globs, privacy names and a private-no-ai row tag."""
+    current = settings(root)
+    return (current["indexing"] == "summarize" and not blocked_by_policy(relative, current)
+            and "private-no-ai" not in row_tags(root, relative)), current
 
 
 def cell(text, limit):
@@ -377,8 +403,11 @@ def codex_runner(prompt, image, timeout):
         output = Path(folder) / "final.json"
         schema.write_text(json.dumps(SCHEMA), encoding="utf-8")
         argv = [*command, "--ask-for-approval", "never"]
-        for feature in ("hooks", "memories", "apps", "plugins", "multi_agent", "shell_tool", "browser_use", "computer_use", "image_generation"):
+        for feature in ("hooks", "memories", "apps", "plugins", "multi_agent", "shell_tool", "code_mode_host", "computer_use",
+                        "browser_use", "browser_use_external", "in_app_browser", "image_generation"):
             argv += ["--disable", feature]
+        for server in mcp_servers():
+            argv += ["--config", "mcp_servers." + server + ".enabled=false"]
         argv += ["exec", "--cd", folder, "--skip-git-repo-check", "--sandbox", "read-only", "--ephemeral", "--color", "never",
                  "--output-schema", str(schema), "--output-last-message", str(output)]
         if image:
@@ -388,6 +417,27 @@ def codex_runner(prompt, image, timeout):
                               timeout=timeout, cwd=folder, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         pm.require(done.returncode == 0 and output.is_file(), "Codex summarizer failed")
         return json.loads(output.read_text(encoding="utf-8"))
+
+
+def mcp_servers():
+    """Every MCP server configured for this user (and active profile), so the summarizer can disable them."""
+    import tomllib
+    home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
+    servers, files = set(), [home / "config.toml"]
+    try:
+        base = tomllib.loads(files[0].read_text(encoding="utf-8")) if files[0].is_file() else {}
+    except (OSError, ValueError):
+        base = {}
+    servers.update(base.get("mcp_servers", {}))
+    profile = base.get("profile")
+    if isinstance(profile, str) and re.fullmatch(r"[A-Za-z0-9_-]+", profile):
+        servers.update(base.get("profiles", {}).get(profile, {}).get("mcp_servers", {}))
+        extra = home / (profile + ".config.toml")
+        if extra.is_file():
+            servers.update(tomllib.loads(extra.read_text(encoding="utf-8")).get("mcp_servers", {}))
+    unsafe = [s for s in servers if not re.fullmatch(r"[A-Za-z0-9_-]+", s)]
+    pm.require(not unsafe, "unsupported MCP server name; summarizer isolation cannot be guaranteed")
+    return sorted(servers)
 
 
 def prompt_for(relative, text, status):
@@ -417,12 +467,38 @@ def validate_summary(value):
             "tags": ", ".join(tags + ["category:" + value["category"], "sensitivity:" + value["sensitivity"]])}
 
 
+def alive(pid):
+    if not isinstance(pid, int) or pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)  # QUERY_LIMITED_INFORMATION
+        if not handle:
+            return False
+        code = ctypes.c_ulong()
+        ctypes.windll.kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+        ctypes.windll.kernel32.CloseHandle(handle)
+        return code.value == 259  # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
 def acquire(root):
     path = pm.confined(root, LOCK)
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         if path.exists() and datetime.now(timezone.utc).timestamp() - path.stat().st_mtime > LOCK_AGE:
-            path.unlink(missing_ok=True)
+            try:
+                owner = json.loads(path.read_text(encoding="utf-8")).get("pid")
+            except (OSError, ValueError, AttributeError):
+                owner = None
+            if not alive(owner):  # stale only when its owner is gone
+                path.unlink(missing_ok=True)
         descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError:
         return None
@@ -457,13 +533,13 @@ def index(root, apply=True, trigger="manual", runner=None, cfg=None):
                 report["skipped"].append({"path": item["path"], "reason": "excluded by privacy policy"})
                 remember(root, item["path"], skipped=True)
         for item in work[: cfg["max_files_per_run"]]:
-            current = settings(root)
+            relative = item["path"]
+            permitted, current = may_read(root, relative)
             if current["indexing"] != "summarize":
                 report["stopped"] = "owner changed the mode during the run; remaining files were not read"
                 break
-            relative = item["path"]
             path = folder / relative
-            if blocked_by_policy(relative, current):
+            if not permitted:
                 report["skipped"].append({"path": relative, "reason": "excluded by privacy policy"})
                 remember(root, relative, skipped=True)
                 continue
@@ -480,12 +556,18 @@ def index(root, apply=True, trigger="manual", runner=None, cfg=None):
                 report["skipped"].append({"path": relative, "reason": "credential-like content; not sent to AI"})
                 remember(root, relative, skipped=True)
                 continue
+            if not may_read(root, relative)[0]:  # consent rechecked right before the model sees the text
+                report["stopped"] = "owner consent changed before sending; file not sent"
+                break
             try:
                 result = validate_summary(runner(prompt_for(relative, text or "(image attached)", status),
                                                  path if status == "image" else None, cfg["timeout_seconds"]))
             except (OSError, ValueError, subprocess.SubprocessError) as error:
                 report["failed"].append({"path": relative, "reason": f"{type(error).__name__}: {error}"[:200]})
                 continue
+            if not may_read(root, relative)[0]:  # consent withdrawn during the model call: publish nothing
+                report["stopped"] = "owner consent changed during summarization; result discarded"
+                break
             description = ((note + " ") if note and status == "partial" else "") + result["summary"] + " Read the original when: " + result["read_original_when"]
             if item["status"] in HUMAN:
                 proposal(root, relative, description, result["tags"])
