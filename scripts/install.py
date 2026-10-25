@@ -22,7 +22,7 @@ import automation_contract as ac
 import memory_capture as mc
 import project_memory as pm
 
-PACKAGE_VERSION = "1.5.0-rc.3"
+PACKAGE_VERSION = "1.5.0-rc.4"
 BINDING, MANIFEST, HOOKS, AGENTS = "memory/automation.json", "memory/automation/install.json", ".codex/hooks.json", "AGENTS.md"
 HOOKS_IGNORE = ".codex/.gitignore"
 HOOK_SCRIPT, BLOCK_FILE = "adapters/codex/hook.py", "adapters/outcome-block.md"
@@ -348,7 +348,9 @@ def plan(root, project_id=None, clients=("codex",), *, block_text=None, package_
         steps.append(spec["trust"])
         order += [hook_file, ignore, doc, f"{BACKUP}/{hook_file}"]
     package = sorted(path.relative_to(root).as_posix() for path in pm.managed_files(root)
-                     if path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
+                     if (path.relative_to(root).parts[0] in {"scripts", "adapters"} or path.name.endswith(".schema.json"))
+                     and path.suffix in {".py", ".json", ".md"}
+                     and (package_root == root or (package_root / path.relative_to(root)).is_file()))  # only files this package ships
     known = previous.get("binding", {})
     added = set(known.get("added_adapters", [])) | (set(clients) - set(binding["adapters"] if binding else []))
     binding_record = {"created": known.get("created", binding is None and text is None), "added_adapters": sorted(added)}
