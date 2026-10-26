@@ -65,6 +65,13 @@ Reports or orphan proposals from failed finish cannot qualify. Partial/failed/ma
 over-budget results preserve the old checkpoint. Keep failed work for correction or explicit
 stopped-run abort/recovery; no active facts, skills or canonical docs are promoted.
 
+Manual and scheduled `dreamer run` receipts also retain the Human Materials step's
+state, trigger, finish time and counts under `materials`; filenames, content and raw
+errors are excluded. This summary is covered by the receipt's existing readback hash
+and shown by `dreamer status` and `doctor`. Later indexing does not replace it, and
+indexing failure does not block curation. Legacy receipts and the separate operator
+begin/start/finish workflow have no indexing summary and show `materials: null`.
+
 Selected evidence_files, root rules/promotion policy, config/binding and local file sources in
 snapshot records are hashed and rechecked inside finish. List any additional reviewed local sources
 explicitly. Originals/credentials are refused; original reading requires a separate consented

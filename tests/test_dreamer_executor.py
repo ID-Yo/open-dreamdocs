@@ -183,6 +183,100 @@ class ExecutorTests(unittest.TestCase):
         self.assertTrue(result["execution"]["process_finished_at"])
         self.assertEqual(result["execution"]["state"], "success")
 
+    def test_manual_and_scheduled_runs_keep_materials_counts_after_later_indexing(self):
+        import materials_index as mi
+        import memory_health as mh
+        cfg = pm.read_json(self.root / "memory/config.json")
+        cfg["human_materials"] = {"indexing": "inventory"}
+        pm.atomic(self.root / "memory/config.json", cfg)
+        self.command("import json,sys\nfrom pathlib import Path\ns=json.loads(Path(sys.argv[1]).read_text())\nPath(sys.argv[2]).write_text(json.dumps({'run_id':s['run_id'],'status':'success','summary':'Synthetic curation.','reviewed_ids':[r['metadata']['id'] for r in s['records']],'proposals':[]}))\n")
+        for trigger in ("manual", "scheduled"):
+            with self.subTest(trigger=trigger):
+                original = self.root / "human-materials" / (trigger + "-private.txt")
+                original.write_text("Private synthetic content stays out of receipts.", encoding="utf-8")
+                with patch("dreamer_schedule.scheduled_gate", return_value={"state": "due"}):
+                    outcome = de.run(self.root, "operator", trigger, "synthetic-schedule")
+                self.assertEqual(outcome["exit"], 0, outcome)
+                receipt = pm.read_json(de.context_path(self.root, outcome["run_id"]))
+                materials = receipt["materials"]
+                self.assertEqual(materials, outcome["materials"])
+                self.assertEqual((materials["state"], materials["trigger"], materials["added"], materials["failed"], materials["skipped"]), ("inventoried", "dreamer", 1, 0, 0))
+                state = mi.load_state(self.root)
+                self.assertEqual(materials["finished_at"], state["last_index_at"])
+                for key, value in state["last_result"].items():
+                    self.assertEqual(materials[key], value)
+                self.assertNotIn(original.name, pm.canonical(receipt))
+                self.assertNotIn("Private synthetic content", pm.canonical(receipt))
+                mi.index(self.root, True, "session")
+                self.assertEqual(mi.load_state(self.root)["last_result"]["trigger"], "session")
+                status = de.status(self.root)
+                self.assertEqual(status["exit"], 0, status)
+                self.assertEqual(status["materials"], materials)
+                self.assertEqual(status["last_execution"]["materials"], materials)
+                self.assertEqual(mh.doctor(self.root)["dreamer"]["materials"], materials)
+
+    def test_materials_partial_and_exception_do_not_block_curation_or_leak_details(self):
+        self.command("import json,sys\nfrom pathlib import Path\ns=json.loads(Path(sys.argv[1]).read_text())\nPath(sys.argv[2]).write_text(json.dumps({'run_id':s['run_id'],'status':'success','summary':'Synthetic curation.','reviewed_ids':[r['metadata']['id'] for r in s['records']],'proposals':[]}))\n")
+        partial = {"state": "partial", "trigger": "dreamer", "failed": [{"path": "private-name.txt", "reason": "private content"}], "skipped": ["private-key.pem"], "summarized": ["private-name.md"], "notes": ["private notes"], "stopped": "private reason"}
+        for response in (partial, OSError("private-name.txt: private content")):
+            with self.subTest(response=type(response).__name__):
+                with patch("materials_index.index", side_effect=response if isinstance(response, Exception) else None, return_value=response):
+                    outcome = de.run(self.root, "operator")
+                self.assertEqual(outcome["exit"], 0, outcome)
+                receipt = pm.read_json(de.context_path(self.root, outcome["run_id"]))
+                materials = receipt["materials"]
+                self.assertEqual(materials, outcome["materials"])
+                self.assertEqual(materials["state"], "partial" if response is partial else "error")
+                self.assertTrue(pm.timestamp(materials["finished_at"]))
+                self.assertEqual(set(materials), {"state", "trigger", "finished_at", "added", "moved", "removed", "queue", "summarized", "proposals", "skipped", "failed", "remaining", "files", "errors"})
+                if response is partial:
+                    self.assertEqual((materials["failed"], materials["skipped"], materials["summarized"]), (1, 1, 1))
+                self.assertNotIn("private", pm.canonical(materials))
+
+    def test_curation_failure_keeps_materials_receipt_and_tampering_is_rejected(self):
+        self.command("import sys\nsys.exit(7)\n")
+        outcome = de.run(self.root, "operator")
+        self.assertEqual(outcome["state"], "failed", outcome)
+        receipt = pm.read_json(de.context_path(self.root, outcome["run_id"]))
+        self.assertEqual(receipt["materials"], outcome["materials"])
+        self.assertEqual(receipt["materials"]["state"], "off")
+        self.assertEqual(de.status(self.root)["materials"], outcome["materials"])
+        receipt["materials"]["added"] = 999
+        pm.atomic(de.context_path(self.root, outcome["run_id"]), receipt)
+        self.assertEqual(de.status(self.root)["state"], "blocked")
+
+    def test_legacy_receipt_without_materials_still_has_valid_readback(self):
+        run = de.begin(self.root, "operator")["run_id"]
+        de.start(self.root, run, "operator")
+        self.result(run)
+        completed = de.finish(self.root, run, "operator")
+        receipt = completed["execution"]
+        receipt.pop("materials", None)
+        de.store(self.root, receipt)
+        status = de.status(self.root)
+        self.assertEqual(status["exit"], 0, status)
+        self.assertIsNone(status["materials"])
+
+    def test_busy_index_and_not_due_schedule_do_not_invent_indexing_success(self):
+        import materials_index as mi
+        cfg = pm.read_json(self.root / "memory/config.json")
+        cfg["human_materials"] = {"indexing": "inventory"}
+        pm.atomic(self.root / "memory/config.json", cfg)
+        self.command("import sys\nsys.exit(7)\n")
+        lock = mi.acquire(self.root)
+        try:
+            outcome = de.run(self.root, "operator")
+        finally:
+            lock.unlink()
+        materials = pm.read_json(de.context_path(self.root, outcome["run_id"]))["materials"]
+        self.assertEqual(materials["state"], "busy")
+        self.assertEqual(materials["summarized"], 0)
+        latest = (self.root / de.LATEST).read_bytes()
+        with patch("dreamer_schedule.scheduled_gate", return_value={"state": "not_due"}), patch.object(de, "index_materials") as index:
+            self.assertEqual(de.run(self.root, "operator", "scheduled", "synthetic-schedule")["state"], "not_due")
+        index.assert_not_called()
+        self.assertEqual((self.root / de.LATEST).read_bytes(), latest)
+
     def test_command_denial_failure_and_timeout_are_recoverable_and_owned_process_is_joined(self):
         for kind in ("denied", "failure", "timeout"):
             self.command("import sys,time\n" + ("time.sleep(10)\n" if kind == "timeout" else "sys.exit(7)\n"))

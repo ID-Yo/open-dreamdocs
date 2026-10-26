@@ -624,9 +624,10 @@ def scan_locked(root, apply=False):
 
 def finish(root, report):
     state = load_state(root)
-    state["last_index_at"] = pm.now()
+    report["finished_at"] = pm.now()
+    state["last_index_at"] = report["finished_at"]
     state["last_result"] = {k: (len(v) if isinstance(v, (list, dict)) else v) for k, v in report.items()
-                            if k in {"state", "trigger", "added", "moved", "removed", "queue", "summarized", "proposals", "skipped", "failed", "remaining"}}
+                            if k in {"state", "trigger", "finished_at", "added", "moved", "removed", "queue", "summarized", "proposals", "skipped", "failed", "remaining"}}
     save_state(root, state)
     return report
 
