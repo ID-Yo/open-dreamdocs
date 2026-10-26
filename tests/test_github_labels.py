@@ -51,20 +51,43 @@ class GitHubLabelsTests(unittest.TestCase):
         self.assertTrue(TEMPLATE_PATH.is_file(), f'missing {TEMPLATE_PATH}')
         data = json.loads(TEMPLATE_PATH.read_text(encoding='utf-8'))
         mock_repo = {}
-        def apply_labels(labels):
+        def apply_labels(labels, force=True):
             created = 0
+            overwritten = 0
             for label in labels:
                 name = label['name']
                 if name not in mock_repo:
                     mock_repo[name] = {'color': label['color'], 'description': label['description']}
                     created += 1
-            return created
+                elif force:
+                    # --force overwrites color and description
+                    if mock_repo[name] != {'color': label['color'], 'description': label['description']}:
+                        mock_repo[name] = {'color': label['color'], 'description': label['description']}
+                        overwritten += 1
+            return created, overwritten
 
-        first_run_created = apply_labels(data)
+        first_run_created, _ = apply_labels(data)
         self.assertEqual(first_run_created, len(EXPECTED_LABELS))
         self.assertEqual(set(mock_repo.keys()), set(EXPECTED_LABELS.keys()))
-        rerun_creates = [l['name'] for l in data if l['name'] not in mock_repo]
-        self.assertEqual(rerun_creates, [])
+        # Re-run changes nothing
+        rerun_created, rerun_overwritten = apply_labels(data, force=True)
+        self.assertEqual(rerun_created, 0)
+        self.assertEqual(rerun_overwritten, 0)
+
+        # Collision with differing metadata: --force explicitly overwrites
+        mock_repo['state:ready'] = {'color': '000000', 'description': 'Custom user description'}
+        c_created, c_overwritten = apply_labels(data, force=True)
+        self.assertEqual(c_created, 0)
+        self.assertEqual(c_overwritten, 1)
+        self.assertEqual(mock_repo['state:ready']['color'], 'BFD4F2')
+
+        # Conflict-refusing path: raises or rejects when differing
+        mock_repo['state:ready'] = {'color': '000000', 'description': 'Custom user description'}
+        conflicts = [
+            l['name'] for l in data
+            if l['name'] in mock_repo and mock_repo[l['name']] != {'color': l['color'], 'description': l['description']}
+        ]
+        self.assertEqual(conflicts, ['state:ready'])
 
 if __name__ == '__main__':
     unittest.main()

@@ -49,10 +49,19 @@ issue carries exactly one of these state labels; closed issues indicate complete
 
 ### Creating task-state labels in your repository
 
+Before creating labels, inspect or back up any existing labels in your repository:
+
+```bash
+gh label list --repo OWNER/REPO --json name,color,description
+```
+
+> **Warning on `--force` overwrite**:
+> The commands below use `--force` to create missing labels. On a name collision, `--force` **overwrites** an existing label's color and description with the template values. If your repository already has its own label definitions or custom styling that you must preserve without overwriting, do not use `--force`; use the conflict-refusing [preservation-first import](#export-and-preservation-first-import) procedure below instead.
+
 You can create these labels idempotently in your repository using GitHub CLI (`gh`):
 
 ```bash
-# Using gh label create --force (idempotent; creates or updates in place)
+# Using gh label create --force (idempotent: creates missing labels, or overwrites existing color and description)
 gh label create state:ready --color BFD4F2 --description "Start approved and ready; check dependencies before dispatch" --force
 gh label create state:active --color 0E8A16 --description "Approved work actually in progress with a started executor" --force
 gh label create state:review --color FBCA04 --description "Candidate under independent review or QA" --force
@@ -65,12 +74,17 @@ gh label create future --color C5DEF5 --description "Not scheduled; no execution
 Or in PowerShell iterating over `templates/task-state-labels.json`:
 
 ```powershell
-$TargetRepo = "OWNER/REPO"  # Replace with your target repo
+$TargetRepo = "OWNER/REPO"  # Replace with your target repo. Warning: --force overwrites matching labels in-place.
 $Labels = Get-Content -Raw -LiteralPath "templates/task-state-labels.json" | ConvertFrom-Json
 foreach ($label in $Labels) {
     gh label create $label.name --color $label.color --description $label.description --repo $TargetRepo --force
 }
 ```
+
+### When to use each import path
+
+- **Forced path (`--force`)**: Best for fresh or empty repositories, or projects that want their issue labels aligned exactly to the canonical Dreamdocs/CBM Monitor task-state standard regardless of previous local definitions.
+- **Preservation-first path**: Best for established repositories with existing workflows, colors, or descriptions. It exports a backup (`labels-before.json`), compares metadata, creates only missing labels, and halts with an explicit error on any metadata conflict instead of overwriting existing data.
 
 ## Combinations and meaning
 
