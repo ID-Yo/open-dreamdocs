@@ -81,6 +81,7 @@ The checkpoint advances only on `success`, after the report and proposals have b
 - One lock permits only one run per project. A second `begin` stops with a conflict; locks are not automatically taken over.
 - `python scripts/project_memory.py abort --run-id RUN_ID` releases the active run without advancing the checkpoint.
 - `python scripts/project_memory.py recover --run-id RUN_ID --confirm-stopped --max-age-minutes N` explicitly recovers a confirmed stopped run. `N` must be positive. Use it only after checking that the process is actually stopped; the runner cannot prove this itself.
+- `python -B scripts/dreamdocs.py dreamer recover --run-id RUN_ID --max-age-minutes N --confirm-stopped` provides the same safe recovery through the primary project CLI.
 - Do not use `recover` to interrupt a live run or bypass a conflict.
 
 ## Daily procedure
