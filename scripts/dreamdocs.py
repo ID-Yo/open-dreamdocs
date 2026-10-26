@@ -7,6 +7,10 @@ import json
 from pathlib import Path
 import sys
 
+import project_memory as pm
+from pathlib import Path
+import sys
+
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install
@@ -39,6 +43,10 @@ def main():
         if name == "run":
             command.add_argument("--trigger", choices=["manual", "scheduled"], default="manual")
             command.add_argument("--schedule-id")
+    recover = dreamer.add_parser("recover", help="Explicitly recover an abandoned Dreamer run lock after confirming the process stopped.")
+    recover.add_argument("--run-id", required=True)
+    recover.add_argument("--max-age-minutes", required=True, type=int)
+    recover.add_argument("--confirm-stopped", action="store_true")
     schedule = dreamer.add_parser("schedule", help="Separately opt-in Windows scheduler; mutations require --apply.")
     schedule.add_argument("action", choices=["install", "status", "disable", "remove"])
     schedule.add_argument("--apply", action="store_true")
@@ -110,6 +118,9 @@ def main():
                 result = de.start(root, args.run_id, args.executor)
             elif args.command == "finish":
                 result = de.finish(root, args.run_id, args.executor)
+            elif args.command == "recover":
+                rec = pm.recover(root, args.run_id, args.max_age_minutes, args.confirm_stopped)
+                result = {"exit": 0, "state": "recovered", **rec}
             else:
                 result = de.run(root, args.executor, args.trigger, args.schedule_id)
         elif args.group in {"upgrade", "update"}:

@@ -64,6 +64,10 @@ report readback and matching state.last_run_id/source manifest count as committe
 Reports or orphan proposals from failed finish cannot qualify. Partial/failed/malformed/stale or
 over-budget results preserve the old checkpoint. Keep failed work for correction or explicit
 stopped-run abort/recovery; no active facts, skills or canonical docs are promoted.
+Explicit recovery after a host crash, offline interruption or abandoned lock uses
+`python -B scripts/dreamdocs.py dreamer recover --run-id ID --max-age-minutes N --confirm-stopped`
+(or `scripts/project_memory.py recover`). It requires `confirm-stopped` and a positive age threshold,
+releases the lock without advancing checkpoint, and marks the recovered run failed in reports.
 
 Manual and scheduled `dreamer run` receipts also retain the Human Materials step's
 state, trigger, finish time and counts under `materials`; filenames, content and raw

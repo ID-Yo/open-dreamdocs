@@ -1,4 +1,5 @@
 import copy
+from datetime import datetime, timezone, timedelta
 import json
 from pathlib import Path
 import shutil
@@ -132,6 +133,28 @@ class ExecutorTests(unittest.TestCase):
         self.config["executor"] = None; self.configure()
         code, result = cli("run", "--executor", "operator")
         self.assertEqual((code, result["state"]), (4, "unconfigured"))
+
+    def test_cli_dreamer_recover_recovers_abandoned_lock_with_confirmation(self):
+        def cli(*args):
+            result = subprocess.run([sys.executable, "-B", str(ROOT / "scripts/dreamdocs.py"), "--root", str(self.root), "dreamer", *args], capture_output=True, timeout=30)
+            return result.returncode, json.loads(result.stdout) if result.returncode == 0 else result.stderr.decode()
+        begun = de.begin(self.root, "operator")
+        run_id = begun["run_id"]
+        lock_path = self.root / "memory/dreamer/lock.json"
+        lock = pm.read_json(lock_path)
+        lock["started_at"] = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+        pm.atomic(lock_path, lock)
+        # Refused without --confirm-stopped
+        code, err = cli("recover", "--run-id", run_id, "--max-age-minutes", "60")
+        self.assertNotEqual(code, 0)
+        self.assertTrue(lock_path.exists())
+        # Succeeds with --confirm-stopped
+        code, res = cli("recover", "--run-id", run_id, "--max-age-minutes", "60", "--confirm-stopped")
+        self.assertEqual(code, 0)
+        self.assertEqual(res["recovered"], run_id)
+        self.assertFalse(lock_path.exists())
+        recovered_report = self.root / "memory/dreamer/reports" / (run_id + "-recovered.json")
+        self.assertTrue(recovered_report.exists())
 
     def test_owned_timeout_joins_descendants_and_uncertain_cleanup_keeps_lock(self):
         import os
