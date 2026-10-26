@@ -9,6 +9,10 @@ small reusable vocabulary. It installs nothing itself. The owner names a maintai
 (normally the project Manager), one target repository and the existing workflow
 authority. Preserve the chosen local/GitHub tracking mode and existing aliases.
 
+For projects using GitHub issue state tracking with the Agent Monitor (CBM #343),
+use the [task-state labels template](../../templates/task-state-labels.json).
+It defines the exact seven task-state labels used to track and monitor execution state.
+
 | Category | Label | Description | Hex |
 |---|---|---|---|
 | Work size | `type:epic` | Large outcome delivered through linked stories or tasks. | `5319E7` |
@@ -19,6 +23,68 @@ authority. Preserve the chosen local/GitHub tracking mode and existing aliases.
 | Workflow | `status:blocked` | Progress needs a named dependency or decision to be resolved. | `B60205` |
 | Priority | `priority:high` | Prioritize ahead of normal work; owner records why. | `D93F0B` |
 | Planning | `plan:future` | Uncommitted future idea; not approved or scheduled for delivery. | `C5DEF5` |
+
+## Task-state labels (Agent Monitor compatible)
+
+The file [`templates/task-state-labels.json`](../../templates/task-state-labels.json) provides
+the canonical seven-label vocabulary for tracking agent and project tasks. Every open work
+issue carries exactly one of these state labels; closed issues indicate completed or rejected work.
+
+| Label | Color | Description | Meaning and rules |
+|---|---|---|---|
+| `state:ready` | `BFD4F2` | Start approved and ready; check dependencies before dispatch | Work is approved to start and ready for assignment. Check prerequisites before dispatching. |
+| `state:active` | `0E8A16` | Approved work actually in progress with a started executor | An executor has started actual work. Queue or dispatch alone is not active. |
+| `state:review` | `FBCA04` | Candidate under independent review or QA | Implementation candidate delivered; awaiting independent code review or QA verification. |
+| `state:blocked` | `B60205` | Blocked on a technical, dependency or capacity condition recorded in the issue | Blocked on technical, tool, dependency or capacity conditions that do NOT wait on the owner. |
+| `state:needs-owner` | `D93F0B` | Blocked: waits on the owner; reason, resume condition and next check recorded in the issue | Blocked specifically waiting on owner action, approval or decision. |
+| `state:backlog` | `EDEDED` | Recorded but not approved or scheduled; no execution expectation | Recorded item without approval to start; no execution expectation. |
+| `future` | `C5DEF5` | Not scheduled; no execution expectation | Unscheduled future concept; no execution expectation. |
+
+### Task state management rules
+
+- **Manager authority**: The project Manager exclusively manages and updates these labels across task handoffs and state changes.
+- **Blocked requirements**: Whenever setting `state:blocked` or `state:needs-owner`, the issue must explicitly record: (1) blocker reason, (2) unblock owner, (3) resume condition, and (4) next check time.
+- **Blocked vs. needs-owner**: Use `state:needs-owner` exclusively when progress depends directly on the project owner (e.g., owner decision, external credential, financial approval). Use `state:blocked` for technical impediments, tool outages, worker capacity, or upstream dependencies. Note: older Agent Monitor versions recognize only `state:needs-owner` as the blocked state.
+- **Explicit user command**: Nothing writes to GitHub automatically. Labels are created only when the user explicitly issues the creation command.
+
+### Creating task-state labels in your repository
+
+Before creating labels, inspect or back up any existing labels in your repository:
+
+```bash
+gh label list --repo OWNER/REPO --json name,color,description
+```
+
+> **Warning on `--force` overwrite**:
+> The commands below use `--force` to create missing labels. On a name collision, `--force` **overwrites** an existing label's color and description with the template values. If your repository already has its own label definitions or custom styling that you must preserve without overwriting, do not use `--force`; use the conflict-refusing [preservation-first import](#export-and-preservation-first-import) procedure below instead.
+
+You can create these labels idempotently in your repository using GitHub CLI (`gh`):
+
+```bash
+# Using gh label create --force (idempotent: creates missing labels, or overwrites existing color and description)
+gh label create state:ready --color BFD4F2 --description "Start approved and ready; check dependencies before dispatch" --force
+gh label create state:active --color 0E8A16 --description "Approved work actually in progress with a started executor" --force
+gh label create state:review --color FBCA04 --description "Candidate under independent review or QA" --force
+gh label create state:blocked --color B60205 --description "Blocked on a technical, dependency or capacity condition recorded in the issue" --force
+gh label create state:needs-owner --color D93F0B --description "Blocked: waits on the owner; reason, resume condition and next check recorded in the issue" --force
+gh label create state:backlog --color EDEDED --description "Recorded but not approved or scheduled; no execution expectation" --force
+gh label create future --color C5DEF5 --description "Not scheduled; no execution expectation" --force
+```
+
+Or in PowerShell iterating over `templates/task-state-labels.json`:
+
+```powershell
+$TargetRepo = "OWNER/REPO"  # Replace with your target repo. Warning: --force overwrites matching labels in-place.
+$Labels = Get-Content -Raw -LiteralPath "templates/task-state-labels.json" | ConvertFrom-Json
+foreach ($label in $Labels) {
+    gh label create $label.name --color $label.color --description $label.description --repo $TargetRepo --force
+}
+```
+
+### When to use each import path
+
+- **Forced path (`--force`)**: Best for fresh or empty repositories, or projects that want their issue labels aligned exactly to the canonical Dreamdocs/CBM Monitor task-state standard regardless of previous local definitions.
+- **Preservation-first path**: Best for established repositories with existing workflows, colors, or descriptions. It exports a backup (`labels-before.json`), compares metadata, creates only missing labels, and halts with an explicit error on any metadata conflict instead of overwriting existing data.
 
 ## Combinations and meaning
 

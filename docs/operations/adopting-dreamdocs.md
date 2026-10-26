@@ -27,6 +27,13 @@ You can use it manually or with an assistant, independently of Codex Bot Mode.
 5. Check links and relevant tests after the merge. Record the result in the
    project's chosen tracker; preserve its existing local/GitHub authority.
 
+## GitHub task-state labels setup
+
+If the adopted project tracks issues in GitHub and coordinates with an Agent Manager
+or CBM Monitor, set up the task-state labels from [`templates/task-state-labels.json`](../../templates/task-state-labels.json).
+Follow the procedure in [Reusable GitHub labels](github-labels.md#task-state-labels-agent-monitor-compatible).
+Creation is idempotent using `gh label create --force` and is never run automatically without explicit user action.
+
 ## Optional companion offer
 
 During adoption, an assistant should present this offer once. An unanswered

@@ -24,6 +24,13 @@ block are preserved. Edited managed instruction blocks or hook configurations de
 update for explicit inspection/merge. Moving a worktree requires review of regenerated absolute
 hook paths and renewed trust. Reinstall uses normal setup; uninstall retains user memory/docs.
 
+### Task-state labels in upgraded repositories
+
+Upgrading a project does not write labels to GitHub. If the target repository has not yet
+configured the task-state labels for Agent Monitor compatibility, import them idempotently using
+the instructions in [Reusable GitHub labels](github-labels.md#task-state-labels-agent-monitor-compatible)
+and the template [`templates/task-state-labels.json`](../../templates/task-state-labels.json).
+
 ## Source identity and release preparation
 
 Upgrades add the exact pinned `memory/automation/README.md` and `receipts/README.md` scaffolds only
