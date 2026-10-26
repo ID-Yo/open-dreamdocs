@@ -56,6 +56,13 @@ class MaterialsIndexTest(unittest.TestCase):
     def rows(self):
         return {r["path"]: r for r in hm.inventory(self.root)["rows"]}
 
+    def test_finished_report_timestamp_matches_persisted_index_result(self):
+        self.put("synthetic.txt", "Synthetic inventory only.")
+        result = mi.index(self.root, True, "dreamer")
+        state = mi.load_state(self.root)
+        self.assertEqual(result["finished_at"], state["last_index_at"])
+        self.assertEqual(state["last_result"]["finished_at"], result["finished_at"])
+
     def test_off_reads_and_writes_nothing(self):
         self.mode("off")
         self.put("a.txt", "hello")

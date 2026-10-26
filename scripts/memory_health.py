@@ -297,12 +297,13 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
     schedule = cfg.get("schedule", {}) if isinstance(cfg, dict) else {}
     configured = all(schedule.get(k) for k in ("timezone", "local_time", "owner"))
     dreamer = {"schedule": "configured_only" if configured else "unconfigured", "scheduler": "unverified", "executor": "unconfigured",
-               "checkpoint": load("memory/dreamer/state.json"), "active_run": pm.confined(root, "memory/dreamer/lock.json").exists()}
+               "checkpoint": load("memory/dreamer/state.json"), "active_run": pm.confined(root, "memory/dreamer/lock.json").exists(), "materials": None}
     import dreamer_executor as de
     if pm.confined(root, de.CONFIG).is_file():
         observation = de.status(root)
         dreamer["executor_observation"] = observation
         dreamer["executor"] = observation["state"]
+        dreamer["materials"] = observation.get("materials")
         if observation["exit"]:
             finding("executor_unverified", "dreamer", "Inspect explicit executor configuration and the last run/result/checkpoint readback; no live execution is inferred.", "dreamer")
         import dreamer_schedule as ds

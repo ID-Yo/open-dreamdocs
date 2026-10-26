@@ -127,7 +127,7 @@ def evidence(root, cfg, snapshot):
 
 
 @guarded
-def begin(root, executor, trigger="manual"):
+def begin(root, executor, trigger="manual", *, materials=None):
     root, cfg, sha = available(root, executor)
     pm.require(trigger in {"manual", "scheduled"}, "invalid trigger")
     if trigger == "scheduled":
@@ -151,6 +151,8 @@ def begin(root, executor, trigger="manual"):
                          "state": "prepared", "pid": None, "process_exit": None, "process_finished_at": None, "result_sha256": None, "report_sha256": None,
                          "snapshot_sha256": pm.digest((work / "snapshot.json").read_bytes()), "evidence_hashes": hashes,
                          "checkpoint": None, "proposal_hashes": {}, "provenance": "Operator timestamps are explicit operator reports; command timestamps/PID/exit are locally observed. No semantic truth attestation."}
+            if materials is not None:
+                execution["materials"] = materials
             store(root, execution)
         return {"exit": 0, "state": "prepared", "run_id": run, "execution": execution, "snapshot": result["snapshot"]}
     except (OSError, ValueError, subprocess.SubprocessError):
@@ -283,7 +285,7 @@ def run(root, executor, trigger="manual", schedule_id=None):
         if decision["state"] != "due":
             return decision
     materials = index_materials(root)
-    outcome = curate(root, executor, trigger, cfg)
+    outcome = curate(root, executor, trigger, cfg, materials)
     return {**outcome, "materials": materials}
 
 
@@ -292,13 +294,15 @@ def index_materials(root):
     try:
         import materials_index
         result = materials_index.index(root, True, "dreamer")
-        return {k: (len(v) if isinstance(v, (list, dict)) else v) for k, v in result.items() if k != "notes"}
-    except Exception as error:  # report, never block curation
-        return {"state": "error", "cause": type(error).__name__, "detail": str(error)[:200]}
+    except Exception:  # report state only: exception text can contain private filenames/content
+        result = {"state": "error"}
+    counts = {k: len(result.get(k, [])) if isinstance(result.get(k), (list, dict)) else result.get(k, 0)
+              for k in ("added", "moved", "removed", "queue", "summarized", "proposals", "skipped", "failed", "remaining", "files", "errors")}
+    return {"state": result["state"], "trigger": "dreamer", "finished_at": result.get("finished_at", pm.now()), **counts}
 
 
-def curate(root, executor, trigger, cfg):
-    prepared = begin(root, executor, trigger)
+def curate(root, executor, trigger, cfg, materials):
+    prepared = begin(root, executor, trigger, materials=materials)
     if prepared["exit"]:
         return prepared
     execution, run_id = prepared["execution"], prepared["run_id"]
@@ -361,5 +365,6 @@ def status(root):
                 last = {**last, "state": "unverified"}
     return {"exit": 0 if last and last["state"] == "success" and not cfg["paused"] else 1,
             "state": "paused" if cfg["paused"] else "observed" if last else "unobserved", "executor": cfg["executor"]["id"],
-            "last_execution": last, "scheduler": "not_installed_or_unverified", "active_run": pm.runtime(root, "lock.json").exists(),
+            "last_execution": last, "materials": last.get("materials") if last else None,
+            "scheduler": "not_installed_or_unverified", "active_run": pm.runtime(root, "lock.json").exists(),
             "limits": "Local execution/readback proof only. Proposals remain unaccepted; a configured scheduler is not health proof."}

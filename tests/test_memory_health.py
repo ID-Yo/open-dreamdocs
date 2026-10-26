@@ -38,6 +38,17 @@ class HealthTests(unittest.TestCase):
     def codes(self, report):
         return {f["code"] for f in report["findings"]}
 
+    def test_dreamer_materials_comes_from_execution_not_latest_index_state(self):
+        import dreamer_executor as de
+        pm.atomic(self.root / de.CONFIG, {})
+        historical = {"state": "partial", "failed": 2, "trigger": "dreamer", "finished_at": "2026-01-01T00:00:00Z"}
+        observation = {"exit": 0, "state": "observed", "materials": historical}
+        before = self.snapshot()
+        with patch.object(de, "status", return_value=observation):
+            report = mh.doctor(self.root)
+        self.assertEqual(report["dreamer"]["materials"], historical)
+        self.assertEqual(before, self.snapshot())
+
     def test_receipt_readback_never_proves_hook_trust_or_recall_and_default_is_read_only(self):
         mc.capture(self.root, copy.deepcopy(EVENT))
         before = self.snapshot()

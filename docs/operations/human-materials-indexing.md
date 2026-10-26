@@ -28,6 +28,14 @@ Optional settings in the same object: `exclude` (glob list never read), `max_fil
 
 A lock in `.dreamdocs/` prevents two runs at once. Files left over from the per-run budget wait for the next run.
 
+Each prepared Dreamer execution receipt at `.dreamdocs/dreamer-runs/RUN_ID.json` keeps
+its own `materials` summary: state, trigger, finish time and counts (including failed,
+skipped and remaining files). It contains no original filenames, content or error text.
+`dreamer status` and the `doctor` Dreamer section show that receipt's summary, even
+after a later session-start index run replaces the current indexing state. Indexing
+errors or busy/off states remain separate from curation success. Older receipts
+without this summary show `materials: null`; no historical result is inferred.
+
 ## How the summary is made
 
 Text, Markdown, CSV, JSON and similar files, DOCX, PPTX, XLSX and OpenDocument are read with the Python standard library. PDF needs the optional `pypdf` package or `pdftotext` on PATH. Images are attached to the Codex call. Other formats (audio, video, archives) are marked `unparseable` with the reason.
