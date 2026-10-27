@@ -50,6 +50,16 @@ class TaskIntakeTests(unittest.TestCase):
                 self.assertNotIn(obsolete, text)
                 self.assertIn('pending-sync', text)
 
+    def test_unclear_work_type_does_not_block_issue_creation(self):
+        for relative in ('docs/governance/task-intake.md', 'docs/operations/github-labels.md'):
+            with self.subTest(entry=relative):
+                text = ' '.join((ROOT / relative).read_text(encoding='utf-8').split())
+                self.assertIn('only when it is clear', text)
+                self.assertIn('Never guess', text)
+                self.assertIn('An unclear type does not block creating the issue', text)
+                self.assertNotIn('exactly one `type:*` per issue', text)
+                self.assertNotIn('task-state label and one work type', text)
+
 
 if __name__ == '__main__':
     unittest.main()

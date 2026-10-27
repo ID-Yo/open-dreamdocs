@@ -41,7 +41,7 @@ issue carries exactly one of these state labels; closed issues indicate complete
 
 ### Task state management rules
 
-- **Manager authority**: The project Manager exclusively manages and updates these labels across task handoffs and state changes. Each actionable issue records outcome, scope, acceptance criteria, responsible Manager/executor, state, type, stage evidence and next responsible participant/action; follow [task intake](../governance/task-intake.md). Priority is optional and never start approval.
+- **Manager authority**: The project Manager exclusively manages and updates these labels across task handoffs and state changes. Each actionable issue records outcome, scope, acceptance criteria, responsible Manager/executor, state, type only when clear, stage evidence and next responsible participant/action; follow [task intake](../governance/task-intake.md). Priority is optional and never start approval.
 - **Blocked requirements**: Whenever setting `state:blocked` or `state:needs-owner`, the issue must explicitly record: (1) blocker reason, (2) unblock owner, (3) resume condition, and (4) next check time.
 - **Blocked vs. needs-owner**: Use `state:needs-owner` exclusively when progress depends directly on the project owner (e.g., owner decision, external credential, financial approval). Use `state:blocked` for technical impediments, tool outages, worker capacity, or upstream dependencies. Note: older Agent Monitor versions recognize only `state:needs-owner` as the blocked state.
 - **Explicit user command**: Nothing writes to GitHub automatically. Labels are created only when the user explicitly issues the creation command.
@@ -91,8 +91,10 @@ assignments; neither import path deletes labels or migrates assignments.
 
 ## Combinations and meaning
 
-- After triage, exactly one `type:*` per issue. A story is a user/participant outcome;
-  a task is a concrete verifiable deliverable, also in noncommercial projects.
+- Set the work type (`type:epic`, `type:story` or `type:task`) only when it is clear.
+  Never guess. An unclear type does not block creating the issue.
+  A story is a user/participant outcome; a task is a concrete verifiable
+  deliverable, also in noncommercial projects.
   Standalone tasks are valid; do not force three levels for small work.
 - Every open work issue has exactly one of the seven task-state labels above.
   Use `state:ready`, `state:active` and `state:review` for readiness, actual execution

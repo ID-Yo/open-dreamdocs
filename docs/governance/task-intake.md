@@ -61,7 +61,9 @@ Before dispatch, the issue must state:
 
 - Intended outcome, bounded scope and verifiable acceptance criteria.
 - Responsible Manager and executor (or explicitly unassigned before dispatch).
-- Exactly one approved task-state label and one work type; follow the
+- Exactly one approved task-state label. Set the work type (`type:epic`,
+  `type:story` or `type:task`) only when it is clear. Never guess.
+  An unclear type does not block creating the issue. Follow the
   [approved label definitions and rules](../operations/github-labels.md).
 - Priority only when explicitly chosen; normal has no label. Priority never
   grants approval to start or changes dependencies, state or blocker requirements.
