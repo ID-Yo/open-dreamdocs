@@ -4,6 +4,15 @@ You are working in a project with canonical documentation in `docs/` and project
 
 ## Before work
 
+**GitHub issue before actionable work**: link a matching existing/parent issue or
+create one before execution. Reuse it across messages, commands and stages; create
+a child only for independent ownership/acceptance. Conversation and short read-only
+questions are exceptions until they become actionable. Follow canonical
+[task intake](../docs/governance/task-intake.md) for issue contents, approval,
+privacy, setup blockers and the disclosed offline pending-sync exception. Local
+memory, ledgers and snapshots supplement GitHub; there is no local-only tracking
+mode. Confirm this gate before starting the task below.
+
 When this task is adoption/copying into a project, first follow [Adopting Dreamdocs](../docs/operations/adopting-dreamdocs.md). Inspect existing AGENTS/PROJECT/governance/memory, preserve owner conventions and private files, merge only scoped sections, and offer optional Codex Bot Mode with explicit Yes / No / Skip. Do not silently install, force a dependency or treat Yes as blanket installation approval. For ordinary tasks, do not repeat the onboarding offer.
 
 1. Read `PROJECT.md`, `AGENTS.md` and [`docs/00-index.md`](../docs/00-index.md).

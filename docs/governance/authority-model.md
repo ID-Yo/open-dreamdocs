@@ -6,6 +6,11 @@
 
 This is the single canonical hierarchy of sources. User authorization defines the scope of work; it does not prove that a remembered claim is true.
 
+[Task intake](task-intake.md) requires a linked GitHub issue before actionable
+execution. Local memory, ledgers and snapshots provide supporting evidence and
+an offline pending-sync queue, never an alternative execution authority. An issue
+does not itself grant start approval or prove that its claims are true.
+
 ## Default hierarchy
 
 1. Current live system or current code
