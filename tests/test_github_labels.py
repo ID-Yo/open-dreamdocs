@@ -42,26 +42,39 @@ class GitHubLabelsTests(unittest.TestCase):
     def test_general_labels_template_has_only_approved_types_and_priority(self):
         data = json.loads(GENERAL_PATH.read_text(encoding='utf-8'))
         self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 4)
+        self.assertEqual(len(data), 5)
         self.assertEqual({item['name'] for item in data},
-                         {'type:epic', 'type:story', 'type:task', 'priority:high'})
+                         {'type:epic', 'type:story', 'type:task', 'priority:high', 'priority:low'})
         for item in data:
             self.assertEqual(set(item), {'name', 'color', 'description'})
             self.assertTrue(HEX_COLOR.match(item['color']))
             self.assertTrue(item['description'])
             self.assertLessEqual(len(item['description']), 100)
 
-    def test_templates_have_exactly_11_unique_approved_names_without_overlap(self):
+    def test_templates_have_exactly_12_unique_approved_names_without_overlap(self):
         state = json.loads(TEMPLATE_PATH.read_text(encoding='utf-8'))
         general = json.loads(GENERAL_PATH.read_text(encoding='utf-8'))
         state_names = {item['name'] for item in state}
         general_names = {item['name'] for item in general}
         names = [item['name'] for item in state + general]
         self.assertFalse(state_names & general_names)
-        self.assertEqual(len(names), 11)
+        self.assertEqual(len(names), 12)
         self.assertEqual(len(names), len(set(names)))
         self.assertEqual(set(names), set(EXPECTED_LABELS) |
-                         {'type:epic', 'type:story', 'type:task', 'priority:high'})
+                         {'type:epic', 'type:story', 'type:task', 'priority:high', 'priority:low'})
+
+    def test_low_priority_metadata_and_documented_rules(self):
+        general = json.loads(GENERAL_PATH.read_text(encoding='utf-8'))
+        low = next(item for item in general if item['name'] == 'priority:low')
+        self.assertEqual(low, {
+            'name': 'priority:low', 'color': 'C2E0C6',
+            'description': 'Lower scheduling priority; state, approval and dependency rules still apply.',
+        })
+        guide = (ROOT / 'docs/operations/github-labels.md').read_text(encoding='utf-8')
+        self.assertIn('At most one `priority:*` label per issue.', guide)
+        self.assertIn('No priority label means normal; there is no `priority:normal`.', guide)
+        self.assertIn('`priority:low` is not `future`', guide)
+        self.assertIn('Approval, state and blocker rules do not change', guide)
 
     def test_idempotent_creation_simulation_creates_exact_set_and_changes_nothing_on_rerun(self):
         self.assertTrue(TEMPLATE_PATH.is_file(), f'missing {TEMPLATE_PATH}')

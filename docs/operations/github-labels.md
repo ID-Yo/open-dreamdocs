@@ -4,8 +4,8 @@
 
 # Reusable GitHub Labels
 
-The approved set is exactly **11 labels**, defined in two machine-readable templates:
-the [four type/priority definitions](../../templates/github-labels.json) and the
+The approved set is exactly **12 labels**, defined in two machine-readable templates:
+the [five type/priority definitions](../../templates/github-labels.json) and the
 [seven task-state definitions](../../templates/task-state-labels.json). The templates
 do not overlap; together they define all allowed names. No other labels are allowed.
 Neither template installs anything itself. The project Manager manages the labels
@@ -18,6 +18,7 @@ mode. Task-state labels also support the Agent Monitor (CBM #343).
 | Work size | `type:story` | One user or participant outcome with acceptance criteria. | `7057FF` |
 | Work size | `type:task` | One actionable deliverable with a clear completion check. | `BFD4F2` |
 | Priority | `priority:high` | Prioritize ahead of normal work; owner records why. | `D93F0B` |
+| Priority | `priority:low` | Lower scheduling priority; state, approval and dependency rules still apply. | `C2E0C6` |
 
 ## Task-state labels (Agent Monitor compatible)
 
@@ -81,7 +82,7 @@ foreach ($label in $Labels) {
 - **Forced path (`--force`)**: Best for fresh or empty repositories, or projects that want their issue labels aligned exactly to the canonical Dreamdocs/CBM Monitor task-state standard regardless of previous local definitions.
 - **Preservation-first path**: Best for established repositories with existing workflows, colors, or descriptions. It exports a backup (`labels-before.json`), compares metadata, creates only missing labels, and halts with an explicit error on any metadata conflict instead of overwriting existing data.
 
-Both paths use only approved names. Existing labels outside the 11 require an
+Both paths use only approved names. Existing labels outside the 12 require an
 explicit Manager-led migration after backing up their definitions and issue/PR
 assignments; neither import path deletes labels or migrates assignments.
 
@@ -94,7 +95,12 @@ assignments; neither import path deletes labels or migrates assignments.
   Use `state:ready`, `state:active` and `state:review` for readiness, actual execution
   and independent review/QA. Use `state:backlog` for recorded unscheduled work;
   absence of a state label is a gap, not an implicit backlog state.
-- `priority:high` is the only priority label. No priority label means normal.
+- At most one `priority:*` label per issue. Use `priority:high` or `priority:low`.
+  No priority label means normal; there is no `priority:normal`.
+- `priority:low` is not `future`: it lowers scheduling priority without changing
+  whether work is approved, ready, active, blocked or under review.
+  Approval, state and blocker rules do not change with priority. The Manager
+  sets priority explicitly; it does not reclassify existing issues automatically.
 - `future` is an unscheduled idea with no execution expectation. Replace it with
   the appropriate `state:*` label and record start approval before execution.
 - `state:blocked` and `state:needs-owner` require the blocker reason, unblock owner,
@@ -139,7 +145,7 @@ Use existing authenticated GitHub CLI and PowerShell 7, without new dependencies
 The example defaults to dry-run. Set an explicitly approved target repository.
 Export labels before changing definitions; keep backups private if descriptions
 are sensitive. Review conflicts first and resolve them explicitly using only the
-11 approved names; do not create per-project synonyms. Both templates are loaded
+12 approved names; do not create per-project synonyms. Both templates are loaded
 below to import the complete approved set.
 
 ```powershell
@@ -197,7 +203,7 @@ Installation never relabels issues/PRs. Migration needs a separate approved old-
 mapping, affected issue/PR inventory and association backup. Add replacements without
 replacing unrelated associations; verify before retiring any association/definition.
 Deleting a label removes its associations: back up definitions and assignments
-before the Manager explicitly removes labels outside the approved 11. Import alone
+before the Manager explicitly removes labels outside the approved 12. Import alone
 does not enforce that cleanup. The Manager checks combinations at triage/handoffs.
 
 ## Official references (checked 2026-10-14)
