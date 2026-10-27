@@ -4,25 +4,20 @@
 
 # Reusable GitHub Labels
 
-Use the [eight-definition JSON template](../../templates/github-labels.json) as a
-small reusable vocabulary. It installs nothing itself. The owner names a maintainer
-(normally the project Manager), one target repository and the existing workflow
-authority. Preserve the chosen local/GitHub tracking mode and existing aliases.
-
-For projects using GitHub issue state tracking with the Agent Monitor (CBM #343),
-use the [task-state labels template](../../templates/task-state-labels.json).
-It defines the exact seven task-state labels used to track and monitor execution state.
+The approved set is exactly **11 labels**, defined in two machine-readable templates:
+the [four type/priority definitions](../../templates/github-labels.json) and the
+[seven task-state definitions](../../templates/task-state-labels.json). The templates
+do not overlap; together they define all allowed names. No other labels are allowed.
+Neither template installs anything itself. The project Manager manages the labels
+in one explicitly selected repository and preserves the chosen local/GitHub tracking
+mode. Task-state labels also support the Agent Monitor (CBM #343).
 
 | Category | Label | Description | Hex |
 |---|---|---|---|
 | Work size | `type:epic` | Large outcome delivered through linked stories or tasks. | `5319E7` |
 | Work size | `type:story` | One user or participant outcome with acceptance criteria. | `7057FF` |
 | Work size | `type:task` | One actionable deliverable with a clear completion check. | `BFD4F2` |
-| Workflow | `status:in-progress` | Work is actively being performed by an assigned owner. | `1D76DB` |
-| Workflow | `status:review` | Deliverable is ready and waiting for review or acceptance. | `FBCA04` |
-| Workflow | `status:blocked` | Progress needs a named dependency or decision to be resolved. | `B60205` |
 | Priority | `priority:high` | Prioritize ahead of normal work; owner records why. | `D93F0B` |
-| Planning | `plan:future` | Uncommitted future idea; not approved or scheduled for delivery. | `C5DEF5` |
 
 ## Task-state labels (Agent Monitor compatible)
 
@@ -86,43 +81,46 @@ foreach ($label in $Labels) {
 - **Forced path (`--force`)**: Best for fresh or empty repositories, or projects that want their issue labels aligned exactly to the canonical Dreamdocs/CBM Monitor task-state standard regardless of previous local definitions.
 - **Preservation-first path**: Best for established repositories with existing workflows, colors, or descriptions. It exports a backup (`labels-before.json`), compares metadata, creates only missing labels, and halts with an explicit error on any metadata conflict instead of overwriting existing data.
 
+Both paths use only approved names. Existing labels outside the 11 require an
+explicit Manager-led migration after backing up their definitions and issue/PR
+assignments; neither import path deletes labels or migrates assignments.
+
 ## Combinations and meaning
 
 - After triage, exactly one `type:*` per issue. A story is a user/participant outcome;
   a task is a concrete verifiable deliverable, also in noncommercial projects.
   Standalone tasks are valid; do not force three levels for small work.
-- At most one `status:*` and one `priority:*`. No priority label means normal.
-  Accepted open work without status is awaiting scheduling/capacity (backlog).
-- `plan:future` is an uncommitted idea, not accepted backlog; it may have an idea
-  steward/review trigger but no implementation commitment. Do not combine it with
-  `status:*`. Remove it and record acceptance before implementation starts.
-- Blocked work names an impediment, responsible person and unblock condition.
+- Every open work issue has exactly one of the seven task-state labels above.
+  Use `state:ready`, `state:active` and `state:review` for readiness, actual execution
+  and independent review/QA. Use `state:backlog` for recorded unscheduled work;
+  absence of a state label is a gap, not an implicit backlog state.
+- `priority:high` is the only priority label. No priority label means normal.
+- `future` is an unscheduled idea with no execution expectation. Replace it with
+  the appropriate `state:*` label and record start approval before execution.
+- `state:blocked` and `state:needs-owner` require the blocker reason, unblock owner,
+  resume condition and next check time, with the distinction described above.
   Paused means accepted work deliberately suspended with a revisit trigger; record
   that in its body. Neither paused nor blocked means future. No paused label is
-  installed by this baseline. No label grants approval to build, publish or spend.
-- If GitHub Projects owns workflow, omit all three `status:*` definitions and
-  applications; use its Status field. If a native Priority or issue-type field
-  already owns those meanings, omit duplicate label fields from the reviewed
-  project selection. Do not maintain parallel sources of truth.
+  allowed by this set. No label grants approval to build, publish or spend.
+- If GitHub Projects is also used, the Manager keeps its fields consistent with
+  these issue labels; it does not replace the required task-state label or add aliases.
 - GitHub open/closed and closure reason express completion/rejection: no done/closed
-  labels. Clear active status labels on closure. Colors help scanning; words carry meaning.
-- Keep existing `bug`, `enhancement`, `documentation`, `question` and equivalents
-  for the nature of work, separate from size. Research/decision can be clear issue
-  titles/body sections until filtering warrants optional definitions. No extra
-  nature/domain labels are installed. Avoid creating synonyms for accepted labels.
+  labels. Clear task-state labels on closure. Colors help scanning; words carry meaning.
+- Describe the nature of work (research, decision, defect or documentation) in
+  the issue title/body rather than adding labels outside the approved set.
 - PRs describe their own scope, not their parent's `type:epic`. A one-deliverable
-  PR may use `type:task` and existing `documentation`. Draft/review/merged already
-  convey PR workflow; omit routine status labels on PRs.
+  PR may use `type:task`. Draft/review/merged already convey PR workflow; omit
+  routine task-state labels on PRs.
 
 ## Hierarchy and examples (illustrative, not created)
 
-Issue #100 “Run a community workshop”: `type:epic`, `priority:high`.
-Its native sub-issue #101 “Participants can register”: `type:story`.
-That issue's sub-issue #102 “Write registration instructions”: `type:task`,
-existing `documentation`, and `status:in-progress` only if labels own status.
+Issue #100 “Run a community workshop”: `type:epic`, `priority:high`, `state:active`.
+Its native sub-issue #101 “Participants can register”: `type:story`, `state:review`.
+That issue's sub-issue #102 “Write registration instructions”: `type:task`
+and `state:active` after its executor starts work.
 Each issue has its own owner, parent link and acceptance checks.
-PR #103 says `Closes #102`, `Refs #101, #100`; it does not close the whole epic.
-Issue #104 “Consider an autumn series”: `type:epic`, `plan:future`.
+PR #103 says `Refs #102, #101, #100`; Manager owns completion and issue closure.
+Issue #104 “Consider an autumn series”: `type:epic`, `future`.
 
 Use GitHub Create/Add existing sub-issue UI and verify the parent relation. Labels
 alone never create hierarchy. If native sub-issues are unavailable, explicitly
@@ -138,22 +136,22 @@ The current token lacked `read:project` when checked on 2026-10-14; do not infer
 no Project exists. Ask the owner which authority already applies; do not change scopes.
 
 Use existing authenticated GitHub CLI and PowerShell 7, without new dependencies.
-The example defaults to dry-run. Set an explicitly approved target/status authority.
+The example defaults to dry-run. Set an explicitly approved target repository.
 Export labels before changing definitions; keep backups private if descriptions
-are sensitive. Review aliases first; if accepted names differ, make a reviewed
-per-project JSON selection using those names, not new synonyms. Leave the
-reusable template unchanged. Optional fields owned by Projects should be omitted.
+are sensitive. Review conflicts first and resolve them explicitly using only the
+11 approved names; do not create per-project synonyms. Both templates are loaded
+below to import the complete approved set.
 
 ```powershell
 $TargetRepo = $null       # Explicit OWNER/REPO approved by owner
-$StatusAuthority = $null  # Explicit 'labels' or 'projects'
 $Apply = $false           # Change only after dry-run review and approval
-$Template = 'templates/github-labels.json' # Or reviewed project selection
+$Templates = @('templates/github-labels.json', 'templates/task-state-labels.json')
 $Backup = 'labels-before.json' # Must not exist; retain outside public commits
 if ($TargetRepo -notmatch '^[^/]+/[^/]+$') { throw 'Choose one target repository' }
-if ($StatusAuthority -notin @('labels','projects')) { throw 'Choose status authority' }
 if (Test-Path -LiteralPath $Backup) { throw 'Choose a new backup filename' }
-$desired = @(Get-Content -Raw -LiteralPath $Template | ConvertFrom-Json)
+$desired = @(foreach ($Template in $Templates) {
+    Get-Content -Raw -LiteralPath $Template | ConvertFrom-Json
+})
 if ($desired.Count -eq 0) { throw 'Empty label selection' }
 $names = @{}
 foreach ($label in $desired) {
@@ -163,9 +161,6 @@ foreach ($label in $desired) {
     }
     if ($names.ContainsKey($label.name)) { throw 'Duplicate label name' }
     $names[$label.name] = $true
-}
-if ($StatusAuthority -eq 'projects') {
-    $desired = @($desired | Where-Object { $_.name -notlike 'status:*' })
 }
 $raw = gh api --paginate --slurp "repos/$TargetRepo/labels?per_page=100"
 if ($LASTEXITCODE) { throw 'Cannot read target inventory' }
@@ -200,9 +195,10 @@ already have succeeded. Avoid unconditional `--force`, broad cloning or deletion
 
 Installation never relabels issues/PRs. Migration needs a separate approved old-to-new
 mapping, affected issue/PR inventory and association backup. Add replacements without
-replacing unrelated labels; verify before retiring any association/definition.
-Deleting a label removes its associations: preserve defaults/history until explicit
-approval. The maintainer checks combinations at triage/handoffs and proposes changes.
+replacing unrelated associations; verify before retiring any association/definition.
+Deleting a label removes its associations: back up definitions and assignments
+before the Manager explicitly removes labels outside the approved 11. Import alone
+does not enforce that cleanup. The Manager checks combinations at triage/handoffs.
 
 ## Official references (checked 2026-10-14)
 

@@ -5,7 +5,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE_PATH = ROOT / 'templates/task-state-labels.json'
-LEGACY_PATH = ROOT / 'templates/github-labels.json'
+GENERAL_PATH = ROOT / 'templates/github-labels.json'
 
 HEX_COLOR = re.compile(r'^[0-9A-Fa-f]{6}$')
 
@@ -39,13 +39,29 @@ class GitHubLabelsTests(unittest.TestCase):
             self.assertLessEqual(len(item['description']), 100, f'description exceeds 100 chars: {item}')
             self.assertGreater(len(item['description']), 0)
 
-    def test_legacy_github_labels_template_remains_valid(self):
-        self.assertTrue(LEGACY_PATH.is_file())
-        data = json.loads(LEGACY_PATH.read_text(encoding='utf-8'))
+    def test_general_labels_template_has_only_approved_types_and_priority(self):
+        data = json.loads(GENERAL_PATH.read_text(encoding='utf-8'))
         self.assertIsInstance(data, list)
+        self.assertEqual(len(data), 4)
+        self.assertEqual({item['name'] for item in data},
+                         {'type:epic', 'type:story', 'type:task', 'priority:high'})
         for item in data:
+            self.assertEqual(set(item), {'name', 'color', 'description'})
             self.assertTrue(HEX_COLOR.match(item['color']))
+            self.assertTrue(item['description'])
             self.assertLessEqual(len(item['description']), 100)
+
+    def test_templates_have_exactly_11_unique_approved_names_without_overlap(self):
+        state = json.loads(TEMPLATE_PATH.read_text(encoding='utf-8'))
+        general = json.loads(GENERAL_PATH.read_text(encoding='utf-8'))
+        state_names = {item['name'] for item in state}
+        general_names = {item['name'] for item in general}
+        names = [item['name'] for item in state + general]
+        self.assertFalse(state_names & general_names)
+        self.assertEqual(len(names), 11)
+        self.assertEqual(len(names), len(set(names)))
+        self.assertEqual(set(names), set(EXPECTED_LABELS) |
+                         {'type:epic', 'type:story', 'type:task', 'priority:high'})
 
     def test_idempotent_creation_simulation_creates_exact_set_and_changes_nothing_on_rerun(self):
         self.assertTrue(TEMPLATE_PATH.is_file(), f'missing {TEMPLATE_PATH}')
