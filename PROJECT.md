@@ -25,13 +25,14 @@ This file is a short entry point for agents. The detailed vision, scope and term
 |---|---|---|
 | Main repository | `<repo>` | Code and configuration |
 | Production | `<url/env>` | Runtime system |
-| Task tracker | `<location>` | Work ledger |
+| Authorized GitHub tracker | `<owner/repository or setup blocker>` | Issues before actionable work; local ledger is supplementary |
 
 ## Canonical entry points
 
 - [Documentation index](docs/00-index.md)
 - [Platform and scope](docs/overview/platform.md)
 - [Governance](docs/governance/README.md)
+- [Issue-first task intake](docs/governance/task-intake.md)
 - [Current state](docs/status/current-state.md)
 - [Agent rules](AGENTS.md)
 - [Marketing topic routing](docs/marketing/README.md)

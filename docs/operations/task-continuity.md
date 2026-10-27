@@ -6,8 +6,12 @@
 
 Use the optional [task snapshot](../../templates/task.json) and
 [version 1 schema](../../templates/task.schema.json) when a project needs a durable,
-machine-readable checkpoint alongside its existing GitHub/local tracker. This is
-an evidence interchange, not another tracker or permission to resume paused work.
+machine-readable checkpoint alongside its authorized GitHub issue tracker. Follow
+[GitHub issue before actionable work](../governance/task-intake.md) before execution;
+local memory, ledgers and this snapshot are supplementary evidence and a temporary
+offline pending-sync queue, not a local-only tracking mode or permission to resume
+paused work. During an outage, retain a stable pending-sync ID and disclose that
+it is unpublished; reconcile it to the matching GitHub issue without duplicates.
 Keep task snapshots private unless the exact content is approved for publication.
 The reusable template contains no real tasks or runtime observations.
 
@@ -34,9 +38,13 @@ of zero tasks, not discovery of the tracker. Existing memory schemas are unchang
 
 ## Durable producer contract
 
-The existing Manager or runtime adapter reconciles the authoritative tracker and
-fresh roster into the snapshot. Preserve the project's existing tracking mode and
-bot identity mapping. Record `reconciled_at` and the concrete `next_check_at`.
+The existing Manager or runtime adapter reconciles the authorized GitHub issues and
+fresh roster into the snapshot. Preserve bot identity mapping, owner pauses and
+history. Do not select github/local/both execution modes; local evidence always
+supplements GitHub, except for the temporary pending-sync path during an outage.
+Without an authorized GitHub destination, record a setup blocker and proceed only
+with independent authorized work. Record `reconciled_at` and the concrete
+`next_check_at`.
 The producer must write the complete JSON atomically (temporary file then replace),
 preserve its last known good checkpoint and serialize writers. This checker never
 repairs, advances, merges or resubmits a handoff after interruption.
@@ -46,8 +54,11 @@ explicit `start_approved`, `next_action`, `acceptance`, source `evidence`,
 `updated_at`, `next_check_at`, ordered `handoffs`, and nullable `blocker`,
 `candidate`, `review`, `accepted`. Time values include timezone. Evidence strings
 are references, not secrets, raw logs, personal information or hidden reasoning.
-The checker does not fetch references. The producer must verify their actual
-identity and contents; a nonempty string is not a truth attestation.
+Include the authorized GitHub issue reference in task evidence, or the disclosed
+stable pending-sync ID during an outage, then reconcile it when service returns.
+The checker does not fetch references or enforce the intake policy. The producer
+must verify their actual identity and contents; a nonempty string is not a truth
+attestation.
 
 For [documentation refresh](documentation-refresh.md), the producer additionally records
 `candidate.source_hashes`: selected project-relative source paths and SHA-256 revisions reviewed
@@ -73,8 +84,9 @@ unchanged and grants no promotion. Refresh requires it and rejects absent or sta
 - `done` requires immutable `candidate.id` and `author`, independent
   `review.reviewer` (different from author), `verdict: approve`, matching candidate,
   review time/evidence and matching Manager acceptance identity/time/evidence.
-  Candidate can be a commit or a bounded local manifest digest; do not imply
-  remote integration/publication from local acceptance. Author PASS or a delivery
+  Candidate can be a commit or a bounded local manifest digest linked from the
+  issue; offline acceptance evidence remains unpublished until reconciled. Do not
+  imply remote integration/publication from local evidence. Author PASS or a delivery
   receipt cannot satisfy this gate. The producer verifies the reviewer belongs
   to the intended role; different strings alone cannot establish independence.
 

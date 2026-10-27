@@ -7,6 +7,8 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Structure and rules for new folders](STRUCTURE.md)
 - [Platform and scope](overview/platform.md)
 - [Governance](governance/README.md)
+- [GitHub issue before actionable work](governance/task-intake.md)
+- [Copyable role playbooks](../templates/roles/README.md)
 - [Project memory](../memory/README.md)
 - [Record schema](../memory/SCHEMA.md)
 - [Daily Dreamer policy](../memory/DREAMER_POLICY.md)

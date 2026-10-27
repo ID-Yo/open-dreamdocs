@@ -6,6 +6,9 @@ create accepted project facts.
 
 Choose [authority-model.md](authority-model.md), [memory-lifecycle.md](memory-lifecycle.md) or [promotion-rules.md](promotion-rules.md) for the specific question; keep these as the single canonical rules.
 
+Before actionable execution, follow [task-intake.md](task-intake.md): link or create
+the GitHub issue; local evidence and the temporary offline queue are supplementary.
+
 Read only the relevant pages and actual cited evidence. Unfilled templates are
 not facts. Apply [governance](../governance/README.md) for authority, promotion
 and review; avoid duplicating its rules here. Register new canonical pages in

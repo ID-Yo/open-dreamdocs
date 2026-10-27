@@ -25,12 +25,16 @@ You can use it manually or with an assistant, independently of Codex Bot Mode.
    changes intact. A template copy is not authorization to migrate native Codex
    memory, activate a scheduler, publish files or install another product.
 5. Check links and relevant tests after the merge. Record the result in the
-   project's chosen tracker; preserve its existing local/GitHub authority.
+   authorized GitHub issue; follow [issue-first intake](../governance/task-intake.md)
+   before actionable work. Preserve local memory/ledgers as supplementary evidence
+   or a disclosed offline pending-sync queue, not an alternative execution tracker.
+   A missing authorized GitHub destination is a setup blocker, not permission to
+   publish private content elsewhere or proceed with the dependent task locally.
 
 ## GitHub task-state labels setup
 
-If the adopted project tracks issues in GitHub and coordinates with an Agent Manager
-or CBM Monitor, set up the task-state labels from [`templates/task-state-labels.json`](../../templates/task-state-labels.json).
+For the authorized GitHub task tracker, set up the task-state labels from
+[`templates/task-state-labels.json`](../../templates/task-state-labels.json).
 Follow the procedure in [Reusable GitHub labels](github-labels.md#task-state-labels-agent-monitor-compatible).
 Creation is idempotent using `gh label create --force` and is never run automatically without explicit user action.
 

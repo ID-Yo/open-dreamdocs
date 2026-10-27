@@ -13,6 +13,13 @@ Do not load the whole documentation tree or all memory by default. Authority, li
 
 ## Working rules
 
+- **GitHub issue before actionable work**: link a matching existing/parent issue
+  or create one before executing any task, change, bug or decision. Reuse the issue
+  across messages, tests and stages. Conversation/short read-only questions are
+  exceptions. Follow [task intake](docs/governance/task-intake.md) for required issue
+  content, privacy and the temporary offline pending-sync path. Without an
+  authorized destination, record a setup blocker; local memory/ledgers/snapshots
+  are supplementary evidence, not a local-only execution mode.
 - For started approved tasks, reconcile the explicit private [task continuity snapshot](docs/operations/task-continuity.md) against actual worker/tracker evidence at handoff and turn completion. Dispatch is not start; memory validation is not execution or scheduler-health proof. Preserve owner pauses and report gaps to the responsible Manager.
 - When adopting/copying this template into a project, follow [Adopting Dreamdocs](docs/operations/adopting-dreamdocs.md): inspect and safely merge existing owner rules, and present the optional Codex Bot Mode offer once with explicit Yes / No / Skip. Silence, No or Skip never authorizes installation; Yes starts a scoped plan and explicit installation approval. Both products remain independently usable. Do not apply this offer on every normal task or install across other projects.
 - Verify remembered claims against current code, configuration or runtime evidence when the task is state-sensitive.

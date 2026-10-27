@@ -11,6 +11,7 @@ These files are copyable forms, not memory records. Keep them outside `memory/` 
 | [decision](decision.md) | docs/decisions/ |
 | [procedure](procedure.md) | docs/procedures/ |
 | [handoff](handoff.md) | docs/status/ |
+| [Role playbooks](roles/README.md) | Optional owner-approved role guidance; shared [issue-first intake](../docs/governance/task-intake.md) |
 | [Task snapshot JSON](task.json), [schema](task.schema.json) | Explicit private tracker/runtime adapter; follow [continuity checks](../docs/operations/task-continuity.md) |
 | [GitHub labels JSON](github-labels.json) | Explicitly chosen repository; follow the [import procedure](../docs/operations/github-labels.md) |
 | [Task-state labels JSON](task-state-labels.json) | Task-state tracking repository; follow [task-state labels](../docs/operations/github-labels.md#task-state-labels-agent-monitor-compatible) |

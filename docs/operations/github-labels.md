@@ -9,8 +9,12 @@ the [four type/priority definitions](../../templates/github-labels.json) and the
 [seven task-state definitions](../../templates/task-state-labels.json). The templates
 do not overlap; together they define all allowed names. No other labels are allowed.
 Neither template installs anything itself. The project Manager manages the labels
-in one explicitly selected repository and preserves the chosen local/GitHub tracking
-mode. Task-state labels also support the Agent Monitor (CBM #343).
+in one explicitly authorized GitHub repository. Follow
+[GitHub issue before actionable work](../governance/task-intake.md): link an
+existing/parent issue or create one before execution. Local memory, ledgers and
+snapshots supplement the issue and serve as a temporary offline pending-sync queue;
+github/local/both are not alternative execution modes. Task-state labels also
+support the Agent Monitor (CBM #343).
 
 | Category | Label | Description | Hex |
 |---|---|---|---|
@@ -37,7 +41,7 @@ issue carries exactly one of these state labels; closed issues indicate complete
 
 ### Task state management rules
 
-- **Manager authority**: The project Manager exclusively manages and updates these labels across task handoffs and state changes.
+- **Manager authority**: The project Manager exclusively manages and updates these labels across task handoffs and state changes. Each actionable issue records outcome, scope, acceptance criteria, responsible Manager/executor, state, type, stage evidence and next responsible participant/action; follow [task intake](../governance/task-intake.md). Priority is optional and never start approval.
 - **Blocked requirements**: Whenever setting `state:blocked` or `state:needs-owner`, the issue must explicitly record: (1) blocker reason, (2) unblock owner, (3) resume condition, and (4) next check time.
 - **Blocked vs. needs-owner**: Use `state:needs-owner` exclusively when progress depends directly on the project owner (e.g., owner decision, external credential, financial approval). Use `state:blocked` for technical impediments, tool outages, worker capacity, or upstream dependencies. Note: older Agent Monitor versions recognize only `state:needs-owner` as the blocked state.
 - **Explicit user command**: Nothing writes to GitHub automatically. Labels are created only when the user explicitly issues the creation command.

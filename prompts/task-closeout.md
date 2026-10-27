@@ -2,6 +2,13 @@
 
 Keep this concise and include verifiable references.
 
+Post a stage completion record on the existing GitHub task/parent issue and reply
+to the requester: task ID/stage, identity, result, exact candidate SHA and author
+where applicable, checks/limits, and proposed next responsible participant/action.
+Follow [task intake](../docs/governance/task-intake.md) for privacy and offline
+pending-sync handling; local evidence supplements the issue. The Manager owns
+successor dispatch and acceptance. Intermediate/feature PRs use `Refs #N` only.
+
 ## Outcome
 
 `success` / `partial` / `failure` / `cancelled`
