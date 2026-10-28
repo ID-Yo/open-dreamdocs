@@ -27,6 +27,7 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 - [Memory health and isolated smoke test](operations/memory-health.md)
 - [Selected package upgrades](operations/upgrading.md)
 - [Sourced documentation refresh proposals](operations/documentation-refresh.md)
+- [Automatic documentation: status log and docs debt](operations/automatic-documentation.md)
 - [Human Materials indexing (automatic summaries and tags)](operations/human-materials-indexing.md)
 - [Candidate support matrix](operations/support-matrix.md)
 - [Reproducible package and release gates](operations/release.md)
@@ -47,8 +48,8 @@ This is the entry point to canonical project documentation. First fill in [`PROJ
 | QA (optional) | [README](qa/README.md) | — |
 | Operations (optional) | [README](operations/README.md) | [operations.md](operations/operations.md), [how-it-works.md](operations/how-it-works.md), [new-computer-checklist.md](operations/new-computer-checklist.md), [dreamer-setup.md](operations/dreamer-setup.md), [adopting-dreamdocs.md](operations/adopting-dreamdocs.md), [task-continuity.md](operations/task-continuity.md), [automation-contract.md](operations/automation-contract.md) |
 | Procedures (optional) | [README](procedures/README.md) | — |
-| Decisions (optional) | [README](decisions/README.md) | — |
+| Decisions (optional) | [README](decisions/README.md) | [ADR-0001-automatic-documentation.md](decisions/ADR-0001-automatic-documentation.md) |
 | Governance (core) | [README](governance/README.md) | [authority-model.md](governance/authority-model.md), [memory-lifecycle.md](governance/memory-lifecycle.md), [promotion-rules.md](governance/promotion-rules.md) |
-| Status (optional) | [README](status/README.md) | [current-state.md](status/current-state.md) |
+| Status (optional) | [README](status/README.md) | [current-state.md](status/current-state.md), activity-log.md (generated) |
 
 Templates in `templates/` and examples in `examples/` are not canonical pages and are not processed as active memory. Historical records in `memory/` are not current project rules.

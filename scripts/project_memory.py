@@ -238,7 +238,7 @@ def records(root):
             if ref.startswith("id:"):
                 require(ref[3:] in ids, f"{meta['id']}: unknown source ID {ref[3:]}")
             elif ref.startswith("file:"):
-                require(confined(root, ref[5:]).is_file(), f"{meta['id']}: missing source file {ref[5:]}")
+                confined(root, ref[5:])  # must stay inside the project; the file itself may later move or be deleted
     return items
 
 
@@ -281,10 +281,18 @@ def validate(root):
     result = validate_runtime(root)
     folders = [root / name for name in ("memory", "templates", "examples", "prompts", "scripts", "tests")]
     folders += [folder for name in ("docs", "memory") if confined(root, name).is_dir() for folder in walk(root, root / name)[0]]
+    warnings = []
     for folder in folders:
-        if folder.is_dir():
-            require((folder / "README.md").is_file() or folder == root / "docs", f"folder needs README: {folder.relative_to(root)}")
-    return {"ok": True, "records": result["records"], "links": validate_links(root), "scheduler_configured": result["scheduler_configured"]}
+        if folder.is_dir() and not (folder / "README.md").is_file() and folder != root / "docs":
+            relative = folder.relative_to(root).as_posix()
+            # Memory folders are Dreamdocs-owned and must explain themselves; other folders may belong to the project.
+            require(relative != "memory" and not relative.startswith("memory/"), f"folder needs README: {relative}")
+            warnings.append(f"folder has no README: {relative}")
+    for item in records(root):
+        for ref in item["metadata"]["source"]:
+            if ref.startswith("file:") and not confined(root, ref[5:]).is_file():
+                warnings.append(f"{item['metadata']['id']}: cited file no longer present: {ref[5:]}")
+    return {"ok": True, "records": result["records"], "links": validate_links(root), "scheduler_configured": result["scheduler_configured"], "warnings": warnings}
 
 
 def validate_runtime(root):

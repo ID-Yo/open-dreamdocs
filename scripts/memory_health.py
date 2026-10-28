@@ -8,6 +8,7 @@ import tempfile
 import uuid
 
 import automation_contract as ac
+import docs_status
 import install
 import memory_capture as mc
 import memory_recall as mr
@@ -127,6 +128,7 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
         if actual != expected:
             finding("package_file_changed", relative, "Review the local edit/missing package asset against the installed baseline before setup or upgrade.", "setup")
     schema = "valid"
+    bound = None
     try:
         pm.settings(root)
         pm.records(root)
@@ -151,6 +153,7 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
             continue
         for item in sorted(path.glob("*.json")):
             relative = item.relative_to(root).as_posix()
+            value = None
             try:
                 value = pm.read_json(pm.confined(root, relative))
                 if label == "event":
@@ -165,6 +168,8 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
             except (OSError, ValueError, TypeError, KeyError, AttributeError):
                 code = "malformed_pending" if label == "pending" else "leftover_event"
             finding(code, relative, "Inspect locally; after writers stop, retry memory reconcile (pending) or a SessionStart hook (events). Malformed files stay in place.", "capture")
+            if label == "event" and code == "leftover_event" and isinstance(value, dict):
+                findings[-1]["cause"] = mc.diagnose(root, value)
     readback, last = "unknown", None
     path = pm.confined(root, mc.RECEIPTS)
     if path.is_dir():
@@ -323,9 +328,27 @@ def doctor(root, fix=False, smoke=False, evidence=UNSET, checkpoints=None):
         finding("materials_pending", "human-materials", "Unindexed or unsummarized files wait for the next session start or Dreamer run; run 'dreamdocs.py materials index --apply' to process now.", "materials")
     if materials.get("proposals_for_reviewed_rows"):
         finding("materials_review_proposals", "human-materials", "A reviewed file changed; compare the stored AI proposal in .dreamdocs/human-materials-state.json and update the row.", "materials")
+    try:
+        projects = {item["metadata"]["project"] for item in pm.records(root)}
+    except (OSError, ValueError):
+        projects = set()
+    if isinstance(bound, dict) and projects and projects != {bound.get("project_id")}:
+        finding("project_id_mismatch", "memory", "Existing records use project " + ", ".join(sorted(projects)) + " but the binding says "
+                + str(bound.get("project_id")) + "; every new capture is refused until they agree. Align the binding or the records explicitly.", "capture")
+    documentation = {"automatic_status": docs_status.enabled(root)}
+    if documentation["automatic_status"]:
+        documentation.update(docs_status.stale(root))
+        if documentation["log"] == "missing" or documentation["block"] == "missing":
+            finding("docs_status_missing", docs_status.STATE_PAGE, "The next saved outcome creates the activity log and status block; run 'dreamdocs.py docs sync' to create them now.", "docs")
+        elif documentation["pending"]:
+            finding("docs_status_stale", docs_status.LOG, f"{documentation['pending']} saved outcome(s) are not in the activity log yet; run 'dreamdocs.py docs sync'.", "docs")
+    debt = docs_status.load_debt(root)
+    documentation["debt_files"] = len(debt["files"])
+    if debt["files"]:
+        finding("docs_debt", "docs", f"{len(debt['files'])} changed code file(s) have no documentation update; update the matching docs/ topic page or declare docs_impact none.", "docs")
     result = {"exit": 2 if not evidence_valid or manifest_raw is not None and not manifest_valid else 1 if findings else 0, "schema": schema, "installed_package": manifest.get("package"),
               "clients": clients, "capture": {"readback": readback, "last_persisted_at": last, "receipts": len(receipts), "trigger_delivery": "unknown"},
-              "dreamer": dreamer, "human_materials": materials, "findings": findings, "notification": "local report only; no external reporting or background monitor",
+              "dreamer": dreamer, "human_materials": materials, "documentation": documentation, "findings": findings, "notification": "local report only; no external reporting or background monitor",
               "applied": False, "limits": "Configuration, receipts, smoke and source-backed reported observations prove different things; no process, product or schedule is started."}
     if smoke:
         result["smoke"] = smoke_test(root)

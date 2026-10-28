@@ -14,6 +14,7 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install
+import docs_status
 import memory_capture as mc
 import memory_recall as mr
 import memory_health as mh
@@ -76,6 +77,11 @@ def main():
             command.add_argument("--client", action="append", choices=sorted(install.CLIENTS),
                                  help="Client to set up (repeatable); default codex.")
     memory = groups.add_parser("memory").add_subparsers(dest="command", required=True)
+    docs = groups.add_parser("docs", help="Tier A status documentation generated from saved outcomes.").add_subparsers(dest="command", required=True)
+    docs_sync = docs.add_parser("sync", help="Append saved outcomes to docs/status/activity-log.md and refresh the current-state block.")
+    docs_sync.add_argument("--since", help="ISO date/time; also backfill outcomes saved since then (default: the log's own start).")
+    docs.add_parser("status", help="Report what a sync would add and any docs debt, without writing.")
+    memory.add_parser("redeliver", help="Retry every saved-turn event file left by earlier hooks; report the reason for any that stay.")
     materials = groups.add_parser("materials", help="Human Materials indexing: mode (owner consent), scan, index, status.").add_subparsers(dest="command", required=True)
     mode = materials.add_parser("mode", help="Record the owner's choice: off, inventory or summarize.")
     mode.add_argument("value", choices=list(mi.MODES))
@@ -97,7 +103,16 @@ def main():
     args = parser.parse_args()
     root = Path(args.root).resolve()
     try:
-        if args.group == "materials":
+        if args.group == "docs":
+            if args.command == "sync":
+                since = docs_status.parse_since(args.since) if args.since else None
+                result = docs_status.sync(root, since)
+                result["exit"] = 2 if result["state"] == "error" else 1 if result["state"] == "deferred" else 0
+            else:
+                debt = docs_status.load_debt(root)
+                result = {"exit": 0, "automatic_status": docs_status.enabled(root), **docs_status.stale(root),
+                          "debt_files": debt["files"], "debt_turns": debt["turns"]}
+        elif args.group == "materials":
             if args.command == "mode":
                 result = mi.set_mode(root, args.value)
             elif args.command == "scan":
@@ -145,6 +160,8 @@ def main():
             result = mc.capture(root, event, max(args.budget_ms, 0) / 1000)
         elif args.command == "recall":
             result = mr.recall(root, args.project, args.query, args.max_chars, args.episodes)
+        elif args.command == "redeliver":
+            result = mc.redeliver_all(root)
         else:
             result = mc.reconcile(root)
     except (OSError, ValueError) as exc:

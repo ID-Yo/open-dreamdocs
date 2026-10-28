@@ -1,5 +1,25 @@
 # Changelog
 
+## v1.6.0-rc.4 — 2026-10-28 (candidate; pilot rollout)
+
+- A file cited by an existing memory record may later move or be deleted (a branch switch, a cleaned-up report) without blocking validation, Dreamer or every later capture. `validate` lists it as a warning and recall marks it missing. New captures still check their evidence (found in the pilot).
+
+## v1.6.0-rc.3 — 2026-10-28 (candidate; pilot rollout)
+
+- Docs debt counts only changes made since the previous observation (session start or the previous turn). Uncommitted work that existed before the session is no longer reported as debt (found in the pilot).
+
+## v1.6.0-rc.2 — 2026-10-28 (candidate; pilot rollout)
+
+- Docs debt is also tracked in a Git repository that has no commits yet (found in the pilot).
+
+## v1.6.0-rc.1 — 2026-10-28 (candidate; pilot rollout)
+
+- Status documentation now updates automatically ([ADR-0001](docs/decisions/ADR-0001-automatic-documentation.md)). Every saved outcome adds a line to `docs/status/activity-log.md` and refreshes a generated block in `docs/status/current-state.md`; owner text outside the markers is preserved byte for byte. `dreamdocs.py docs sync --since DATE` backfills older outcomes.
+- A code change without a documentation change is reported as docs debt at session start and by `doctor`. The outcome block accepts `docs_impact` (`updated`, `none`, `needed`).
+- Capture no longer refuses a whole outcome because of evidence it cannot verify here (a file in another branch or outside the project, or `id:` used for a commit or task number). Such evidence is kept as `ref:` with the reason.
+- `memory redeliver` retries every unsaved turn; session start and `doctor` name unsaved turns and their cause, and `doctor` reports a binding/record project ID mismatch.
+- `validate` now only warns about missing READMEs outside `memory/`.
+
 ## v1.5.0-rc.6 — 2026-10-25 (candidate; release gates pending)
 
 - Scheduled Dreamer runs on Windows can now summarize Human Materials: when Codex was installed from the Codex desktop app, its CLI lives in the app's virtualized AppData and is not on PATH for Task Scheduler. The summarizer now also looks in the desktop app package folder.

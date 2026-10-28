@@ -169,11 +169,6 @@ class CaptureTests(unittest.TestCase):
         self.assertFalse((receipts / f"{ac.event_id(unsafe)}.json").exists())
         oversize = event(turn_id="oversize", outcome={"summary": "x" * (ac.TEXT_LIMIT + 1)})
         self.assertEqual(mc.capture(self.root, oversize)["exit"], 2)
-        missing = event(turn_id="missing", outcome={"evidence": ["file:docs/missing.md"]})
-        result = mc.capture(self.root, missing)
-        self.assertEqual((result["exit"], result["saved"]), (2, False))
-        self.assertFalse((receipts / f"{ac.event_id(missing)}.json").exists())
-        self.assertEqual(mc.capture(self.root, missing)["exit"], 2)
         self.assertEqual(self.episodes(), [])
         (self.root / "event.json").unlink()
         for path in self.root.rglob("*"):
@@ -186,17 +181,46 @@ class CaptureTests(unittest.TestCase):
         lock.write_text("live writer", encoding="utf-8")
         return lock
 
-    def test_missing_file_source_is_refused_before_queueing(self):
-        self.hold_lock()
+    def test_unverifiable_evidence_is_kept_as_ref_and_the_outcome_is_saved(self):
+        refs = ["file:docs/missing.md", "file:C:/elsewhere/report.md", "file:../outside.md", "id:4490bf2eaa0556ad2011202f2839d4be05b8a722"]
+        value = event(turn_id="unverifiable", outcome={"evidence": refs})
+        result = mc.capture(self.root, value)
+        self.assertEqual((result["exit"], result["saved"]), (0, True), result)
+        text = (self.root / "memory/episodes" / f"auto-{ac.event_id(value)}.md").read_text(encoding="utf-8")
+        meta = pm.metadata(text)
+        self.assertEqual(meta["source"][:4], ["ref:" + ref for ref in refs])
+        self.assertIn("Unverified evidence kept as ref: file:docs/missing.md (missing in this checkout)", text)
+        self.assertIn("(outside this project)", text)
+        self.assertIn("(not a memory record ID)", text)
+        self.assertEqual(pm.validate_runtime(self.root)["records"], 1)
+        self.assertEqual(mc.capture(self.root, value)["decision"], "duplicate")
+
+    def test_deleting_a_cited_file_later_never_blocks_validation_or_new_captures(self):
+        cited = self.root / "docs/report.md"
+        cited.parent.mkdir(parents=True, exist_ok=True)
+        cited.write_text("report\n", encoding="utf-8")
+        first = event(turn_id="cites-report", outcome={"evidence": ["file:docs/report.md"]})
+        self.assertTrue(mc.capture(self.root, first)["saved"])
+        cited.unlink()
+        self.assertTrue(mc.capture(self.root, event(turn_id="after-delete"))["saved"])
+        self.assertIn(f"auto-{ac.event_id(first)}: cited file no longer present: docs/report.md", pm.validate(self.root)["warnings"])
+
+    def test_missing_file_source_is_kept_as_ref_when_queued(self):
+        lock = self.hold_lock()
         missing = event(outcome={"evidence": ["file:docs/missing.md"]})
-        result = mc.capture(self.root, missing, budget=0)
-        self.assertEqual((result["exit"], result["decision"], result["saved"]), (2, "invalid", False))
-        self.assertEqual(self.files("memory/automation/pending"), [])
+        self.assertEqual(mc.capture(self.root, missing, budget=0)["decision"], "queued")
+        lock.unlink()
+        self.assertEqual(mc.reconcile(self.root)["published"], 1)
+        meta = pm.metadata((self.root / "memory/episodes" / f"auto-{ac.event_id(missing)}.md").read_text(encoding="utf-8"))
+        self.assertIn("ref:file:docs/missing.md", meta["source"])
 
     def test_refused_pending_entry_is_kept_and_reported_never_dropped(self):
         lock = self.hold_lock()
-        unknown = event(turn_id="unknown-id", outcome={"evidence": ["id:no-such-record"]})
-        self.assertEqual(mc.capture(self.root, unknown, budget=0)["decision"], "queued")
+        unknown = event(turn_id="unknown-id")
+        result = ac.check(unknown, pm.read_json(self.root / "memory/automation.json"))
+        plan = mc.make_plan(self.root, unknown, result)
+        plan["episode"] = plan["episode"].replace('"source": [', '"source": [\n    "id:no-such-record",', 1)
+        mc.queue(self.root, plan)
         lock.unlink()
         other = mc.capture(self.root, event(turn_id="other"))
         self.assertTrue(other["saved"])
