@@ -122,6 +122,7 @@ class DocsStatusTests(unittest.TestCase):
         self.git("init", "-q")
         self.git("-c", "user.email=t@example.invalid", "-c", "user.name=t", "add", "-A")
         self.git("-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-qm", "base")
+        self.hook("session_start")
         (self.root / "app.py").write_text("print(1)\n", encoding="utf-8")
         self.stop(summary="Added the app.")
         state = ds.load_debt(self.root)
@@ -142,9 +143,22 @@ class DocsStatusTests(unittest.TestCase):
 
     def test_repository_without_commits_still_tracks_docs_debt(self):
         self.git("init", "-q")
+        self.hook("session_start")
         (self.root / "app.py").write_text("print(1)\n", encoding="utf-8")
         self.stop(summary="Started the app before the first commit.")
         self.assertIn("app.py", ds.load_debt(self.root)["files"])
+
+    def test_uncommitted_work_from_before_the_session_is_not_debt(self):
+        self.git("init", "-q")
+        (self.root / "work").mkdir()
+        (self.root / "work/old.py").write_text("print(0)\n", encoding="utf-8")
+        (self.root / "legacy.py").write_text("print(0)\n", encoding="utf-8")
+        self.hook("session_start")
+        self.stop(summary="Read-only answer.")
+        self.assertEqual(ds.load_debt(self.root)["files"], [])
+        (self.root / "legacy.py").write_text("print(1)\n", encoding="utf-8")
+        self.stop(summary="Edited the legacy script.")
+        self.assertEqual(ds.load_debt(self.root)["files"], ["legacy.py"])
 
     def test_unsaved_events_are_named_at_session_start(self):
         folder = self.root / "memory/automation/events"

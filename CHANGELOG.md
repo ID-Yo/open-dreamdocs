@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.0-rc.3 — 2026-10-28 (candidate; pilot rollout)
+
+- Docs debt counts only changes made since the previous observation (session start or the previous turn). Uncommitted work that existed before the session is no longer reported as debt (found in the pilot).
+
 ## v1.6.0-rc.2 — 2026-10-28 (candidate; pilot rollout)
 
 - Docs debt is also tracked in a Git repository that has no commits yet (found in the pilot).

@@ -214,22 +214,32 @@ def git(root, *args):
     return run.stdout.decode("utf-8", "replace")
 
 
-def changed_files(root, since_head):
-    """Files changed by commits since the last observed HEAD plus the current working tree."""
+def fingerprint(root, relative):
+    try:
+        info = (root / relative).stat()
+        return f"{info.st_mtime_ns}:{info.st_size}"
+    except OSError:
+        return "absent"
+
+
+def snapshot(root, since_head):
+    """HEAD, files changed by commits since the last observed HEAD, and a fingerprint of every uncommitted entry."""
     try:
         head = git(root, "rev-parse", "HEAD").strip()
     except OSError:
         head = None  # a repository without commits yet: only the working tree counts
-    names = set()
+    committed = set()
     if since_head and head and since_head != head:
         try:
-            names |= set(git(root, "diff", "--name-only", since_head, head).splitlines())
+            committed = set(git(root, "diff", "--name-only", since_head, head).splitlines())
         except OSError:
             pass  # history rewritten or object missing; fall back to the working tree
+    current = {}
     for line in git(root, "status", "--porcelain", "--untracked-files=normal").splitlines():
-        path = line[3:].split(" -> ")[-1].strip().strip('"')
-        names.add(path)
-    return head, {n.replace("\\", "/") for n in names if n}
+        path = line[3:].split(" -> ")[-1].strip().strip('"').replace("\\", "/")
+        if path:
+            current[path] = fingerprint(root, path)
+    return head, {n.replace("\\", "/") for n in committed if n}, current
 
 
 def classify(names):
@@ -244,25 +254,33 @@ def load_debt(root):
     except (OSError, ValueError):
         value = {}
     if not isinstance(value, dict) or value.get("version") != 1:
-        value = {"version": 1, "head": None, "files": [], "turns": []}
+        value = {"version": 1, "head": None, "seen": None, "files": [], "turns": []}
     return value
 
 
-def track_debt(root, docs_impact, event_id, task):
-    """Record that a turn changed code without touching docs; clear it once docs change. Never raises."""
+def track_debt(root, docs_impact, event_id, task, observe_only=False):
+    """Record that a turn changed code without touching docs; clear it once docs change. Never raises.
+
+    Only changes since the previous observation count, so uncommitted work that predates the session is
+    not blamed on a turn. Session start observes without judging; the first Stop after an upgrade does too."""
     root = Path(root).resolve()
     if not enabled(root):
         return None
     try:
         state = load_debt(root)
-        head, names = changed_files(root, state.get("head"))
+        head, committed, current = snapshot(root, state.get("head"))
+        seen = state.get("seen")
+        if observe_only or not isinstance(seen, dict):
+            names = set()
+        else:
+            names = committed | {path for path, mark in current.items() if seen.get(path) != mark}
         docs, code = classify(names)
         if docs or docs_impact == "updated":
             state["files"], state["turns"] = [], []
         elif code and docs_impact != "none":
             state["files"] = sorted(set(state["files"]) | code)[:DEBT_FILES]
             state["turns"] = (state["turns"] + [{"event_id": event_id, "task": task, "at": pm.now()}])[-10:]
-        state["head"] = head
+        state["head"], state["seen"] = head, current
         ignore = pm.confined(root, ".dreamdocs/.gitignore")
         if not ignore.exists():  # machine-local state; never committed
             mc.atomic_text(ignore, "*\n")

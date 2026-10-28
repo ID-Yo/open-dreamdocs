@@ -78,6 +78,7 @@ def session_start(root):
     notes = redeliver(root)
     synced = ds.sync(root)
     notes += synced["findings"]
+    ds.track_debt(root, None, None, None, observe_only=True)
     try:
         import materials_index
         if materials_index.spawn_background(root):

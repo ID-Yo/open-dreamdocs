@@ -30,8 +30,10 @@ python -B scripts/dreamdocs.py docs status
 
 ## Docs debt
 
-At each Stop, the hook compares the files changed since the last observed commit plus the working tree.
-Code changed with no `docs/` page changed records debt in `.dreamdocs/docs-state.json`. Session start
+Session start records the current commit and a fingerprint of every uncommitted entry. At each Stop, the
+hook compares against that observation: new commits and uncommitted entries that changed since then.
+Code changed with no `docs/` page changed records debt in `.dreamdocs/docs-state.json`; work that
+was already uncommitted before the session is not counted. Session start
 and doctor show it. Debt clears when a docs page changes, or when the outcome block says
 `"docs_impact": "updated"`. Use `"docs_impact": "none"` for changes with no documentation effect.
 Files under `memory/`, `.dreamdocs/`, `.codex/`, `.claude/`, `human-materials/` and Markdown files are not code.
