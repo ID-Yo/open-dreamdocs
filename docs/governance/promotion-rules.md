@@ -6,6 +6,7 @@
 
 Dreamer or the agent may propose a change. The area owner reviews active facts, skills, canonical rules and changes to `docs/`.
 Automatic capture under the [automation contract](../operations/automation-contract.md) creates only episodes and receipts; it never promotes a record.
+Generated status documentation (tier A in [ADR-0001](../decisions/ADR-0001-automatic-documentation.md)) is the only automatic write to `docs/`; it repeats saved reports and promotes nothing.
 
 ## Episode → fact
 

@@ -318,6 +318,14 @@ class BoundedScanTests(unittest.TestCase):
         with self.assertRaisesRegex(pm.MemoryError, "broken"):
             pm.validate(self.root)
 
+    def test_missing_readme_outside_memory_is_a_warning_inside_memory_an_error(self):
+        (self.root / "docs/.github").mkdir(parents=True, exist_ok=True)
+        (self.root / "docs/.github/x.md").write_text("x\n", encoding="utf-8")
+        self.assertIn("folder has no README: docs/.github", pm.validate(self.root)["warnings"])
+        (self.root / "memory/facts/README.md").unlink()
+        with self.assertRaisesRegex(pm.MemoryError, "folder needs README: memory/facts"):
+            pm.validate(self.root)
+
     def test_private_automation_runtime_is_neither_validated_nor_copied(self):
         (self.root / "memory/automation").mkdir()
         (self.root / "memory/automation/README.md").write_text("# Automation\n", encoding="utf-8")

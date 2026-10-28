@@ -75,17 +75,50 @@ def baseline(root, refs):
     return hashes
 
 
-def render(root, event, eid):
+def checked_sources(root, refs, ids):
+    """Keep evidence that resolves here; keep the rest as unverified ref: entries instead of losing the outcome.
+
+    A file: reference must exist in this checkout for the life of the record (records() rechecks it), and an
+    id: reference must name a memory record. Commit SHAs, task numbers, other worktrees and outside paths are
+    real evidence that cannot be verified here, so they are preserved verbatim behind ref: with a reason."""
+    kept, notes = [], []
+    for ref in refs:
+        reason = None
+        if ref.startswith("file:"):
+            try:
+                if not pm.confined(root, ref[5:]).is_file():
+                    reason = "missing in this checkout"
+            except (ValueError, OSError):
+                reason = "outside this project"
+        elif ref.startswith("id:") and ref[3:] not in ids:
+            reason = "not a memory record ID"
+        if reason:
+            kept.append("ref:" + ref)
+            notes.append(f"{ref} ({reason})")
+        else:
+            kept.append(ref)
+    return kept, notes
+
+
+def known_ids(root):
+    """Record IDs plus captures already queued ahead of this one, so a queued chain can cite earlier links."""
+    return {item["metadata"]["id"] for item in pm.records(root)} | {f"auto-{path.stem}" for path in pending_files(root)}
+
+
+def render(root, event, eid, ids=frozenset()):
     outcome, task = event["outcome"], event["task"]
+    sources, unverified = checked_sources(root, outcome["evidence"], ids)
     meta = {"id": f"auto-{eid}", "type": "episodic", "status": "active", "project": event["project_id"],
             "scope": f"task:{task['id']}" if task else "session", "created_at": event["occurred_at"],
-            "source": outcome["evidence"] + [f"ref:{event['adapter']}/{event['session_id']}/{event['turn_id']}"],
+            "source": sources + [f"ref:{event['adapter']}/{event['session_id']}/{event['turn_id']}"],
             "pinned": False}
-    hashes = baseline(root, outcome["evidence"])
+    hashes = baseline(root, sources)
     if hashes:
         meta["source_sha256"] = hashes
     title = f"# Outcome: {outcome['status']}" + (f" ({task['id']}, reported {task['status']})" if task else "")
     lines = ["---", json.dumps(meta, ensure_ascii=False, indent=2), "---", "", title, "", outcome["summary"].strip(), ""]
+    if unverified:
+        lines += ["Unverified evidence kept as ref: " + "; ".join(unverified) + ".", ""]
     if outcome["lessons"]:
         lines += ["## Proposed lessons (not accepted)", ""] + [f"- {lesson.strip()}" for lesson in outcome["lessons"]] + [""]
     lines += [f"Captured automatically from {event['adapter']} by {event['agent']} in worktree {event['worktree']}.", ""]
@@ -93,7 +126,7 @@ def render(root, event, eid):
 
 
 def make_plan(root, event, result):
-    episode = render(root, event, result["event_id"]) if result["decision"] == "capture_episode" else None
+    episode = render(root, event, result["event_id"], known_ids(root)) if result["decision"] == "capture_episode" else None
     return {"version": 1, "event_id": result["event_id"], "payload_sha256": result["payload_sha256"],
             "decision": result["decision"], "outcome": event["outcome"]["status"], "episode": episode}
 
@@ -335,3 +368,39 @@ def reconcile(root):
     return {"decision": "reconciled", "exit": 5 if "conflict" in decisions else 2 if decisions else 0,
             "published": published, "pending": len(pending_files(root)), "unpublished": unpublished}
 
+
+def diagnose(root, event):
+    """Read-only: why an adapter event file would not be saved now, using the same checks as capture."""
+    root = Path(root).resolve()
+    try:
+        binding_path = pm.confined(root, "memory/automation.json")
+        binding = pm.read_json(binding_path) if binding_path.is_file() else None
+        result = ac.check(event, binding)
+        if result["decision"] not in {"capture_episode", "receipt_only"}:
+            return f"{result['decision']}: " + "; ".join(result["findings"])
+        plan = make_plan(root, event, result)
+        if plan["episode"] is not None:
+            verify_sources(root, pm.metadata(plan["episode"]), pm.records(root))
+        return "saveable now; retry with 'memory redeliver' or the next session start"
+    except (Invalid, ValueError, OSError, TypeError, KeyError) as exc:
+        return f"refused: {exc}"
+
+
+def redeliver_all(root):
+    """Retry every adapter event file left by earlier turns; saved ones are removed, refused ones stay with a reason."""
+    root = Path(root).resolve()
+    folder = pm.confined(root, "memory/automation/events")
+    report = {"exit": 0, "saved": 0, "left": []}
+    for path in sorted(folder.glob("*.json"), key=lambda p: (p.stat().st_mtime_ns, p.name)) if folder.is_dir() else []:
+        try:
+            event = json.loads(path.read_text(encoding="utf-8"))
+            result = capture(root, event, 2.0)
+        except ValueError as exc:
+            result = {"saved": False, "decision": "invalid", "findings": [f"unreadable event file: {exc}"]}
+        if result["saved"]:
+            path.unlink(missing_ok=True)
+            report["saved"] += 1
+        else:
+            report["left"].append({"event": path.name, "decision": result["decision"], "findings": result.get("findings", [])})
+    report["exit"] = 1 if report["left"] else 0
+    return report

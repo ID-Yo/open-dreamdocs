@@ -18,12 +18,14 @@ import time
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import automation_contract as ac
+import docs_status as ds
 import memory_capture as mc
 import memory_recall as mr
 import project_memory as pm
 
 BLOCK = re.compile(r"```dreamdocs-outcome[ \t]*\r?\n(.*?)\r?\n[ \t]*```", re.S)
-BLOCK_FIELDS = {"status", "summary", "lessons", "evidence", "task"}
+BLOCK_FIELDS = {"status", "summary", "lessons", "evidence", "task", "docs_impact"}
+DOCS_IMPACT = {"none", "updated", "needed"}
 MEANINGFUL_TERMS = 3
 SESSION_CHARS, PROMPT_CHARS, PROMPT_QUERY = 4000, 2000, 500
 CAPTURE_BUDGET = 5.0
@@ -74,13 +76,31 @@ def redeliver(root, skip=None):
 
 def session_start(root):
     notes = redeliver(root)
+    synced = ds.sync(root)
+    notes += synced["findings"]
     try:
         import materials_index
         if materials_index.spawn_background(root):
             notes.append("human-materials indexing started in the background")
     except Exception as exc:  # indexing must never break session start
         notes.append(f"human-materials indexing not started ({type(exc).__name__})")
-    context("SessionStart", mr.recall(root, max_chars=SESSION_CHARS), notes)
+    result = mr.recall(root, max_chars=SESSION_CHARS)
+    attention = [note for note in (unsaved_note(root), ds.debt_note(root)) if note]
+    if attention and result["status"] == "ok":
+        result = {**result, "context": "\n\n".join(filter(None, [result["context"], *attention]))}
+    elif attention:
+        notes += attention
+    context("SessionStart", result, notes)
+
+
+def unsaved_note(root):
+    """Outcomes whose event file is still waiting after redelivery are named, never silently dropped."""
+    folder = root / "memory" / "automation" / "events"
+    count = len(list(folder.glob("*.json"))) if folder.is_dir() else 0
+    if not count:
+        return None
+    return (f"Dreamdocs: {count} earlier turn outcome(s) are not saved yet (memory/automation/events). "
+            "Run 'python -B scripts/dreamdocs.py doctor' for the reason; 'memory redeliver' retries them all.")
 
 
 def user_prompt(root, payload):
@@ -106,6 +126,17 @@ def outcome_block(message, adapter, turn):
         warning = None
     summary = f"{adapter} turn finished without a dreamdocs-outcome block."
     return {"status": "no_lesson", "summary": summary, "lessons": [], "evidence": []}, None, warning
+
+
+def docs_impact(message):
+    """Optional docs_impact from a valid outcome block: none, updated or needed; anything else is ignored."""
+    found = BLOCK.findall(message)
+    try:
+        data = json.loads(found[-1]) if found else None
+    except ValueError:
+        return None
+    value = data.get("docs_impact") if isinstance(data, dict) else None
+    return value if value in DOCS_IMPACT else None
 
 
 def stop(root, adapter, turn_of, payload):
@@ -143,7 +174,18 @@ def stop(root, adapter, turn_of, payload):
     notes += [warning] if warning else []
     if not result["saved"]:
         notes.append(f"capture {result['decision']} (exit {result['exit']})")
+    after_turn(root, message, eid, task, result["saved"] and result["decision"] != "receipt_only", notes)
     return {"systemMessage": "Dreamdocs memory: " + "; ".join(notes)} if notes else {}
+
+
+def after_turn(root, message, eid, task, saved, notes):
+    """Tier A docs: note docs debt for this turn, then append saved outcomes to the status docs."""
+    try:
+        ds.track_debt(root, docs_impact(message), eid, task["id"] if isinstance(task, dict) and "id" in task else None)
+        if saved:
+            notes += ds.sync(root)["findings"]
+    except Exception as exc:  # documentation upkeep never changes the reported memory outcome
+        notes.append(f"docs update skipped ({type(exc).__name__})")
 
 
 def session_end(root):

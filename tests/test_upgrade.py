@@ -191,8 +191,7 @@ class UpgradeTests(unittest.TestCase):
         folder = self.root / "docs/engineering/proposals/rpt-usage-v1"
         folder.mkdir(parents=True)
         (folder / "design.md").write_text("Project-owned proposal without folder READMEs.\n", encoding="utf-8")
-        with self.assertRaises(pm.MemoryError):
-            pm.validate(self.root)
+        self.assertIn("folder has no README: docs/engineering/proposals/rpt-usage-v1", pm.validate(self.root)["warnings"])
         result = self.run_upgrade(apply=True)
         self.assertEqual((result["exit"], result["applied"]), (0, True), result.get("conflicts"))
         reverted = upgrade.rollback(self.root, result["backup"], apply=True)
