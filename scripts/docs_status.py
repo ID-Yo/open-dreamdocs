@@ -216,9 +216,12 @@ def git(root, *args):
 
 def changed_files(root, since_head):
     """Files changed by commits since the last observed HEAD plus the current working tree."""
-    head = git(root, "rev-parse", "HEAD").strip()
+    try:
+        head = git(root, "rev-parse", "HEAD").strip()
+    except OSError:
+        head = None  # a repository without commits yet: only the working tree counts
     names = set()
-    if since_head and since_head != head:
+    if since_head and head and since_head != head:
         try:
             names |= set(git(root, "diff", "--name-only", since_head, head).splitlines())
         except OSError:

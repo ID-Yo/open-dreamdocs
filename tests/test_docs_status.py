@@ -140,6 +140,12 @@ class DocsStatusTests(unittest.TestCase):
         self.stop(summary="Another change.")
         self.assertIn("other.py", ds.load_debt(self.root)["files"])
 
+    def test_repository_without_commits_still_tracks_docs_debt(self):
+        self.git("init", "-q")
+        (self.root / "app.py").write_text("print(1)\n", encoding="utf-8")
+        self.stop(summary="Started the app before the first commit.")
+        self.assertIn("app.py", ds.load_debt(self.root)["files"])
+
     def test_unsaved_events_are_named_at_session_start(self):
         folder = self.root / "memory/automation/events"
         folder.mkdir(parents=True, exist_ok=True)

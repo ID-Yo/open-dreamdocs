@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.0-rc.2 — 2026-10-28 (candidate; pilot rollout)
+
+- Docs debt is also tracked in a Git repository that has no commits yet (found in the pilot).
+
 ## v1.6.0-rc.1 — 2026-10-28 (candidate; pilot rollout)
 
 - Status documentation now updates automatically ([ADR-0001](docs/decisions/ADR-0001-automatic-documentation.md)). Every saved outcome adds a line to `docs/status/activity-log.md` and refreshes a generated block in `docs/status/current-state.md`; owner text outside the markers is preserved byte for byte. `dreamdocs.py docs sync --since DATE` backfills older outcomes.

@@ -5,7 +5,7 @@ project: community initiatives, research, operations, creative work or software.
 Keep agreed project knowledge in `docs/`, and evidence, outcomes and proposed
 lessons in `memory/`. Use the folders manually or with an AI assistant.
 
-Version **1.6.0-rc.1** — release candidate, pending the [dual-client release gates](docs/operations/release.md).
+Version **1.6.0-rc.2** — release candidate, pending the [dual-client release gates](docs/operations/release.md).
 Licensed under [MIT](LICENSE). Guides, templates, examples and prompts are in English.
 
 ## Start with the documents
