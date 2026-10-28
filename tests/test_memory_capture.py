@@ -195,6 +195,16 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(pm.validate_runtime(self.root)["records"], 1)
         self.assertEqual(mc.capture(self.root, value)["decision"], "duplicate")
 
+    def test_deleting_a_cited_file_later_never_blocks_validation_or_new_captures(self):
+        cited = self.root / "docs/report.md"
+        cited.parent.mkdir(parents=True, exist_ok=True)
+        cited.write_text("report\n", encoding="utf-8")
+        first = event(turn_id="cites-report", outcome={"evidence": ["file:docs/report.md"]})
+        self.assertTrue(mc.capture(self.root, first)["saved"])
+        cited.unlink()
+        self.assertTrue(mc.capture(self.root, event(turn_id="after-delete"))["saved"])
+        self.assertIn(f"auto-{ac.event_id(first)}: cited file no longer present: docs/report.md", pm.validate(self.root)["warnings"])
+
     def test_missing_file_source_is_kept_as_ref_when_queued(self):
         lock = self.hold_lock()
         missing = event(outcome={"evidence": ["file:docs/missing.md"]})

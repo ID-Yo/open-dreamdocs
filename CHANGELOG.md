@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.0-rc.4 — 2026-10-28 (candidate; pilot rollout)
+
+- A file cited by an existing memory record may later move or be deleted (a branch switch, a cleaned-up report) without blocking validation, Dreamer or every later capture. `validate` lists it as a warning and recall marks it missing. New captures still check their evidence (found in the pilot).
+
 ## v1.6.0-rc.3 — 2026-10-28 (candidate; pilot rollout)
 
 - Docs debt counts only changes made since the previous observation (session start or the previous turn). Uncommitted work that existed before the session is no longer reported as debt (found in the pilot).
