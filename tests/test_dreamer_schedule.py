@@ -93,6 +93,23 @@ class ScheduleTests(unittest.TestCase):
             self.assertNotEqual(ds.manage(self.root, "remove", apply=True, backend=backend)["exit"], 0)
         self.assertEqual(backend.calls, ["create"])
 
+    def test_sibling_project_path_prefix_is_not_a_duplicate_schedule(self):
+        self.enable(); backend = FakeBackend()
+        with patch.object(ds, "local_zone_matches", return_value=True):
+            selected = ds.manage(self.root, "install", apply=True, backend=backend)
+            sibling = {**backend.tasks[0], "name": "Dreamdocs-sibling"}
+            xml = ds.ET.fromstring(sibling["xml"])
+            xml.find("t:RegistrationInfo/t:Description", ds.NS).text = "dreamdocs-project:sibling"
+            xml.find("t:Actions/t:Exec/t:WorkingDirectory", ds.NS).text = str(self.root) + "-portal"
+            sibling["xml"] = ds.ET.tostring(xml, encoding="unicode")
+            backend.tasks.append(sibling)
+            status = ds.manage(self.root, "status", backend=backend)
+            self.assertEqual(status["state"], "installed_unobserved", status)
+            # A differently named task that executes in the exact root is still a conflict.
+            xml.find("t:Actions/t:Exec/t:WorkingDirectory", ds.NS).text = str(self.root)
+            backend.tasks[-1]["xml"] = ds.ET.tostring(xml, encoding="unicode")
+            self.assertEqual(ds.manage(self.root, "status", backend=backend)["state"], "blocked")
+
     def test_owner_pause_or_executor_removal_still_allows_explicit_schedule_cleanup(self):
         self.enable(); backend = FakeBackend()
         with patch.object(ds, "local_zone_matches", return_value=True):

@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.0-rc.6 — 2026-10-29 (candidate; local verification)
+
+- Windows scheduler ownership uses the exact action working directory. Projects whose paths share a prefix no longer block each other as duplicate schedules; duplicate tasks for the same project still fail closed.
+
 ## v1.6.0-rc.5 — 2026-10-29 (candidate; local verification)
 
 - Dreamer omits unavailable, restricted, binary and credential-like automatically cited evidence with explicit reasons in private receipts, while required evidence still fails closed. A credential detector citing its own source no longer aborts the curator.

@@ -130,6 +130,8 @@ run covers inputs since the last successful checkpoint; missed days never cause 
 
 Existing tasks require matching local identity and operational XML. Duplicate/changed/moved or
 unowned tasks are conflicts, never overwritten. Changed configuration requires review/reinstall.
+Project matching compares the exact action working directory; a sibling directory with a common
+path prefix is a different project, while differently named tasks for the same root remain conflicts.
 Explicit disable/remove still works after owner pause or executor removal, but refuses running/
 queued work and preserves memory. Repeat install does not re-enable a disabled task. Root task
 inventory covers Dreamdocs candidates, not arbitrary unrelated scheduler folders.
