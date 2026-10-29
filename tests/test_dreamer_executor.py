@@ -88,6 +88,32 @@ class ExecutorTests(unittest.TestCase):
             self.assertEqual(path.read_text(), "live owner")
             path.unlink()
 
+    def test_automatic_evidence_omits_unsafe_unavailable_and_binary_sources(self):
+        source = self.root / "memory/episodes/review.md"
+        text = source.read_text(encoding="utf-8")
+        meta = pm.metadata(text)
+        meta["source"] += ["file:scripts/automation_contract.py", "file:removed.txt", "file:image.png", "file:.env", "file:human-materials/original.txt"]
+        source.write_text("---\n" + json.dumps(meta) + "\n---\n# Review\n", encoding="utf-8")
+        (self.root / "image.png").write_bytes(b"\x89PNG\x00\xff")
+        begun = de.begin(self.root, "operator")
+        self.assertEqual(begun["exit"], 0, begun)
+        receipt = begun["execution"]
+        self.assertNotIn("scripts/automation_contract.py", receipt["evidence_hashes"])
+        self.assertEqual(receipt["evidence_omissions"], {
+            "scripts/automation_contract.py": "credential_pattern", "removed.txt": "missing_or_oversized",
+            "image.png": "non_text", ".env": "restricted_path", "human-materials/original.txt": "restricted_path"})
+        self.assertIn("docs/overview/platform.md", receipt["evidence_hashes"])
+        de.start(self.root, begun["run_id"], "operator")
+        self.result(begun["run_id"])
+        self.assertEqual(de.finish(self.root, begun["run_id"], "operator")["exit"], 0)
+
+    def test_explicit_evidence_with_credential_pattern_still_fails_closed(self):
+        self.config["evidence_files"].append("scripts/automation_contract.py")
+        self.configure()
+        begun = de.begin(self.root, "operator")
+        self.assertNotEqual(begun["exit"], 0)
+        self.assertFalse((self.root / "memory/dreamer/lock.json").exists())
+
     def test_failed_partial_bad_result_budget_and_changed_evidence_never_advance_checkpoint(self):
         for mode in ("partial", "failed", "source_changed", "budget", "invalid"):
             begun = de.begin(self.root, "operator")
@@ -339,7 +365,7 @@ class ExecutorTests(unittest.TestCase):
         subprocess.run(["git", "add", "-f", "--", de.CONFIG], cwd=self.root, check=True, capture_output=True, timeout=10)
         self.assertEqual(de.begin(self.root, "operator")["state"], "blocked")
 
-    def test_original_material_paths_are_refused_before_reading_configured_or_episode_evidence(self):
+    def test_original_material_paths_are_never_read_as_configured_or_episode_evidence(self):
         original = self.root / "human-materials/private-synthetic.txt"
         original.write_text("Synthetic original; must not be opened by executor.", encoding="utf-8")
         episode = self.root / "memory/episodes/review.md"
@@ -351,8 +377,10 @@ class ExecutorTests(unittest.TestCase):
                 with self.subTest(origin=origin, relative=relative):
                     self.config["evidence_files"] = [relative] if origin == "configuration" else []
                     self.configure()
-                    episode.write_text(episode_text.replace("file:docs/overview/platform.md", "file:" + relative)
-                                       if origin == "episode" else episode_text, encoding="utf-8")
+                    metadata = pm.metadata(episode_text)
+                    if origin == "episode":
+                        metadata["source"] = ["file:" + relative]
+                    episode.write_text("---\n" + json.dumps(metadata) + "\n---\n# Review\n", encoding="utf-8")
                     opened = []
                     def observe(path):
                         if path.resolve() == original.resolve():
@@ -360,8 +388,11 @@ class ExecutorTests(unittest.TestCase):
                         return read(path)
                     with patch.object(Path, "read_bytes", observe):
                         result = de.begin(self.root, "operator")
-                    self.assertEqual(result["state"], "blocked")
+                    self.assertEqual(result["state"], "blocked" if origin == "configuration" else "prepared", result)
                     self.assertEqual(opened, [])
+                    if origin == "episode":
+                        self.assertEqual(result["execution"]["evidence_omissions"][relative], "restricted_path")
+                        pm.abort(self.root, result["run_id"])
                     self.assertFalse((self.root / "memory/dreamer/lock.json").exists())
 
     def test_pre_dispatch_privacy_subprocess_failure_aborts_only_our_preparation(self):

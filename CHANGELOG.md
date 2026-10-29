@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.6.0-rc.5 — 2026-10-29 (candidate; local verification)
+
+- Dreamer omits unavailable, restricted, binary and credential-like automatically cited evidence with explicit reasons in private receipts, while required evidence still fails closed. A credential detector citing its own source no longer aborts the curator.
+- Docs debt ignores generated `output/` artifacts and inspects individual untracked files so new source directories still count. Existing debt is filtered by the same rules.
+
 ## v1.6.0-rc.4 — 2026-10-28 (candidate; pilot rollout)
 
 - A file cited by an existing memory record may later move or be deleted (a branch switch, a cleaned-up report) without blocking validation, Dreamer or every later capture. `validate` lists it as a warning and recall marks it missing. New captures still check their evidence (found in the pilot).
