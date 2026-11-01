@@ -3,7 +3,7 @@
 
 Never blocks or continues the agent, never reads transcripts and never calls a model.
 SessionStart recalls the project briefing; meaningful prompts recall related memory; Stop saves the
-turn outcome from an optional fenced dreamdocs-outcome block in the last assistant message;
+turn outcome from an optional fenced or tagged dreamdocs-outcome block in the last assistant message;
 StopFailure (Claude Code) is an interrupted turn and writes nothing; SessionEnd only publishes queued
 captures. All output is ASCII JSON.
 """
@@ -23,7 +23,7 @@ import memory_capture as mc
 import memory_recall as mr
 import project_memory as pm
 
-BLOCK = re.compile(r"```dreamdocs-outcome[ \t]*\r?\n(.*?)\r?\n[ \t]*```", re.S)
+BLOCK = re.compile(r"```dreamdocs-outcome[ \t]*\r?\n(.*?)\r?\n[ \t]*```|<dreamdocs-outcome>\s*(.*?)\s*</dreamdocs-outcome>", re.S)
 BLOCK_FIELDS = {"status", "summary", "lessons", "evidence", "task", "docs_impact"}
 DOCS_IMPACT = {"none", "updated", "needed"}
 MEANINGFUL_TERMS = 3
@@ -110,12 +110,17 @@ def user_prompt(root, payload):
         context("UserPromptSubmit", mr.recall(root, query=prompt[:PROMPT_QUERY], max_chars=PROMPT_CHARS, episodes=3))
 
 
+def last_outcome_block(message):
+    found = list(BLOCK.finditer(message))
+    return next(part for part in found[-1].groups() if part is not None) if found else None
+
+
 def outcome_block(message, adapter, turn):
     """Return (outcome, task, warning). Only an explicit block can carry lessons; nothing is invented."""
-    found = BLOCK.findall(message)
-    if found:
+    found = last_outcome_block(message)
+    if found is not None:
         try:
-            data = json.loads(found[-1])
+            data = json.loads(found)
             if isinstance(data, dict) and set(data) <= BLOCK_FIELDS and isinstance(data.get("summary"), str):
                 evidence = data.get("evidence") or [f"ref:{adapter}-turn/{turn}"]
                 return ({"status": data.get("status", "success"), "summary": data["summary"],
@@ -131,9 +136,9 @@ def outcome_block(message, adapter, turn):
 
 def docs_impact(message):
     """Optional docs_impact from a valid outcome block: none, updated or needed; anything else is ignored."""
-    found = BLOCK.findall(message)
+    found = last_outcome_block(message)
     try:
-        data = json.loads(found[-1]) if found else None
+        data = json.loads(found) if found is not None else None
     except ValueError:
         return None
     value = data.get("docs_impact") if isinstance(data, dict) else None

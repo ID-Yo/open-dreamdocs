@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.6.0-rc.7 — 2026-11-01 (candidate; local verification)
+
+- Codex and Claude Code hooks also accept explicit `<dreamdocs-outcome>` JSON blocks. Tagged outcomes previously produced only a no-lesson receipt, losing their summary, task and lessons. Both formats now use the same validation and select the last complete block in message order.
+
 ## v1.6.0-rc.6 — 2026-10-29 (candidate; local verification)
 
 - Windows scheduler ownership uses the exact action working directory. Projects whose paths share a prefix no longer block each other as duplicate schedules; duplicate tasks for the same project still fail closed.

@@ -23,6 +23,13 @@ It skips turns that already have a receipt and does nothing when `stop_hook_acti
 anything is written. A malformed block falls back to a receipt with a warning; lessons come only from
 the block, as described in [the instruction block](../../../adapters/outcome-block.md).
 
+The preferred outcome format is the fenced `dreamdocs-outcome` JSON block. For compatibility,
+the shared lifecycle parser also accepts the same JSON inside `<dreamdocs-outcome>` and
+`</dreamdocs-outcome>`, on one line or several lines. The last complete block in message order
+wins across both formats, including `docs_impact`. Both formats use the same validation, privacy,
+receipt and idempotency checks. Opening and closing delimiters must match.
+The hook saves the outcome; it does not remove or hide the outcome text from the chat reply.
+
 ## Status
 
 Earlier independent Windows verification with Codex CLI 0.147.0 observed trusted project hooks

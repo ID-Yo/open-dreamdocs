@@ -80,6 +80,40 @@ class CodexAdapterTests(unittest.TestCase):
         self.assertEqual(pm.read_json(self.root / "memory/automation/receipts" / receipts[0])["outcome"], "no_lesson")
         self.assertNotIn("MARK-3141", self.all_text())
 
+    def test_tagged_outcome_saves_episode_activity_and_docs_impact_idempotently(self):
+        import lifecycle
+        outcome = {"status": "partial", "summary": "Export review needs corrections.",
+                   "lessons": ["Verify exported behavior against the reviewed artifact."],
+                   "evidence": ["file:docs/note.md"], "task": {"id": "ISSUE-133", "status": "in-progress"}, "docs_impact": "none"}
+        message = "Work reported. <dreamdocs-outcome> " + json.dumps(outcome) + " </dreamdocs-outcome>"
+        payload = self.payload("stop", last_assistant_message=message)
+        self.assertEqual(self.hook(payload), {})
+        episodes = self.files("memory/episodes")
+        self.assertEqual(len(episodes), 1)
+        self.assertIn("ISSUE-133, reported in-progress", self.all_text())
+        self.assertIn(outcome["summary"], (self.root / "docs/status/activity-log.md").read_text(encoding="utf-8"))
+        self.assertEqual(lifecycle.docs_impact(message), "none")
+        self.assertEqual(self.hook(payload), {})
+        self.assertEqual(self.files("memory/episodes"), episodes)
+
+    def test_last_complete_outcome_wins_across_tagged_and_fenced_formats(self):
+        import lifecycle
+        tag = '<dreamdocs-outcome>\n{"status":"partial","summary":"tagged","docs_impact":"none"}\n</dreamdocs-outcome>'
+        fence = block(status="success", summary="fenced", docs_impact="updated")
+        for message, summary, impact in [(fence + tag, "tagged", "none"), (tag + fence, "fenced", "updated")]:
+            self.assertEqual(lifecycle.outcome_block(message, "codex", "test")[0]["summary"], summary)
+            self.assertEqual(lifecycle.docs_impact(message), impact)
+        for message in ['<dreamdocs-outcome>\n{"summary":"bad"}\n```', '```dreamdocs-outcome\n{"summary":"bad"}\n</dreamdocs-outcome>']:
+            self.assertEqual(lifecycle.outcome_block(message, "codex", "test")[0]["status"], "no_lesson")
+
+    def test_tagged_outcomes_keep_validation_and_credential_protection(self):
+        invalid = '<dreamdocs-outcome>{not json}</dreamdocs-outcome>'
+        self.assertIn("outcome block", self.hook(self.payload("stop", turn_id="bad-tag", last_assistant_message=invalid))["systemMessage"])
+        secret = '<dreamdocs-outcome>' + json.dumps({"summary": SECRET, "evidence": ["ref:a"]}) + '</dreamdocs-outcome>'
+        self.assertIn("reject", self.hook(self.payload("stop", turn_id="secret-tag", last_assistant_message=secret))["systemMessage"])
+        self.assertEqual(self.files("memory/episodes"), [])
+        self.assertNotIn(SECRET, self.all_text())
+
     def test_stop_hook_active_and_garbage_input_never_block(self):
         self.assertEqual(self.hook(self.payload("stop", stop_hook_active=True, last_assistant_message=block(status="success", summary="x", lessons=[], evidence=["ref:a"]))), {})
         self.assertEqual(self.files("memory/automation/receipts"), [])
