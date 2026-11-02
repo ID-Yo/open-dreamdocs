@@ -167,6 +167,18 @@ class DocsStatusTests(unittest.TestCase):
         start = self.hook("session_start")
         self.assertIn("1 earlier turn outcome(s) are not saved yet", json.dumps(start))
 
+    def test_new_source_directory_counts_but_generated_output_does_not(self):
+        self.git("init", "-q")
+        self.hook("session_start")
+        (self.root / "output").mkdir()
+        (self.root / "output/screenshot.png").write_bytes(b"generated image")
+        self.stop(summary="Captured a screenshot.")
+        self.assertEqual(ds.load_debt(self.root)["files"], [])
+        (self.root / "src").mkdir()
+        (self.root / "src/app.py").write_text("print(1)\n", encoding="utf-8")
+        self.stop(summary="Added app source.")
+        self.assertEqual(ds.load_debt(self.root)["files"], ["src/app.py"])
+
 
 if __name__ == "__main__":
     unittest.main()

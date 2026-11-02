@@ -76,10 +76,14 @@ and shown by `dreamer status` and `doctor`. Later indexing does not replace it, 
 indexing failure does not block curation. Legacy receipts and the separate operator
 begin/start/finish workflow have no indexing summary and show `materials: null`.
 
-Selected evidence_files, root rules/promotion policy, config/binding and local file sources in
-snapshot records are hashed and rechecked inside finish. List any additional reviewed local sources
-explicitly. Originals/credentials are refused; original reading requires a separate consented
-reader and extracted notes. Remote/nonretrievable references remain operator-reviewed. Neither
+Selected evidence_files, root rules/promotion policy, config/binding and readable local file sources in
+snapshot records are hashed and rechecked inside finish. Required evidence fails closed if unavailable,
+non-text or credential-like. Automatically cited files that are missing, oversized, non-text,
+restricted or credential-like are omitted from model evidence, with a reason in the private execution
+receipt's `evidence_omissions`; they are not verified sources. The executor must report these limits
+when reviewing the records. This also prevents credential detector source code from triggering its
+own pattern in the curator prompt. Originals require a separate consented reader and extracted notes.
+List additional required local sources explicitly. Remote/nonretrievable references remain operator-reviewed. Neither
 the wrapper nor result schema proves semantic truth or sandboxes a trusted executor's filesystem.
 
 ## Selected command executor
@@ -126,6 +130,8 @@ run covers inputs since the last successful checkpoint; missed days never cause 
 
 Existing tasks require matching local identity and operational XML. Duplicate/changed/moved or
 unowned tasks are conflicts, never overwritten. Changed configuration requires review/reinstall.
+Project matching compares the exact action working directory; a sibling directory with a common
+path prefix is a different project, while differently named tasks for the same root remain conflicts.
 Explicit disable/remove still works after owner pause or executor removal, but refuses running/
 queued work and preserves memory. Repeat install does not re-enable a disabled task. Root task
 inventory covers Dreamdocs candidates, not arbitrary unrelated scheduler folders.

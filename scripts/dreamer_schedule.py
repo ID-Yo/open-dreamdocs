@@ -186,8 +186,18 @@ def task_signature(xml):
 
 
 def relevant(tasks, selection):
+    def executes_here(task):
+        xml = task.get("xml", "")
+        if "dreamdocs.py" not in xml:
+            return False
+        try:
+            working = ET.fromstring(xml).findtext("t:Actions/t:Exec/t:WorkingDirectory", namespaces=NS)
+        except ET.ParseError:
+            pm.require(selection["root"] not in xml, "malformed possible project schedule; inspect before any operation")
+            return False
+        return bool(working) and os.path.normcase(os.path.normpath(working)) == os.path.normcase(os.path.normpath(selection["root"]))
     return [t for t in tasks if t.get("name") == selection["name"] or selection["project_marker"] in t.get("xml", "")
-            or ("dreamdocs.py" in t.get("xml", "") and selection["root"] in t.get("xml", ""))]
+            or executes_here(t)]
 
 
 def same_task(task, selection, enabled=True):

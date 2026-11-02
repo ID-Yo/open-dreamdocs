@@ -149,8 +149,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertFalse(rp.prepare(self.root, self.revision, out)["ok"])
         self.assertEqual(out.read_bytes(), b"preserve owner file")
 
-    def test_version_stamps_agree_and_candidate_does_not_claim_both_agents_are_released(self):
-        self.assertEqual(install.PACKAGE_VERSION, "1.6.0-rc.4")
+    def test_stable_version_stamps_preserve_client_support_limits(self):
+        self.assertEqual(install.PACKAGE_VERSION, "1.6.0")
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn(install.PACKAGE_VERSION, readme)
         self.assertIn("Claude", readme)

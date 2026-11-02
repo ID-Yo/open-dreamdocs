@@ -110,20 +110,37 @@ def private_runtime(root, destinations):
 
 
 def evidence(root, cfg, snapshot):
-    selected = set(cfg["evidence_files"]) | {"AGENTS.md", "docs/governance/promotion-rules.md"}
+    required = set(cfg["evidence_files"]) | {"AGENTS.md", "docs/governance/promotion-rules.md"}
+    selected = set(required)
     for record in snapshot["records"]:
         selected |= {s[5:] for s in record["metadata"]["source"] if s.startswith("file:")}
-    hashes, size = {}, 0
+    hashes, size, omissions = {}, 0, {}
     for relative in sorted(selected):
-        path = pm.confined(root, relative.replace("\\", "/"))
+        reason = None
+        try:
+            path = pm.confined(root, relative.replace("\\", "/"))
+            parts = path.relative_to(root).parts
+            if not parts or parts[0].casefold() == "human-materials" or any(p.casefold().startswith(".env") for p in parts):
+                reason = "restricted_path"
+            elif not path.is_file() or path.stat().st_size > pm.SOURCE_HASH_LIMIT:
+                reason = "missing_or_oversized"
+            else:
+                raw = path.read_bytes()
+                try:
+                    text = raw.decode("utf-8-sig")
+                    reason = "non_text" if "\x00" in text else "credential_pattern" if ac.SECRET.search(text) else None
+                except UnicodeDecodeError:
+                    reason = "non_text"
+        except (OSError, ValueError):
+            reason = "unavailable"
+        if reason:
+            pm.require(relative not in required, "required evidence refused: " + reason)
+            omissions[relative] = reason
+            continue
         relative = path.relative_to(root).as_posix()
-        pm.require(Path(relative).parts and Path(relative).parts[0].casefold() != "human-materials"
-                   and not any(p.casefold().startswith(".env") for p in Path(relative).parts), "original/credential evidence needs a separate consented reader; not read by this executor wrapper")
-        pm.require(path.is_file() and path.stat().st_size <= pm.SOURCE_HASH_LIMIT, "missing or oversized selected evidence")
-        raw = path.read_bytes()
         hashes[relative] = pm.digest(raw)
         size += len(raw)
-    return hashes, size
+    return hashes, size, omissions
 
 
 @guarded
@@ -138,7 +155,7 @@ def begin(root, executor, trigger="manual", *, materials=None):
     try:
         with pm.operation(root):
             snapshot, work = pm.run_files(root, run)
-            hashes, size = evidence(root, cfg, snapshot)
+            hashes, size, omissions = evidence(root, cfg, snapshot)
             hashes[CONFIG] = sha
             hashes["memory/automation.json"] = pm.digest(pm.confined(root, "memory/automation.json").read_bytes())
             worker = cfg["executor"]
@@ -149,7 +166,7 @@ def begin(root, executor, trigger="manual", *, materials=None):
                          "argv_sha256": pm.digest(ac.canonical(worker["argv"]).encode()), "budgets": {k: worker[k] for k in sorted(BUDGETS)},
                          "trigger": trigger, "requested_at": requested, "prepared_at": pm.now(), "started_at": None, "finished_at": None,
                          "state": "prepared", "pid": None, "process_exit": None, "process_finished_at": None, "result_sha256": None, "report_sha256": None,
-                         "snapshot_sha256": pm.digest((work / "snapshot.json").read_bytes()), "evidence_hashes": hashes,
+                         "snapshot_sha256": pm.digest((work / "snapshot.json").read_bytes()), "evidence_hashes": hashes, "evidence_omissions": omissions,
                          "checkpoint": None, "proposal_hashes": {}, "provenance": "Operator timestamps are explicit operator reports; command timestamps/PID/exit are locally observed. No semantic truth attestation."}
             if materials is not None:
                 execution["materials"] = materials

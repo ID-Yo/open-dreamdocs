@@ -29,7 +29,7 @@ LINE = re.compile(r"^- (\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}) UTC · ([a-z_]+)(?: · 
 TITLE = re.compile(r"^# Outcome: ([a-z_]+)(?: \((.+), reported ([a-z-]+)\))?$", re.M)
 TICK = chr(96)
 RECENT, OPEN_TASKS, SUMMARY, DEBT_FILES = 10, 15, 400, 50
-NOT_CODE = ("docs/", "memory/", ".dreamdocs/", ".codex/", ".claude/", "human-materials/", ".git/")
+NOT_CODE = ("docs/", "memory/", ".dreamdocs/", ".codex/", ".claude/", "human-materials/", ".git/", "output/")
 BACKFILL = timedelta(days=1)
 LOG_HEADER = """---
 {"document":"activity-log","status":"generated","owner":"dreamdocs"}
@@ -235,7 +235,7 @@ def snapshot(root, since_head):
         except OSError:
             pass  # history rewritten or object missing; fall back to the working tree
     current = {}
-    for line in git(root, "status", "--porcelain", "--untracked-files=normal").splitlines():
+    for line in git(root, "status", "--porcelain", "--untracked-files=all").splitlines():
         path = line[3:].split(" -> ")[-1].strip().strip('"').replace("\\", "/")
         if path:
             current[path] = fingerprint(root, path)
@@ -255,6 +255,9 @@ def load_debt(root):
         value = {}
     if not isinstance(value, dict) or value.get("version") != 1:
         value = {"version": 1, "head": None, "seen": None, "files": [], "turns": []}
+    value["files"] = sorted(classify(value["files"])[1])
+    if not value["files"]:
+        value["turns"] = []
     return value
 
 

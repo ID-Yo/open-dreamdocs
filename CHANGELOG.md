@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.6.0 — 2026-11-02
+
+Stable release of the documentation template and deterministic Python tools, including all fixes
+from 1.5.0 and 1.6.0 candidates. Optional client integrations retain their documented support limits.
+
+- Automatic activity logs and marked current-state updates from saved outcomes, with owner text preserved.
+- Loss-free evidence fallback, bounded redelivery, capture/readback diagnostics and pinned safe upgrades.
+- Optional Human Materials indexing and explicit Dreamer executor/Windows scheduling with owner opt-in.
+- Safer optional Dreamer evidence handling and exact scheduler project-directory matching.
+- Tagged and fenced outcome capture with shared validation and idempotency; generated output excluded from docs debt.
+- Claude Code authenticated lifecycle and cross-client switching remain experimental. Docs debt is a heuristic, not proof that topic documentation covers every code change; see the support matrix.
+
+## v1.6.0-rc.7 — 2026-11-01 (candidate; local verification)
+
+- Codex and Claude Code hooks also accept explicit `<dreamdocs-outcome>` JSON blocks. Tagged outcomes previously produced only a no-lesson receipt, losing their summary, task and lessons. Both formats now use the same validation and select the last complete block in message order.
+
+## v1.6.0-rc.6 — 2026-10-29 (candidate; local verification)
+
+- Windows scheduler ownership uses the exact action working directory. Projects whose paths share a prefix no longer block each other as duplicate schedules; duplicate tasks for the same project still fail closed.
+
+## v1.6.0-rc.5 — 2026-10-29 (candidate; local verification)
+
+- Dreamer omits unavailable, restricted, binary and credential-like automatically cited evidence with explicit reasons in private receipts, while required evidence still fails closed. A credential detector citing its own source no longer aborts the curator.
+- Docs debt ignores generated `output/` artifacts and inspects individual untracked files so new source directories still count. Existing debt is filtered by the same rules.
+
 ## v1.6.0-rc.4 — 2026-10-28 (candidate; pilot rollout)
 
 - A file cited by an existing memory record may later move or be deleted (a branch switch, a cleaned-up report) without blocking validation, Dreamer or every later capture. `validate` lists it as a warning and recall marks it missing. New captures still check their evidence (found in the pilot).
