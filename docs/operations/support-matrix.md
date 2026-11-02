@@ -22,7 +22,7 @@ different things. The [release checklist](release.md) requires exact-candidate i
 Executor transport and local installed-trigger observations are narrower than complete #21 runtime
 acceptance. Offline/restart/uninstall acceptance remains unverified. Likewise,
 data-preservation upgrade tests do not prove automatic client lifecycle behavior after upgrade or
-rollback. These limits remain visible while RC packaging is reviewed.
+rollback. These limits remain explicit in the stable package until separately verified.
 
 Historical candidate hashes identify prior evidence; they do not attest to later code changes.
 Private transcripts, owner config, raw reports and machine paths are not shipped as public proof.
@@ -67,4 +67,4 @@ change models, bypass trust, install companion agents or enable a scheduler auto
 The `doctor` compatibility label is the conservative package support-table state, not a dynamic
 version rejection. Codex CLI 0.147.0 is the recorded observed Windows client; `unsupported`
 does not mean the executable version was rejected. Real hooks/trust/save/recall acceptance
-and supported release status are separate. RC2 does not widen the support table.
+and supported release status are separate. Stable package versioning does not widen the support table.
