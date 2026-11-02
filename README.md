@@ -5,7 +5,8 @@ project: community initiatives, research, operations, creative work or software.
 Keep agreed project knowledge in `docs/`, and evidence, outcomes and proposed
 lessons in `memory/`. Use the folders manually or with an AI assistant.
 
-Version **1.6.0-rc.7** — release candidate, pending the [dual-client release gates](docs/operations/release.md).
+Version **1.6.0** — stable documentation template and Python tools. Client integrations retain the
+explicit limitations in the [support matrix](docs/operations/support-matrix.md).
 Licensed under [MIT](LICENSE). Guides, templates, examples and prompts are in English.
 
 ## Start with the documents
@@ -39,7 +40,7 @@ independently and never installs a companion silently.
 
 Requires Python 3.11+, an authenticated supported client, and reviewed project hooks. The Python
 tools use only the standard library; setup does not call a model, install a schedule or publish data.
-From the extracted clean candidate, preview before applying:
+From the extracted clean release, preview before applying:
 
 ```text
 python -B scripts/dreamdocs.py setup --client codex
@@ -57,7 +58,7 @@ For an explicitly chosen experimental Claude setup, preview `setup --client clau
 add `--apply` only after reviewing the plan. Its hooks use `.claude/settings.local.json`; shared
 settings stay intact. Without a stable prompt identity on Stop, it warns and saves nothing.
 Both clients share project binding and ordinary memory files, but cross-client runtime acceptance
-is still a release gate. Do not treat fixture success as an authenticated-client result.
+is still a release gate for supported dual-client integration. Do not treat fixture success as an authenticated-client result.
 
 ```text
 python -B scripts/dreamdocs.py doctor --smoke
@@ -130,7 +131,7 @@ people still verify the truth of claims and the quality of proposals.
 
 ## License and provenance
 
-This candidate packages the project's reusable documentation template and
+This release packages the project's reusable documentation template and
 standard-library Python runner under the [MIT license](LICENSE). It starts with
 a reviewed source snapshot and fresh public Git history. Archival source
 collections, third-party reference documents, private project records, local

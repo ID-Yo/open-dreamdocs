@@ -1,10 +1,11 @@
 ---
-{"document":"support-matrix","status":"draft","owner":"<project-owner>","last_reviewed":"2026-10-22"}
+{"document":"support-matrix","status":"draft","owner":"<project-owner>","last_reviewed":"2026-11-02"}
 ---
 
-# Candidate support and evidence
+# Release support and evidence
 
-Package: **1.5.0-rc.6**. This is a candidate, not a released dual-client support claim.
+Package: **1.6.0 stable** for the reusable documentation template and Python tools.
+This is not a released dual-client integration support claim.
 An installed file, fixture pass, capture receipt, trusted hook and fresh-session recall prove
 different things. The [release checklist](release.md) requires exact-candidate independent evidence.
 
@@ -16,10 +17,10 @@ different things. The [release checklist](release.md) requires exact-candidate i
 | Switching clients | Shared project binding/record format tested with fixtures | Real Codex→Claude and Claude→Codex new-session recall pending |
 | Upgrade/rollback | v1.4.0 revision 26c7aff57be6ffb4ccd6287c979e3782a0a19b2a adoption and data-preserving automation-version rollback passed independent QA at d7f2be77c790aa8324f15ad076c651a142b8cc96 | Final package pin/inventory plus real automatic probes after upgrade AND rollback required |
 | Dreamer operator | Actual isolated synthetic operator review, proposed contradiction and checkpoint readback observed | Does not establish production semantics or automatic scheduling |
-| Windows scheduler | Simulated tests, real read-only COM query and TASK_VALIDATE_ONLY XML validation | No installed-task/real-trigger/offline/restart acceptance; separate explicit owner opt-in |
+| Windows scheduler | Simulated tests, real COM query, installed tasks and successful scheduled execution/readback in local candidate rollouts | Exact-package client acceptance and offline/restart behavior remain unverified; separate explicit owner opt-in |
 
-Executor transport and schedule-preview code acceptance is narrower than complete #21 runtime
-acceptance. Real installed-trigger/offline/restart/uninstall evidence remains unverified. Likewise,
+Executor transport and local installed-trigger observations are narrower than complete #21 runtime
+acceptance. Offline/restart/uninstall acceptance remains unverified. Likewise,
 data-preservation upgrade tests do not prove automatic client lifecycle behavior after upgrade or
 rollback. These limits remain visible while RC packaging is reviewed.
 
@@ -28,7 +29,27 @@ Private transcripts, owner config, raw reports and machine paths are not shipped
 The Manager/QA must bind final acceptance to the exact package/manifest/archive hashes. The engine's
 compatibility table stays conservative until those runtime observations are accepted.
 
-## Official hook references rechecked 2026-10-22
+## Operational observations and remaining limits
+
+Local Windows rollout of the 1.6.0 candidates exercised capture/status generation and explicit
+Dreamer execution across 20 project roots. Installed Windows tasks and matching successful
+execution/report/checkpoint readbacks were observed. Later scheduled runs also exposed model-capacity
+failures; those runs did not advance checkpoints. These observations do not prove unattended model
+availability, reboot/offline recovery or exact-final-artifact client acceptance. The shipped runner
+requires a separately selected executor; private local model wrappers and schedules are not included.
+
+The rc.7 tagged-outcome fix was exercised through an installed Codex Stop adapter, with episode
+and generated-status readback plus duplicate replay checks. Explicit adapter invocation is not
+independent evidence that every desktop turn fires its hook. The compatibility table remains
+conservative, and Claude Code and client switching remain experimental.
+
+Generated activity/status pages repeat saved agent reports. Topic pages still require task-level
+updates and review. Docs debt is a heuristic: any topic-doc edit or an `updated` declaration currently
+clears accumulated debt, and generated operational JSON outside excluded output paths may count as
+code. Zero debt is not proof of documentation coverage. These known limits are not silently fixed
+or claimed resolved by this release.
+
+## Official hook references last rechecked 2026-10-22
 
 - [Codex hook reference](https://learn.chatgpt.com/docs/hooks): project trust, review of changed hooks,
   lifecycle event/payload and context output rules. Dreamdocs uses SessionStart, UserPromptSubmit,

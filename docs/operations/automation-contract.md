@@ -6,8 +6,8 @@
 
 This page defines the shared contract for automatic project memory in Codex and
 Claude Code. It is the reference for setup, capture, recall, adapters, health and
-upgrades. **No part of this package captures or recalls automatically yet.** The
-executable part today is a read-only event checker:
+upgrades. Capture and recall run through optional project-scoped adapters after explicit setup
+and client hook trust. No automation is active in a fresh download. The read-only event checker is:
 
 ```text
 python -B scripts/automation_contract.py --root . --event EVENT.json
@@ -17,7 +17,8 @@ It validates one event, prints the decision and planned identifiers, and writes
 nothing. Machine-readable cases live in [tests/fixtures/automation](../../tests/fixtures/automation/).
 The writer is `python -B scripts/dreamdocs.py memory capture --event FILE` (#16),
 with a `reconcile` command for queued captures, and `memory recall` (#17) returns bounded,
-untrusted context for session start and prompts; no client adapter calls them yet.
+untrusted context for session start and prompts. The [Codex](agents/codex.md) and experimental
+[Claude Code](agents/claude-code.md) adapters connect these commands to client lifecycle events.
 The event shape is also published as [outcome-event.schema.json](../../templates/outcome-event.schema.json).
 
 ## Lifecycle
@@ -51,8 +52,9 @@ No state implies a later one. A config file or a setup success message proves on
 ## Client support
 
 Observed 2026-10-22 on Windows 10.0.26100: codex-cli 0.147.0 and Claude Code
-2.1.273 are installed. No adapter has shipped or been tested, so both clients are
-**unsupported**. The checker's `SUPPORT` table carries the same values, and
+2.1.273 were installed. Adapters ship and Codex has earlier runtime observations, but exact-final-
+artifact client acceptance remains incomplete, so the compatibility table conservatively reports
+both clients **unsupported**. The checker's `SUPPORT` table carries the same values, and
 `automatic` stays false until an entry is `tested` with client version, OS,
 surface, test date and evidence. Every other combination is unsupported.
 

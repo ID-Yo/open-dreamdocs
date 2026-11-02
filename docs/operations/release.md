@@ -1,13 +1,20 @@
 ---
-{"document":"release","status":"draft","owner":"<project-owner>","last_reviewed":"2026-10-22"}
+{"document":"release","status":"draft","owner":"<project-owner>","last_reviewed":"2026-11-02"}
 ---
 
-# Reproducible candidate and release gates
+# Reproducible releases and integration gates
 
-Version 1.5.0-rc.6 is prepared for review. It is **not approved for publication as a working
-dual-client release**. Actual Claude save/new-session recall, client switching and final exact-
-candidate clean-room acceptance remain release gates. See the [support matrix](support-matrix.md).
-Tests or setup success cannot substitute for those observations; do not close the epic from them.
+Version **1.6.0** is the owner-authorized stable release of the documentation template and Python
+tools. Package stability does not establish client integration support. Claude save/new-session
+recall, client switching and exact-client clean-room acceptance remain gates before claiming
+supported dual-client automation. See the [support matrix](support-matrix.md). Tests or setup
+success cannot substitute for those observations; do not close the dual-client epic from them.
+
+Stable package publication requires the source and extracted-package suites, link/schema validation,
+exact-commit inventory/privacy/history audit and matching published artifact. The integration matrix
+below records additional gates for client-support claims; unverified integrations remain explicitly
+experimental in a stable package. Machine-specific executors, schedules and real project records
+remain private and are never bundled as reusable defaults.
 
 ## Clean source artifact
 
@@ -83,6 +90,7 @@ and documented backend limits. Hosts that are off cannot execute. No default mod
 
 The maintainer supplies candidate SHA, local suite/link results, source/archive/runtime manifest
 hashes, privacy/history audit findings and the completed real acceptance matrix. Code Reviewer and
-QA assess that exact candidate; Manager/owner owns acceptance and publication. Until all nonoptional
-gates pass, retain candidate status. After publication, download the actual public artifact and
+QA assess that exact candidate; Manager/owner owns acceptance and publication. Until the package
+gates pass, retain candidate status. Open integration gates prohibit the corresponding support
+claims, not a stable package with those limitations disclosed. After publication, download the actual public artifact and
 compare its inventory/behavior with the accepted package; a local ZIP alone does not prove it.
